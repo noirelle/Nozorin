@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { LogoIcon } from './icons';
 
 interface LobbyProps {
     onJoin: (mode: 'chat' | 'video') => void;
@@ -8,7 +9,12 @@ interface LobbyProps {
 export default function Lobby({ onJoin }: LobbyProps) {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
-            <h1 className="text-4xl font-bold mb-8 tracking-wide">Omegle Clone</h1>
+            <div className="flex items-center gap-4 mb-8 select-none">
+                <LogoIcon className="w-16 h-16 text-[#FF8ba7] transition-transform hover:scale-105" />
+                <span className="text-6xl font-display font-bold tracking-tight text-[#FF8ba7] pb-2">
+                    nozorin
+                </span>
+            </div>
             <p className="text-gray-400 mb-12 text-lg">Talk to strangers!</p>
 
             <div className="flex flex-col sm:flex-row gap-6 w-full max-w-md">
