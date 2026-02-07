@@ -2,18 +2,14 @@ version: '3.8'
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile
+    build: ./api
     ports:
       - "3001:3001"
     environment:
       - PORT=3001
 
   ui:
-    build:
-      context: .
-      dockerfile: ui/Dockerfile
+    build: ./ui
     ports:
       - "3000:3000"
     environment:
