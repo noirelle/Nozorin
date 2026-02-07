@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: api/Dockerfile
     ports:
       - "3001:3001"
     volumes:
@@ -14,7 +16,9 @@ services:
     container_name: api
 
   ui:
-    build: ./ui
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
     ports:
       - "3000:3000"
     volumes:

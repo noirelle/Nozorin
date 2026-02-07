@@ -1,12 +1,14 @@
 FROM node:20-alpine
 
 WORKDIR /app
-COPY package*.json ./
 
-RUN ls -la
+COPY ui/package*.json ./
+
 RUN npm install
 
-COPY . .
+COPY ui/ .
+
+
 RUN npm run build
 
 EXPOSE 3000
