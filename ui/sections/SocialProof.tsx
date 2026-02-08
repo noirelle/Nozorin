@@ -1,8 +1,23 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon } from '../components/icons';
+import { useStats } from '../hooks/useStats';
 
 export default function SocialProof() {
+    const { stats } = useStats();
+
+    // Format large numbers (e.g., 7200000 -> "7.2m")
+    const formatLargeNumber = (num: number) => {
+        if (num >= 1000000) {
+            return `${(num / 1000000).toFixed(1)}m`;
+        } else if (num >= 1000) {
+            return `${(num / 1000).toFixed(1)}k`;
+        }
+        return num.toString();
+    };
+
     return (
         <section className="py-20 md:py-32 bg-white relative overflow-hidden">
             {/* Decorative Background Elements */}
@@ -27,11 +42,11 @@ export default function SocialProof() {
 
                         <div className="grid grid-cols-2 gap-8 mb-10">
                             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-100/50">
-                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">7.2m</div>
+                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.totalConnections)}</div>
                                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Connections</div>
                             </div>
                             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-100/50">
-                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">3.1m</div>
+                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.dailyChats)}</div>
                                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Daily Chats</div>
                             </div>
                         </div>

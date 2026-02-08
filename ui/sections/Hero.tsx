@@ -1,8 +1,21 @@
+'use client';
+
 import React from 'react';
 import { MessageIcon, VideoIcon } from '../components/icons';
 import HeroVisual from './HeroVisual';
+import { useStats } from '../hooks/useStats';
 
 export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => void }) {
+    const { stats } = useStats();
+
+    // Format number for display (e.g., 12500 -> "12.5k+")
+    const formatNumber = (num: number) => {
+        if (num >= 1000) {
+            return `${(num / 1000).toFixed(1)}k+`;
+        }
+        return `${num}+`;
+    };
+
     return (
         <section className="relative flex flex-col lg:flex-row items-center justify-center lg:justify-between px-6 py-8 md:py-16 lg:py-20 max-w-7xl mx-auto gap-8 lg:gap-12 overflow-hidden lg:min-h-[600px]">
 
@@ -60,7 +73,7 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => v
                         </div>
                     </div>
                     <div>
-                        <span className="text-gray-900 font-bold block">12k+ People Online</span>
+                        <span className="text-gray-900 font-bold block">{formatNumber(stats.peopleOnline)} People Online</span>
                         <span className="text-xs text-green-500 font-bold flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                             Live Now

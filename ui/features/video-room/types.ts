@@ -21,6 +21,8 @@ export interface RoomLayoutProps {
     onSendMessage: (text: string) => void;
     setShowChat: (show: boolean) => void;
     setInputText: (text: string) => void;
+    onNavigateToChat?: () => void;
+    onNavigateToHistory?: () => void;
 
     // Mobile specific
     mobileLayout?: 'overlay' | 'split';

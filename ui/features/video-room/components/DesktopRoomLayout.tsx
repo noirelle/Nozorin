@@ -3,6 +3,7 @@ import { RoomLayoutProps } from '../types';
 import { SkeletonLoaderDesktop } from '../../../components/SkeletonLoader';
 import ChatBox from '../../chat/components/ChatBox';
 import { LogoIcon, ArrowRightIcon } from '../../../components/icons';
+import { RoomNavbar } from '../../../components/RoomNavbar';
 
 export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     videoRoomState,
@@ -20,6 +21,8 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     setShowChat,
     filtersOpen,
     setFiltersOpen,
+    onNavigateToChat,
+    onNavigateToHistory,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
 
@@ -101,30 +104,12 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
 
     return (
         <div className="hidden lg:flex flex-col w-full h-full p-4 gap-4">
-            <div className="flex h-20 items-center justify-between px-4 shrink-0">
-                <div className="flex items-center gap-12">
-                    <div className="flex items-center gap-4">
-                        <LogoIcon className="w-14 h-14 text-[#FF8ba7]" />
-                        <span className="text-4xl font-display font-bold tracking-tight text-white leading-none">nozorin</span>
-                    </div>
-                    <div className="flex items-center gap-8 hidden xl:flex translate-y-[2px]">
-                        <div className="relative">
-                            <button className="text-white font-display font-bold tracking-tight text-xl leading-none shadow-black drop-shadow-md">Video Chat</button>
-                            <div className="absolute left-0 right-0 bottom-[-4px] h-0.5 bg-[#FF8ba7]"></div>
-                        </div>
-                        <button className="text-zinc-400 font-display font-medium tracking-tight text-xl hover:text-white transition-colors leading-none">Chats</button>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 text-zinc-400 hover:text-white font-display font-medium tracking-tight text-xl transition-colors leading-none group">
-                        <svg className="w-5 h-5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>History</span>
-                    </button>
-                </div>
-            </div>
+            <RoomNavbar
+                activeTab="video"
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToHistory={onNavigateToHistory}
+                variant="desktop"
+            />
 
             <div className="flex-1 flex gap-4 min-h-0">
                 <div className="flex-1 rounded-3xl overflow-hidden relative border border-white/5 bg-zinc-900">
@@ -146,14 +131,14 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                         </div>
                     )}
 
-                    <div className="absolute top-4 left-4 flex flex-col gap-4 z-10">
-                        <button onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)} className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                        </button>
+                    <div className="absolute top-4 left-4 z-10">
+                        <div className="flex flex-col gap-2 p-2">
+                            <button onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)} className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                </svg>
+                            </button>
 
-                        <div className="flex flex-col gap-1 p-1 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
                             <button onClick={onToggleMute} className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all ${isMuted ? 'bg-red-500 text-white' : 'hover:bg-white/10'}`}>
                                 {isMuted ? (
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,6 +353,6 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                     </div>
                 </button>
             </div>
-        </div>
+        </div >
     );
 };

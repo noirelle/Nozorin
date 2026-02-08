@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RoomLayoutProps } from '../types';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { LogoIcon } from '../../../components/icons';
+import { RoomNavbar } from '../../../components/RoomNavbar';
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     videoRoomState,
@@ -24,6 +25,8 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     setMobileLayout,
     filtersOpen,
     setFiltersOpen,
+    onNavigateToChat,
+    onNavigateToHistory,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
 
@@ -201,27 +204,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
             <div className="fixed top-0 left-0 right-0 z-30 flex flex-col pointer-events-none">
                 {/* Top Nav */}
-                <div className="px-4 py-2.5 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 to-transparent">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            <LogoIcon className="w-7 h-7 text-[#FF8ba7] flex-shrink-0" />
-                            <span className="text-lg font-display font-bold tracking-tight text-white leading-none">nozorin</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                <button className="text-white font-display font-bold tracking-tight text-[15px] leading-none shadow-black drop-shadow-md">Video Chat</button>
-                                <div className="absolute left-0 right-0 bottom-[-3px] h-0.5 bg-[#FF8ba7]"></div>
-                            </div>
-                            <button className="text-white/70 font-display font-medium tracking-tight text-[15px] hover:text-white transition-colors shadow-black drop-shadow-md leading-none">Chats</button>
-                        </div>
-                    </div>
-                    <button className="flex items-center gap-1.5 text-white/70 hover:text-white font-display font-medium tracking-tight text-[15px] transition-colors leading-none flex-shrink-0">
-                        <svg className="w-4 h-4 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>History</span>
-                    </button>
-                </div>
+                <RoomNavbar
+                    activeTab="video"
+                    onNavigateToChat={onNavigateToChat}
+                    onNavigateToHistory={onNavigateToHistory}
+                    variant="mobile"
+                />
 
                 {/* Existing Controls */}
                 {/* Existing Controls */}

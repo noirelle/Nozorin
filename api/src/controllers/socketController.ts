@@ -2,11 +2,13 @@
 import { Socket, Server } from 'socket.io';
 import { getGeoInfo } from '../utils/geo';
 import { User } from '../types';
+import { statsService } from '../utils/statsService';
 
 let chatQueue: User[] = [];
 let videoQueue: User[] = [];
 let activeCalls = new Map<string, string>(); // socketId -> partnerId
 let userMediaState = new Map<string, { isMuted: boolean, isCameraOff: boolean }>(); // socketId -> media state
+let activeUsers = new Set<string>(); // Track users who are actively using the app (not just stats watchers)
 
 // Helper to remove user from all queues
 const removeUserFromQueues = (socketId: string) => {
@@ -27,11 +29,21 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
 
     console.log(`[CONNECT] ${socket.id} from ${country} (${countryCode})`);
 
+    // Send current stats to the newly connected user
+    socket.emit('stats-update', statsService.getStats());
+
     // Initialize user media state (unmuted, camera on by default)
     userMediaState.set(socket.id, { isMuted: false, isCameraOff: false });
 
     // JOIN QUEUE (Searching for match)
     socket.on('find-match', (data: { mode: 'chat' | 'video' }) => {
+        // Mark user as active if not already
+        if (!activeUsers.has(socket.id)) {
+            activeUsers.add(socket.id);
+            statsService.incrementOnlineUsers();
+            io.emit('stats-update', statsService.getStats());
+        }
+
         const mode = data.mode;
 
         // Ensure not already in a call - if so, end it
@@ -93,6 +105,13 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
                     roomId,
                     mode,
                 });
+
+                // Track successful connection
+                statsService.incrementDailyChats();
+                statsService.incrementTotalConnections();
+
+                // Broadcast updated stats to all clients
+                io.emit('stats-update', statsService.getStats());
 
                 console.log(`[MATCH] Queue sizes - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
                 return;
@@ -231,6 +250,13 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
 
         // Clean up media state
         userMediaState.delete(socket.id);
+
+        // Decrement online users *only* if they were active
+        if (activeUsers.has(socket.id)) {
+            activeUsers.delete(socket.id);
+            statsService.decrementOnlineUsers();
+            io.emit('stats-update', statsService.getStats());
+        }
 
         console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
     });

@@ -13,9 +13,11 @@ import { DesktopRoomLayout } from './DesktopRoomLayout';
 interface RoomProps {
     mode: 'chat' | 'video';
     onLeave: () => void;
+    onNavigateToChat: () => void;
+    onNavigateToHistory: () => void;
 }
 
-export default function Room({ mode, onLeave }: RoomProps) {
+export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory }: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
@@ -303,6 +305,8 @@ export default function Room({ mode, onLeave }: RoomProps) {
                 setMobileLayout={setMobileLayout}
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToHistory={onNavigateToHistory}
             />
             <DesktopRoomLayout
                 videoRoomState={videoRoomState}
@@ -323,6 +327,8 @@ export default function Room({ mode, onLeave }: RoomProps) {
                 setInputText={setInputText}
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
+                onNavigateToChat={onNavigateToChat}
+                onNavigateToHistory={onNavigateToHistory}
             />
         </div>
     );
