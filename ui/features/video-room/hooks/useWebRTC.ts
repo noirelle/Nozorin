@@ -14,6 +14,7 @@ interface UseWebRTCProps {
     mediaManager: MediaStreamManager | null;
     remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
+    onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
 }
 
 export const useWebRTC = ({
@@ -21,6 +22,7 @@ export const useWebRTC = ({
     mediaManager,
     remoteVideoRef,
     onConnectionStateChange,
+    onSignalQuality,
 }: UseWebRTCProps) => {
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
@@ -63,17 +65,28 @@ export const useWebRTC = ({
 
             // Handle connection state changes
             pc.onconnectionstatechange = () => {
-                if (
-                    pc.connectionState === 'disconnected' ||
-                    pc.connectionState === 'failed'
-                ) {
-                    onConnectionStateChange?.(pc.connectionState);
+                const state = pc.connectionState;
+                if (state === 'disconnected') {
+                    onSignalQuality?.('reconnecting');
+                } else if (state === 'connected') {
+                    onSignalQuality?.('good');
+                }
+
+                if (state === 'failed' || state === 'closed') {
+                    onConnectionStateChange?.(state);
+                }
+                // For disconnected, we notify signal quality but let parent decide if it wants to close immediately
+                // However, original code did:
+                // if (state === 'disconnected' || state === 'failed') onConnectionStateChange?.(state);
+                // We preserve this for now, but Room.tsx should be updated to not stop on 'disconnected' immediately.
+                if (state === 'disconnected') {
+                    onConnectionStateChange?.(state);
                 }
             };
 
             return pc;
         },
-        [socket, mediaManager, remoteVideoRef, onConnectionStateChange]
+        [socket, mediaManager, remoteVideoRef, onConnectionStateChange, onSignalQuality]
     );
 
     const closePeerConnection = useCallback(() => {
@@ -134,6 +147,37 @@ export const useWebRTC = ({
         },
         []
     );
+
+    // Stats Monitoring
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const pc = peerConnectionRef.current;
+            if (!pc || pc.connectionState !== 'connected') return;
+
+            try {
+                const stats = await pc.getStats();
+                let rtt = 0;
+
+                stats.forEach((report) => {
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.currentRoundTripTime) {
+                        rtt = report.currentRoundTripTime * 1000;
+                    }
+                });
+
+                if (rtt > 300) {
+                    onSignalQuality?.('poor');
+                } else if (rtt > 150) {
+                    onSignalQuality?.('fair');
+                } else {
+                    onSignalQuality?.('good');
+                }
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [onSignalQuality]);
 
     // Set up signaling listeners
     useEffect(() => {

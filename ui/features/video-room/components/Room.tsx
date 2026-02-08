@@ -28,6 +28,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
         setSearching,
         setConnected,
         setPartner,
+        setPartnerSignalStrength,
         resetState,
     } = useVideoRoom(mode);
 
@@ -58,11 +59,23 @@ export default function Room({ mode, onLeave }: RoomProps) {
         mediaManager: mediaManager.current,
         remoteVideoRef,
         onConnectionStateChange: (state) => {
-            if (state === 'disconnected' || state === 'failed') {
+            if (state === 'failed') {
                 handleStop();
+            }
+            // If disconnected, we don't stop immediately anymore. We wait for reconnection or manual stop.
+        },
+        onSignalQuality: (quality) => {
+            // Send my signal quality to partner
+            if (socket && videoRoomState.partnerId) {
+                socket.emit('signal-strength', {
+                    target: videoRoomState.partnerId,
+                    strength: quality
+                });
             }
         }
     });
+
+
 
     // 4. Chat Hook
     const {
@@ -106,12 +119,16 @@ export default function Room({ mode, onLeave }: RoomProps) {
         console.log('[Room] Skipping to next partner');
         manualStopRef.current = true;
         handleStop();
+
+        // Show "Finding..." immediately during the cooldown
+        setSearching(true);
+
         // Delay ensures server cleans up before next search
         setTimeout(() => {
             manualStopRef.current = false;
             findMatch();
         }, 500);
-    }, [handleStop, findMatch]);
+    }, [handleStop, findMatch, setSearching]);
 
     const onMatchFound = useCallback(async (data: any) => {
         console.log('[Room] Match found:', data);
@@ -200,15 +217,20 @@ export default function Room({ mode, onLeave }: RoomProps) {
 
         const onPartnerMute = (data: { isMuted: boolean }) => setPartnerIsMuted(data.isMuted);
         const onPartnerCamera = (data: { isCameraOff: boolean }) => setPartnerIsCameraOff(data.isCameraOff);
+        const onPartnerSignal = (data: { strength: 'good' | 'fair' | 'poor' | 'reconnecting' }) => {
+            setPartnerSignalStrength(data.strength);
+        };
 
         socket.on('partner-mute-state', onPartnerMute);
         socket.on('partner-camera-state', onPartnerCamera);
+        socket.on('partner-signal-strength', onPartnerSignal);
 
         return () => {
             socket.off('partner-mute-state', onPartnerMute);
             socket.off('partner-camera-state', onPartnerCamera);
+            socket.off('partner-signal-strength', onPartnerSignal);
         };
-    }, [socket]);
+    }, [socket, setPartnerSignalStrength]);
 
     // 9. Keyboard Shortcuts
     useEffect(() => {

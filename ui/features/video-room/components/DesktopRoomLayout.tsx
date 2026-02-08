@@ -21,7 +21,51 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     filtersOpen,
     setFiltersOpen,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff } = videoRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
+
+    const getSignalIcon = () => {
+        if (partnerSignalStrength === 'reconnecting') return (
+            <div className="flex items-center gap-2 h-10 px-3 bg-black/60 backdrop-blur-md border border-yellow-500/30 rounded-full animate-pulse shadow-lg ml-2">
+                <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs text-yellow-500 font-bold uppercase tracking-wider">Reconnecting</span>
+            </div>
+        );
+
+        const bars = {
+            good: 3,
+            fair: 2,
+            poor: 1
+        }[partnerSignalStrength] || 3;
+
+        const tooltip = {
+            good: 'Good Connection',
+            fair: 'Fair Connection',
+            poor: 'Poor Connection'
+        }[partnerSignalStrength] || 'Unknown';
+
+        return (
+            <div className="flex flex-col justify-center h-10 ml-1 group relative">
+                <div className="flex items-end gap-1 px-2.5 py-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-xl border border-white/5 transition-all cursor-help">
+                    {[1, 2, 3].map(i => (
+                        <div
+                            key={i}
+                            className={`w-1 rounded-full transition-all duration-500 ${i <= bars ? (
+                                partnerSignalStrength === 'poor' ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' :
+                                    partnerSignalStrength === 'fair' ? 'bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]' : 'bg-[#00ff88] shadow-[0_0_5px_rgba(0,255,136,0.3)]'
+                            ) : 'bg-white/10'}`}
+                            style={{ height: `${6 + (i * 4)}px` }}
+                        />
+                    ))}
+                </div>
+
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/90 text-white text-[10px] font-medium rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50">
+                    {tooltip}
+                </div>
+            </div>
+        );
+    };
 
     const getButtonText = () => {
         if (isSearching) return 'Stop';
@@ -29,7 +73,23 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
         return 'Start';
     };
 
+
+
+
+    const [showIntro, setShowIntro] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isConnected) {
+            setShowIntro(true);
+            const timer = setTimeout(() => setShowIntro(false), 3500);
+            return () => clearTimeout(timer);
+        } else {
+            setShowIntro(false);
+        }
+    }, [isConnected]);
+
     const handleButtonClick = () => {
+        if (showIntro) return; // Prevent skipping during intro
         if (isSearching) {
             onStop();
         } else if (isConnected) {
@@ -45,17 +105,20 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                 <div className="flex items-center gap-12">
                     <div className="flex items-center gap-4">
                         <LogoIcon className="w-14 h-14 text-[#FF8ba7]" />
-                        <span className="text-4xl font-display font-bold tracking-tight text-white">nozorin</span>
+                        <span className="text-4xl font-display font-bold tracking-tight text-white leading-none">nozorin</span>
                     </div>
-                    <div className="flex items-center gap-8 hidden xl:flex">
-                        <button className="text-white font-display font-bold tracking-tight text-xl border-b-2 border-[#FF8ba7] pb-1 px-1">Video Chat</button>
-                        <button className="text-zinc-400 font-display font-medium tracking-tight text-xl hover:text-white transition-colors px-1">Chats</button>
+                    <div className="flex items-center gap-8 hidden xl:flex translate-y-[2px]">
+                        <div className="relative">
+                            <button className="text-white font-display font-bold tracking-tight text-xl leading-none shadow-black drop-shadow-md">Video Chat</button>
+                            <div className="absolute left-0 right-0 bottom-[-4px] h-0.5 bg-[#FF8ba7]"></div>
+                        </div>
+                        <button className="text-zinc-400 font-display font-medium tracking-tight text-xl hover:text-white transition-colors leading-none">Chats</button>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-white/10 rounded-full text-white font-display font-medium tracking-tight transition-all group">
-                        <svg className="w-5 h-5 text-zinc-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button className="flex items-center gap-2 text-zinc-400 hover:text-white font-display font-medium tracking-tight text-xl transition-colors leading-none group">
+                        <svg className="w-5 h-5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>History</span>
@@ -119,11 +182,35 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                 </div>
 
                 <div className="flex-1 rounded-3xl overflow-hidden relative group/remote">
+                    {/* Intro Animation Overlay - Minimalist Discord Style */}
+                    {isConnected && showIntro && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-900 animate-in fade-in duration-[1000ms]">
+                            <div className="flex flex-col items-center gap-6 animate-in zoom-in-95 slide-in-from-bottom-8 duration-[1500ms] ease-out fill-mode-forwards">
+                                <div className="relative">
+                                    <div className="w-28 h-28 rounded-full bg-[#18181b] border border-white/5 flex items-center justify-center shadow-2xl relative z-10 overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                        <span className="text-3xl font-bold text-white/90 tracking-wider">{partnerCountryCode}</span>
+                                    </div>
+                                    {/* Decorative ring */}
+                                    <div className="absolute inset-0 -m-1 rounded-full border border-white/5 animate-pulse opacity-50" />
+                                </div>
+
+                                <div className="text-center space-y-1.5">
+                                    <h2 className="text-2xl font-semibold text-white tracking-tight">{partnerCountry || 'Stranger'}</h2>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                        <p className="text-zinc-400 text-sm font-medium">Connected</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Remote Video */}
                     <video
                         id="desktop-remote-video"
                         ref={remoteVideoRef}
-                        className={`w-full h-full object-cover transition-opacity duration-500 ${isConnected && !partnerIsCameraOff ? 'opacity-100' : 'opacity-0'}`}
+                        className={`w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out ${isConnected && !partnerIsCameraOff && !showIntro ? 'opacity-100' : 'opacity-0'}`}
                         autoPlay
                         playsInline
                     />
@@ -142,26 +229,37 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                         </div>
                     )}
 
-                    {/* Not Connected State */}
-                    {!isConnected && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
+                    {/* Not Connected State (Searching & Idle) */}
+                    {/* We keep this visible briefly during the transition to 'showIntro' for cross-fading effect */}
+                    {(!isConnected || (isConnected && showIntro)) && (
+                        <div className={`absolute inset-0 flex items-center justify-center bg-zinc-900 z-10 transition-opacity duration-[1500ms] ease-in-out ${isConnected && showIntro ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                             {isSearching ? (
-                                <SkeletonLoaderDesktop />
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="relative flex items-center justify-center w-24 h-24 mb-6">
+                                        <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-ping opacity-75 duration-[2000ms]" />
+                                        <div className="absolute inset-0 bg-[#FF8ba7]/5 rounded-full animate-ping delay-500 opacity-50 duration-[2500ms]" />
+                                        <div className="relative w-16 h-16 bg-[#18181b] rounded-full border border-white/10 flex items-center justify-center shadow-2xl z-10">
+                                            <div className="w-2 h-2 bg-[#FF8ba7] rounded-full animate-pulse shadow-[0_0_10px_#FF8ba7]" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-lg font-medium text-white/90 mb-1 tracking-wide">Searching</h3>
+                                    <p className="text-white/40 text-sm">Finding someone for you...</p>
+                                </div>
                             ) : (
-                                <div className="text-center">
-                                    <div className="text-6xl mb-6 grayscale opacity-30">
+                                <div className="text-center group cursor-default">
+                                    <div className="text-5xl mb-6 grayscale opacity-20 group-hover:opacity-30 transition-opacity duration-500 transform group-hover:scale-110">
                                         <span role="img" aria-label="Wave">👋</span>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-2">Ready to meet?</h3>
-                                    <p className="text-gray-400">Click arrow or press &rarr; to start</p>
+                                    <h3 className="text-xl font-semibold text-white/90 mb-2 tracking-tight">Ready to connect?</h3>
+                                    <p className="text-white/40 text-sm font-medium">Click arrow or press &rarr; to start</p>
                                 </div>
                             )}
                         </div>
                     )}
 
                     {/* Partner Info Header */}
-                    {isConnected && (
-                        <div className="absolute top-4 left-4 flex items-center gap-3 z-20">
+                    {isConnected && !showIntro && (
+                        <div className="absolute top-4 left-4 flex items-center gap-3 z-20 animate-in fade-in slide-in-from-top-4 duration-[1500ms] ease-out">
                             <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-sm font-bold">
                                 {partnerCountryCode || '?'}
                             </div>
@@ -175,6 +273,13 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Signal Strength (Top Right) */}
+                    {isConnected && (
+                        <div className="absolute top-4 right-4 z-20">
+                            {getSignalIcon()}
                         </div>
                     )}
 
@@ -247,11 +352,18 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                             {isSearching ? 'Press right key to stop' : (isConnected ? 'Press right key to meet others' : 'Press right key to start')}
                         </span>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-[#1e1e1e] flex items-center justify-center text-white group-hover:bg-[#2a2a2a] transition-colors">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 ${showIntro ? 'bg-[#1e1e1e] opacity-50 cursor-not-allowed' : 'bg-[#1e1e1e] group-hover:bg-[#2a2a2a]'}`}>
                         {isSearching ? (
                             <div className="w-4 h-4 bg-white rounded-sm" />
                         ) : (
-                            <ArrowRightIcon className="w-5 h-5" />
+                            showIntro ? (
+                                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                <ArrowRightIcon className="w-5 h-5" />
+                            )
                         )}
                     </div>
                 </button>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RoomLayoutProps } from '../types';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
+import { LogoIcon } from '../../../components/icons';
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     videoRoomState,
@@ -24,7 +25,40 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     filtersOpen,
     setFiltersOpen,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff } = videoRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
+
+    const getSignalIcon = () => {
+        if (partnerSignalStrength === 'reconnecting') return (
+            <div className="flex items-center gap-1 animate-pulse text-yellow-500">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-xs font-bold">Reconnecting...</span>
+            </div>
+        );
+
+        // Signal bars
+        const bars = {
+            good: 3,
+            fair: 2,
+            poor: 1
+        }[partnerSignalStrength] || 3;
+
+        return (
+            <div className="flex items-end gap-0.5 h-3">
+                {[1, 2, 3].map(i => (
+                    <div
+                        key={i}
+                        className={`w-1 rounded-sm ${i <= bars ? (
+                            partnerSignalStrength === 'poor' ? 'bg-red-500' :
+                                partnerSignalStrength === 'fair' ? 'bg-yellow-500' : 'bg-green-500'
+                        ) : 'bg-white/20'}`}
+                        style={{ height: `${i * 33}%` }}
+                    />
+                ))}
+            </div>
+        );
+    };
 
     const getButtonText = () => {
         if (isSearching) return 'Stop';
@@ -68,16 +102,43 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
         }
     }, [isConnected]);
 
+    const [showIntro, setShowIntro] = useState(false);
+
+    useEffect(() => {
+        if (isConnected) {
+            setShowIntro(true);
+            const timer = setTimeout(() => setShowIntro(false), 2000);
+            return () => clearTimeout(timer);
+        } else {
+            setShowIntro(false);
+        }
+    }, [isConnected]);
+
     return (
         <div className="lg:hidden w-full h-full fixed inset-0 font-sans touch-none">
-            <div className={`fixed left-0 right-0 top-0 z-0 bg-black transition-all duration-300 ${mobileLayout === 'split' ? 'h-[50%] bottom-auto border-b border-white/10' : 'h-full bottom-0'}`}>
+            <div className={`fixed left-0 right-0 top-0 z-0 bg-black transition-[height,border] duration-200 ease-out ${mobileLayout === 'split' ? 'h-[50%] bottom-auto border-b border-white/10' : 'h-full bottom-0'}`}>
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-10 pointer-events-none"></div>
+
+                {/* Intro Animation Overlay */}
+                {isConnected && showIntro && (
+                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-zinc-900 animate-in fade-in duration-300">
+                        <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-500 delay-100">
+                            <div className="w-24 h-24 rounded-full bg-zinc-800 border-4 border-[#FF8ba7]/20 flex items-center justify-center shadow-2xl">
+                                <span className="text-3xl font-bold text-white">{partnerCountryCode}</span>
+                            </div>
+                            <div className="text-center">
+                                <h2 className="text-2xl font-bold text-white mb-1">{partnerCountry || 'Stranger'}</h2>
+                                <p className="text-zinc-400 text-sm">Connected!</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Remote Video */}
                 <video
                     id="mobile-remote-video"
                     ref={remoteVideoRef}
-                    className={`w-full h-full object-cover transition-opacity duration-300 ${isConnected && !partnerIsCameraOff ? 'opacity-100' : 'opacity-0'}`}
+                    className={`w-full h-full object-cover transition-opacity duration-1000 ${isConnected && !partnerIsCameraOff && !showIntro ? 'opacity-100' : 'opacity-0'}`}
                     autoPlay
                     playsInline
                 />
@@ -98,9 +159,21 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
                 {/* Not Connected State */}
                 {!isConnected && (
-                    <div className="absolute inset-0 flex items-center justify-center z-0">
+                    <div className="absolute inset-0 flex items-center justify-center z-0 bg-black/60 backdrop-blur-sm">
                         {isSearching ? (
-                            <SkeletonLoader />
+                            <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                <div className="relative flex items-center justify-center w-24 h-24 mb-6">
+                                    <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-ping opacity-75" />
+                                    <div className="absolute inset-0 bg-[#FF8ba7]/10 rounded-full animate-ping delay-300 opacity-50" />
+                                    <div className="relative w-16 h-16 bg-[#1a1a1a] rounded-full border-2 border-[#FF8ba7] flex items-center justify-center shadow-[0_0_20px_rgba(255,139,167,0.3)] z-10">
+                                        <svg className="w-6 h-6 text-[#FF8ba7] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-1 animate-pulse tracking-tight">Finding partner...</h3>
+                                <p className="text-white/60 text-sm font-medium">Please wait</p>
+                            </div>
                         ) : (
                             <div className="text-center px-6 animate-in fade-in zoom-in duration-500">
                                 <div className="text-5xl mb-4 grayscale opacity-40 animate-pulse">
@@ -114,7 +187,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 )}
 
                 {/* Partner Mute Indicator (Discord-style - top left for mobile) */}
-                {isConnected && partnerIsMuted && (
+                {isConnected && partnerIsMuted && mobileLayout === 'split' && (
                     <div className="absolute top-16 right-4 z-20 animate-in fade-in duration-200">
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-red-500/90 backdrop-blur-md shadow-lg border border-red-400/20">
                             <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -128,13 +201,22 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
             <div className="fixed top-0 left-0 right-0 z-30 flex flex-col pointer-events-none">
                 {/* Top Nav */}
-                <div className="px-4 py-2 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 to-transparent">
+                <div className="px-4 py-2.5 flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 to-transparent">
                     <div className="flex items-center gap-4">
-                        <button className="text-white font-display font-bold tracking-tight text-[17px] border-b-2 border-[#FF8ba7] pb-0.5 shadow-black drop-shadow-md">Video Chat</button>
-                        <button className="text-white/70 font-display font-medium tracking-tight text-[17px] hover:text-white transition-colors shadow-black drop-shadow-md">Chats</button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <LogoIcon className="w-7 h-7 text-[#FF8ba7] flex-shrink-0" />
+                            <span className="text-lg font-display font-bold tracking-tight text-white leading-none">nozorin</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <button className="text-white font-display font-bold tracking-tight text-[15px] leading-none shadow-black drop-shadow-md">Video Chat</button>
+                                <div className="absolute left-0 right-0 bottom-[-3px] h-0.5 bg-[#FF8ba7]"></div>
+                            </div>
+                            <button className="text-white/70 font-display font-medium tracking-tight text-[15px] hover:text-white transition-colors shadow-black drop-shadow-md leading-none">Chats</button>
+                        </div>
                     </div>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-black/20 backdrop-blur-md rounded-full text-white/90 font-display font-medium tracking-tight text-[14px] border border-white/10 shadow-black drop-shadow-md">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button className="flex items-center gap-1.5 text-white/70 hover:text-white font-display font-medium tracking-tight text-[15px] transition-colors leading-none flex-shrink-0">
+                        <svg className="w-4 h-4 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>History</span>
@@ -144,19 +226,32 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 {/* Existing Controls */}
                 {/* Existing Controls */}
                 <div className="px-4 py-1 flex items-start justify-between pointer-events-auto">
-                    <div className="flex items-center gap-3">
-                        {partnerCountryCode && (
-                            <div className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/5 overflow-hidden flex items-center justify-center shrink-0 shadow-md">
-                                <span className="text-sm font-bold text-white/90 shadow-black drop-shadow-md">
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        {partnerCountryCode && !showIntro && (
+                            <div className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md border border-white/5 overflow-hidden flex items-center justify-center shrink-0 shadow-md animate-in fade-in slide-in-from-top-4 duration-500">
+                                <span className="text-xs font-bold text-white/90 shadow-black drop-shadow-md">
                                     {partnerCountryCode}
                                 </span>
+                            </div>
+                        )}
+                        {isConnected && (
+                            <div className="flex items-center justify-center h-8 px-2 rounded-full bg-black/20 backdrop-blur-md border border-white/5 shadow-md">
+                                {getSignalIcon()}
+                            </div>
+                        )}
+                        {isConnected && partnerIsMuted && mobileLayout !== 'split' && (
+                            <div className="flex items-center justify-center h-8 px-2 gap-1 rounded-full bg-red-500/90 backdrop-blur-md shadow-md border border-red-400/20">
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z" />
+                                </svg>
+                                <span className="text-white text-[10px] font-semibold">Muted</span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div className={`fixed z-10 transition-all duration-300 overflow-hidden bg-black touch-none ${mobileLayout === 'split' ? 'top-[50%] left-0 right-0 bottom-0 w-full rounded-none border-t border-white/10' : 'top-16 right-4 w-[80px] aspect-[3/4] rounded-lg shadow-lg border border-white/10 backdrop-blur-sm bg-black/50'}`}>
+            <div className={`fixed z-10 transition-[top,left,right,bottom,width,height,border-radius,box-shadow,backdrop-filter] duration-200 ease-out overflow-hidden bg-black touch-none ${mobileLayout === 'split' ? 'top-[50%] left-0 right-0 bottom-0 w-full rounded-none border-t border-white/10' : 'top-16 right-4 w-[80px] aspect-[3/4] rounded-lg shadow-lg border border-white/10 backdrop-blur-sm bg-black/50'}`}>
                 <video
                     id="mobile-local-video"
                     ref={localVideoRef}
@@ -239,24 +334,24 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                             </button>
                         </form>
                     ) : (
-                        <div className="px-5 pb-8 pt-2 flex items-center justify-between w-full">
+                        <div className="px-4 pb-6 pt-2 flex items-center justify-between w-full">
                             {/* Left Icons Group */}
-                            <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => setShowChat(true)}
                                     className="text-white hover:text-white/80 transition-colors relative"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                         <path fillRule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.223zM8.25 10.875a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clipRule="evenodd" />
                                     </svg>
-                                    {messages.length > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black"></span>}
+                                    {messages.length > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full border border-black"></span>}
                                 </button>
 
                                 <button
                                     onClick={() => setMobileLayout && setMobileLayout(mobileLayout === 'overlay' ? 'split' : 'overlay')}
                                     className="text-white hover:text-white/80 transition-colors"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                         <path fillRule="evenodd" d="M3 6a3 3 0 013-3h2.25a3 3 0 013 3v2.25a3 3 0 01-3 3H6a3 3 0 01-3-3V6zm9.75 0a3 3 0 013-3H18a3 3 0 013 3v2.25a3 3 0 01-3 3h-2.25a3 3 0 01-3-3V6zM3 15.75a3 3 0 013-3h2.25a3 3 0 013 3V18a3 3 0 01-3 3H6a3 3 0 01-3-3v-2.25zm9.75 0a3 3 0 013-3H18a3 3 0 013 3V18a3 3 0 01-3 3h-2.25a3 3 0 01-3-3v-2.25z" clipRule="evenodd" />
                                     </svg>
                                 </button>
@@ -265,7 +360,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
                                     className="text-white hover:text-white/80 transition-colors"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-6 h-6 drop-shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5 drop-shadow-md">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                                     </svg>
                                 </button>
@@ -275,12 +370,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     className={`${isMuted ? 'text-red-500' : 'text-white hover:text-white/80'} transition-colors`}
                                 >
                                     {isMuted ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                             <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
                                             <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
                                         </svg>
                                     ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                             <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
                                             <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
                                         </svg>
@@ -292,11 +387,11 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     className={`${isCameraOff ? 'text-red-500' : 'text-white hover:text-white/80'} transition-colors`}
                                 >
                                     {isCameraOff ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                             <path d="M3.53 2.47a.75.75 0 00-1.06 1.06l18 18a.75.75 0 101.06-1.06l-18-18zM20.57 16.476l-2.091-2.091c.148-.282.261-.573.336-.871.21-.828.32-1.702.321-2.601a.75.75 0 00-.063-.3.75.75 0 00-.687-.452h-.01L15.65 8.24l2.455-2.455c.61-.161 1.258.043 1.61.503l3.856 5.027a.75.75 0 01.002.902l-3.003 4.26zM7.222 7.828l1.637 1.637.733-.733a6.75 6.75 0 019.345 7.02l.745.746a8.257 8.257 0 00-11.532-6.643l-.928-2.027z" />
                                         </svg>
                                     ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 drop-shadow-md">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
                                             <path d="M4.5 4.5a3 3 0 00-3 3v9a3 3 0 003 3h8.25a3 3 0 003-3v-9a3 3 0 00-3-3H4.5zM19.94 18.75l-2.69-2.69V7.94l2.69-2.69c.944-.945 2.56-.276 2.56 1.06v11.38c0 1.336-1.616 2.005-2.56 1.06z" />
                                         </svg>
                                     )}
@@ -304,14 +399,14 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                             </div>
 
                             {/* Right Actions: Stop & Next */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
                                 {(isConnected || isSearching) && (
                                     <button
                                         onClick={onStop}
-                                        className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all active:scale-95 backdrop-blur-md"
+                                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all active:scale-95 backdrop-blur-md"
                                         aria-label="Stop"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                                             <path fillRule="evenodd" d="M4.5 7.5a3 3 0 013-3h9a3 3 0 013 3v9a3 3 0 01-3 3h-9a3 3 0 01-3-3v-9z" clipRule="evenodd" />
                                         </svg>
                                     </button>
@@ -319,10 +414,10 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
                                 <button
                                     onClick={handleButtonClick}
-                                    className="flex items-center gap-1 pl-2 pr-1 text-white font-bold text-[18px] tracking-wide hover:opacity-80 active:scale-95 transition-all drop-shadow-md"
+                                    className="flex items-center gap-1 pl-1 pr-0 text-white font-bold text-[16px] tracking-wide hover:opacity-80 active:scale-95 transition-all drop-shadow-md"
                                 >
                                     <span>{getButtonText()}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                                         <path fillRule="evenodd" d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z" clipRule="evenodd" />
                                     </svg>
                                 </button>

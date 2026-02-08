@@ -176,6 +176,16 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
         console.log(`[MEDIA] ${socket.id} updated state:`, data);
     });
 
+    // Signal Strength / Reconnecting Logic
+    socket.on('signal-strength', (data: { target: string, strength: 'good' | 'fair' | 'poor' | 'reconnecting' }) => {
+        const { target, strength } = data;
+        // console.log(`[SIGNAL] ${socket.id} signal strength: ${strength}`);
+        io.to(target).emit('partner-signal-strength', {
+            partnerId: socket.id,
+            strength
+        });
+    });
+
     // Stop searching (cancel finding a match)
     socket.on('stop-searching', () => {
         console.log(`[STOP] User ${socket.id} stopped searching`);

@@ -10,6 +10,7 @@ export interface VideoRoomState {
     isMuted: boolean;
     isCameraOff: boolean;
     isMediaReady: boolean;
+    partnerSignalStrength: 'good' | 'fair' | 'poor' | 'reconnecting';
 }
 
 export const useVideoRoom = (mode: 'chat' | 'video') => {
@@ -22,6 +23,7 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
         isMuted: false,
         isCameraOff: false,
         isMediaReady: false,
+        partnerSignalStrength: 'good',
     });
 
     const mediaManager = useRef<MediaStreamManager | null>(null);
@@ -88,6 +90,10 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
         }));
     }, []);
 
+    const setPartnerSignalStrength = useCallback((strength: 'good' | 'fair' | 'poor' | 'reconnecting') => {
+        setState((prev) => ({ ...prev, partnerSignalStrength: strength }));
+    }, []);
+
     const resetState = useCallback(() => {
         setState((prev) => ({
             isSearching: false,
@@ -98,6 +104,7 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
             isMuted: prev.isMuted,
             isCameraOff: prev.isCameraOff,
             isMediaReady: prev.isMediaReady,
+            partnerSignalStrength: 'good',
         }));
     }, []);
 
@@ -112,6 +119,7 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
         setSearching,
         setConnected,
         setPartner,
+        setPartnerSignalStrength,
         resetState,
     };
 };
