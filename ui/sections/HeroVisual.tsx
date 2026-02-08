@@ -92,15 +92,6 @@ export default function HeroVisual() {
                     </div>
                 </div>
             </div>
-
-            {/* Minimal floating elements */}
-            <div className="absolute top-[20%] -left-8 bg-white p-3 rounded-2xl shadow-xl shadow-gray-100 border border-gray-50 animate-float-delayed z-20">
-                <span className="text-2xl">💖</span>
-            </div>
-            <div className="absolute bottom-[20%] -right-4 bg-white p-3 rounded-2xl shadow-xl shadow-gray-100 border border-gray-50 animate-float z-20">
-                <span className="text-2xl">✨</span>
-            </div>
-
         </div>
     );
 }
