@@ -442,9 +442,23 @@ export default function Room({ mode, onLeave }: RoomProps) {
                 )}
                 {isSearching && (
                     <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="w-14 h-14 border-4 border-white/20 border-t-[#FF8ba7] rounded-full animate-spin drop-shadow-md"></div>
-                            <p className="font-bold text-white drop-shadow-md animate-pulse">Searching...</p>
+                        <div className="flex flex-col items-center justify-center gap-4">
+                            <div className="relative flex items-center justify-center">
+                                {/* Animated glow background */}
+                                <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-[#FF8ba7]/30 to-[#3b82f6]/30 animate-glow-pulse blur-2xl opacity-40 absolute"></div>
+
+                                {/* Pulsing outer ring */}
+                                <div className="w-28 h-28 rounded-full border-3 border-[#FF8ba7]/20 animate-pulse-ring absolute"></div>
+
+                                {/* Main circle with globe emoji */}
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[#FF8ba7] to-[#3b82f6] flex items-center justify-center shadow-2xl relative z-10 animate-float">
+                                    <span className="text-4xl" role="img" aria-label="Globe">🌍</span>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <p className="font-bold text-white text-lg drop-shadow-md animate-scale-pulse">Searching...</p>
+                                <p className="text-white/70 text-sm mt-1">Finding your match</p>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -466,7 +480,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                             {messages.length === 0 && (
                                 <div className="text-center py-4 animate-in fade-in zoom-in duration-500">
                                     <p className="text-white/80 text-xs font-medium bg-black/20 backdrop-blur-md inline-block px-3 py-1.5 rounded-full shadow-sm">
-                                        Azar cares about your safety. Check out our <span className="text-[#FF8ba7] underline cursor-pointer hover:text-white transition-colors">Community Guidelines</span> and have fun!
+                                        Nozorin cares about your safety. Check out our <span className="text-[#FF8ba7] underline cursor-pointer hover:text-white transition-colors">Community Guidelines</span> and have fun!
                                     </p>
                                 </div>
                             )}
@@ -630,14 +644,27 @@ export default function Room({ mode, onLeave }: RoomProps) {
                         />
 
                         {(!isConnected) && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-10">
+                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
                                 {isSearching ? (
-                                    <div className="relative">
-                                        <div className="w-48 h-48 rounded-full bg-gradient-to-tr from-blue-400 to-green-400 animate-pulse blur-xl opacity-20 absolute inset-0 m-auto"></div>
-                                        <div className="w-40 h-40 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#10b981] flex items-center justify-center shadow-2xl relative z-10 animate-float text-6xl">
-                                            <span role="img" aria-label="Globe">🌍</span>
+                                    <div className="flex flex-col items-center justify-center">
+                                        <div className="relative flex items-center justify-center mb-8">
+                                            {/* Animated glow background */}
+                                            <div className="w-56 h-56 rounded-full bg-gradient-to-tr from-[#FF8ba7]/30 to-[#3b82f6]/30 animate-glow-pulse blur-3xl opacity-40 absolute"></div>
+
+                                            {/* Pulsing outer ring */}
+                                            <div className="w-48 h-48 rounded-full border-4 border-[#FF8ba7]/20 animate-pulse-ring absolute"></div>
+
+                                            {/* Main circle with emoji */}
+                                            <div className="w-40 h-40 rounded-full bg-gradient-to-tr from-[#FF8ba7] to-[#3b82f6] flex items-center justify-center shadow-2xl relative z-10 animate-float">
+                                                <span className="text-6xl" role="img" aria-label="Globe">🌍</span>
+                                            </div>
                                         </div>
-                                        <p className="font-display font-bold text-2xl mt-8 text-center text-white/90">Finding your next match...</p>
+
+                                        {/* Text */}
+                                        <div className="text-center">
+                                            <p className="font-display font-bold text-2xl text-white/90 animate-scale-pulse">Finding your next match...</p>
+                                            <p className="text-white/60 mt-2">This won't take long</p>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="text-center">
