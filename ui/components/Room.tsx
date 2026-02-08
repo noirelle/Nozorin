@@ -328,12 +328,37 @@ export default function Room({ mode, onLeave }: RoomProps) {
         });
     }, [localStream]);
 
+    // Prevent body scroll on mobile
+    useEffect(() => {
+        // Save original styles
+        const originalStyle = {
+            overflow: document.body.style.overflow,
+            position: document.body.style.position,
+            width: document.body.style.width,
+            height: document.body.style.height
+        };
+
+        // Prevent scroll
+        document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+
+        // Cleanup
+        return () => {
+            document.body.style.overflow = originalStyle.overflow;
+            document.body.style.position = originalStyle.position;
+            document.body.style.width = originalStyle.width;
+            document.body.style.height = originalStyle.height;
+        };
+    }, []);
+
     return (
-        <div className="flex flex-col h-[100dvh] bg-[#111] text-foreground font-sans overflow-hidden select-none relative">
+        <div className="flex flex-col h-[100dvh] bg-[#111] text-foreground font-sans overflow-hidden select-none relative touch-none">
 
             {/* ========================= MOBILE VIEW (lg:hidden) ========================= */}
-            <div className="lg:hidden w-full h-full relative font-sans">
-                <div className={`absolute left-0 right-0 top-0 z-0 bg-black transition-all duration-300 ${mobileLayout === 'split' ? 'h-[50%] bottom-auto border-b border-white/10' : 'h-full bottom-0'}`}>
+            <div className="lg:hidden w-full h-full fixed inset-0 font-sans touch-none">
+                <div className={`fixed left-0 right-0 top-0 z-0 bg-black transition-all duration-300 ${mobileLayout === 'split' ? 'h-[50%] bottom-auto border-b border-white/10' : 'h-full bottom-0'}`}>
                     <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-10 pointer-events-none"></div>
                     <video
                         id="mobile-remote-video"
@@ -350,7 +375,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                     )}
                 </div>
 
-                <div className="absolute top-0 left-0 right-0 z-30 px-4 py-3 flex items-start justify-between">
+                <div className="fixed top-0 left-0 right-0 z-30 px-4 py-3 flex items-start justify-between touch-none">
 
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/5 overflow-hidden flex items-center justify-center shrink-0 shadow-md">
@@ -391,7 +416,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                     </div>
                 </div>
 
-                <div className={`absolute z-10 transition-all duration-300 overflow-hidden bg-black
+                <div className={`fixed z-10 transition-all duration-300 overflow-hidden bg-black touch-none
                     ${mobileLayout === 'split'
                         ? 'top-[50%] left-0 right-0 bottom-0 w-full rounded-none border-t border-white/10'
                         : 'top-16 right-4 w-[80px] aspect-[3/4] rounded-lg shadow-lg border border-white/10 backdrop-blur-sm bg-black/50'}`}>
@@ -408,7 +433,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                 </div>
 
                 {(!isConnected && !isSearching) && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 px-6">
+                    <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-10 px-6">
                         <div className="text-center p-6 bg-black/10 backdrop-blur-md rounded-3xl shadow-xl">
                             <h2 className="text-2xl font-bold mb-2 text-white font-display drop-shadow-md">Start Matching</h2>
                             <p className="text-white/90 text-sm drop-shadow-md">Tap <span className="text-[#FF8ba7] font-bold">Next</span> to meet someone new</p>
@@ -416,7 +441,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                     </div>
                 )}
                 {isSearching && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                    <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-10">
                         <div className="flex flex-col items-center gap-3">
                             <div className="w-14 h-14 border-4 border-white/20 border-t-[#FF8ba7] rounded-full animate-spin drop-shadow-md"></div>
                             <p className="font-bold text-white drop-shadow-md animate-pulse">Searching...</p>
@@ -424,9 +449,9 @@ export default function Room({ mode, onLeave }: RoomProps) {
                     </div>
                 )}
 
-                <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col justify-end pointer-events-none pb-safe-area">
+                <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-col justify-end pointer-events-none pb-safe-area">
 
-                    <div className={`absolute bottom-0 left-0 right-0 transition-all duration-300 pointer-events-none z-0 ${showChat ? 'h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent' : 'h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`} />
+                    <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 pointer-events-none z-0 ${showChat ? 'h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent' : 'h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`} />
 
                     {showChat && (
                         <div
@@ -436,7 +461,7 @@ export default function Room({ mode, onLeave }: RoomProps) {
                     )}
 
                     <div className={`relative z-20 w-full px-4 py-2 flex flex-col justify-end transition-all duration-300 pointer-events-auto ${showChat ? 'max-h-[40vh] mb-0' : 'max-h-[35vh] min-h-[50px] mb-0'}`}>
-                        <div className="overflow-y-auto scrollbar-hide flex flex-col gap-2 pb-2 mask-image-gradient">
+                        <div className="overflow-y-auto scrollbar-hide flex flex-col gap-2 pb-2 mask-image-gradient overscroll-contain touch-pan-y">
                             {/* Guidelines Placeholder */}
                             {messages.length === 0 && (
                                 <div className="text-center py-4 animate-in fade-in zoom-in duration-500">
