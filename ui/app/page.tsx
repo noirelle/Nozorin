@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import Room from '../components/Room';
+import Room from '../features/video-room/components/Room';
 import Navbar from '../components/Navbar';
 import Hero from '../sections/Hero';
 import AppFeatures from '../sections/AppFeatures';
