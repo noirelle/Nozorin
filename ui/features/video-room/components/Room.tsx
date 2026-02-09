@@ -9,6 +9,7 @@ import { useChat } from '../../chat/hooks/useChat';
 import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
+import { DevicePermissionOverlay } from './DevicePermissionOverlay';
 
 interface RoomProps {
     mode: 'chat' | 'video';
@@ -330,6 +331,9 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
             />
+            {videoRoomState.permissionDenied && (
+                <DevicePermissionOverlay onRetry={initMediaManager} />
+            )}
         </div>
     );
 }

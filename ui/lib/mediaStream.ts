@@ -18,7 +18,7 @@ export class MediaStreamManager {
             return this.stream;
         } catch (error) {
             console.error('Error accessing media devices:', error);
-            return null;
+            throw error; // Rethrow so caller can handle UI
         }
     }
 
