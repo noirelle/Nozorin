@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nozorin-dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'a3f9c1e2b47d8e9f0a1b2c3d4e5f67890123456789abcdef0123456789abcd';
 const JWT_EXPIRY = '30d'; // 30 days
 
 export type UserType = 'guest' | 'authenticated';

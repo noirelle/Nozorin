@@ -123,6 +123,48 @@ class UserService {
 
         return userStatusMemory.get(userId) || { isOnline: false, lastSeen: 0 };
     }
+
+    /**
+     * Register a user (make them 'known' to the system)
+     */
+    async registerUser(userId: string) {
+        if (checkRedisAvailability()) {
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    // Set a key to indicate user existence, matching JWT expiry (30 days)
+                    await redis.set(`user:exists:${userId}`, '1', 'EX', 30 * 24 * 60 * 60);
+                    return;
+                } catch (error) {
+                    console.error('[USER] Redis error registering user:', error);
+                }
+            }
+        }
+
+        // In-memory fallback
+        userStatusMemory.set(userId, { isOnline: true, lastSeen: Date.now() });
+    }
+
+    /**
+     * Check if a user is registered/known
+     */
+    async isUserRegistered(userId: string): Promise<boolean> {
+        if (userToSocketMap.has(userId)) return true;
+
+        if (checkRedisAvailability()) {
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    const exists = await redis.get(`user:exists:${userId}`);
+                    return !!exists;
+                } catch (error) {
+                    console.error('[USER] Redis error checking user existence:', error);
+                }
+            }
+        }
+
+        return userStatusMemory.has(userId);
+    }
 }
 
 export const userService = new UserService();

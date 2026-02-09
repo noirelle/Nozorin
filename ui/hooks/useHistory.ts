@@ -137,13 +137,19 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
         };
 
         const handleHistoryError = (data: { message: string }) => {
-            setError(data.message);
-            setIsLoading(false);
+            const isUnauthorized = data.message === 'Invalid token';
+
+            // Only show error UI for non-auth errors
+            if (!isUnauthorized) {
+                setError(data.message);
+                setIsLoading(false);
+            }
+
             console.error('[HISTORY] Error:', data.message);
 
-            // If token is invalid, trigger regeneration if callback provided
-            if (data.message === 'Invalid token' && onUnauthorized) {
-                console.warn('[HISTORY] Unauthorized access, clearing token...');
+            // If token is invalid, trigger regeneration silently
+            if (isUnauthorized && onUnauthorized) {
+                console.warn('[HISTORY] Unauthorized access, refreshing token...');
                 onUnauthorized();
             }
         };
@@ -156,6 +162,12 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
         socket.on('history-stats-error', handleHistoryError);
         socket.on('history-clear-error', handleHistoryError);
 
+        // If we were waiting for a new token, retry once it's available
+        if (visitorToken && isLoading && !error) {
+            socket.emit('get-history', { token: visitorToken, limit: 20 });
+            socket.emit('get-history-stats', { token: visitorToken });
+        }
+
         return () => {
             socket.off('history-data', handleHistoryData);
             socket.off('partner-status-change', handlePartnerStatusChange);
@@ -165,7 +177,7 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
             socket.off('history-stats-error', handleHistoryError);
             socket.off('history-clear-error', handleHistoryError);
         };
-    }, [socket, onUnauthorized]);
+    }, [socket, visitorToken, isLoading, error, onUnauthorized]);
 
     return {
         history,

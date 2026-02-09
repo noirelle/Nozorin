@@ -30,6 +30,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         const userId = getUserIdFromToken(token);
         if (userId) {
             userService.setUserForSocket(socket.id, userId);
+            await userService.registerUser(userId);
             console.log(`[TRACKING] Identified user ${userId.substring(0, 8)}... for socket ${socket.id}`);
 
             // Broadcast that this user is now online
@@ -60,6 +61,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 
         // Map self if not already mapped
         userService.setUserForSocket(socket.id, userId);
+        await userService.registerUser(userId);
 
         const userInfo = connectedUsers.get(socket.id);
         const partnerInfo = connectedUsers.get(partnerId);

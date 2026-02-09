@@ -25,6 +25,14 @@ export const handleHistoryEvents = (socket: Socket) => {
             return;
         }
 
+        // Verify user exists in our current session store (DB/Redis)
+        const isRegistered = await userService.isUserRegistered(userId);
+        if (!isRegistered) {
+            console.warn(`[HISTORY] Unregistered user ${userId.substring(0, 8)} attempting to access history`);
+            socket.emit('history-error', { message: 'Invalid token' }); // Triggers client-side regen
+            return;
+        }
+
         try {
             const history = await historyService.getHistory(userId, limit);
 
@@ -65,6 +73,13 @@ export const handleHistoryEvents = (socket: Socket) => {
             return;
         }
 
+        // Verify user exists
+        const isRegistered = await userService.isUserRegistered(userId);
+        if (!isRegistered) {
+            socket.emit('history-stats-error', { message: 'Invalid token' });
+            return;
+        }
+
         try {
             const stats = await historyService.getHistoryStats(userId);
             socket.emit('history-stats', stats);
@@ -88,6 +103,13 @@ export const handleHistoryEvents = (socket: Socket) => {
 
         const userId = getUserIdFromToken(token);
         if (!userId) {
+            socket.emit('history-clear-error', { message: 'Invalid token' });
+            return;
+        }
+
+        // Verify user exists
+        const isRegistered = await userService.isUserRegistered(userId);
+        if (!isRegistered) {
             socket.emit('history-clear-error', { message: 'Invalid token' });
             return;
         }
