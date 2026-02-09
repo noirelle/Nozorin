@@ -235,6 +235,16 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         };
     }, [socket, setPartnerSignalStrength]);
 
+    // Sync Local Media State with Server (Initial + Updates)
+    useEffect(() => {
+        if (!socket || !videoRoomState.isMediaReady) return;
+
+        socket.emit('update-media-state', {
+            isMuted: videoRoomState.isMuted,
+            isCameraOff: videoRoomState.isCameraOff
+        });
+    }, [socket, videoRoomState.isMediaReady, videoRoomState.isMuted, videoRoomState.isCameraOff]);
+
     // 9. Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

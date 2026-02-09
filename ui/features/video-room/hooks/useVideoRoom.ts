@@ -22,7 +22,7 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
         partnerCountryCode: '',
         partnerId: null,
         isMuted: false,
-        isCameraOff: false,
+        isCameraOff: true,
         isMediaReady: false,
         permissionDenied: false,
         partnerSignalStrength: 'good',
@@ -64,6 +64,8 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
 
                 // Check if component is still mounted/same manager is active (StrictMode/Race condition fix)
                 if (mediaManager.current === manager) {
+                    // Respect initial state: Camera Off by default
+                    manager.setVideoEnabled(false);
                     setState((prev) => ({ ...prev, isMediaReady: true, permissionDenied: false }));
                 }
             } catch (err) {
