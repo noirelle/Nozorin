@@ -71,14 +71,14 @@ const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: '
         lastPartnerMap.set(userIdA, userIdB);
         lastPartnerMap.set(userIdB, userIdA);
 
-        // Clear the "loop prevention" after 10 seconds to allow re-matching later
+        // Clear the "loop prevention" after 5 seconds to allow re-matching later
         setTimeout(() => {
             if (lastPartnerMap.get(userIdA) === userIdB) lastPartnerMap.delete(userIdA);
             if (lastPartnerMap.get(userIdB) === userIdA) lastPartnerMap.delete(userIdB);
 
             // Proactively trigger a queue scan after cooldown expires to handle stuck pairs
             scanQueueForMatches(io);
-        }, 10000);
+        }, 5000);
     }
 
     const startTime = Date.now();

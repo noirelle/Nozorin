@@ -6,7 +6,7 @@ import React from 'react';
 export default function Dedications() {
 
     const strangerNames = [
-        "Maecy", "Yvannah", "Chiela", "Freya", "Ivan", "Kuro", "Levi", "Elyse"
+        "Maecy", "Yvannah", "Chiela", "Freya", "Jenny"
     ];
 
     const themes = [
