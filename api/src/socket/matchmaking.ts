@@ -162,11 +162,10 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 }, 10000);
             }
 
-            // Start Handshake Phase instead of immediate connection
             const startTime = Date.now();
             const timeout = setTimeout(() => {
                 handleMatchFailure(roomId, 'timeout');
-            }, 3000); // 3 second window for handshake
+            }, 5000); // Increased to 5 second window for handshake
 
             pendingMatches.set(roomId, {
                 pair: [socket.id, partner.id],
@@ -234,7 +233,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         // Verify signal strength (Latency)
         const latency = Date.now() - pending.startTime;
-        if (latency > 1500) { // 1.5s threshold for the initial handshake response
+        if (latency > 2500) { // Increased to 2.5s threshold for the initial handshake response
             console.log(`[MATCH] Latency too high for ${socket.id}: ${latency}ms. Skipping connection.`);
             handleMatchFailure(roomId, 'poor-signal');
             return;

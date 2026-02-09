@@ -122,9 +122,9 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     }, [closePeerConnection, resetState, clearMessages]);
 
     const findMatch = useCallback(() => {
-        // Prevent multiple simultaneous search requests
-        if (videoRoomState.isSearching && !videoRoomState.partnerId) {
-            console.log('[Room] Already searching, skipping redundant findMatch call');
+        // Prevent multiple simultaneous search requests if already in queue or connected
+        if (videoRoomState.partnerId) {
+            console.log('[Room] Already in a call, end it before searching again');
             return;
         }
 
@@ -199,14 +199,15 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
         console.warn(`[Room] Match cancelled: ${data.reason}. Re-searching...`);
-        // We stay in 'isSearching' state ideally, but handleStop resets it.
-        // Let's ensure we restart search if it was a system timeout or partner left during handshake.
         handleStop();
-        setSearching(true);
+
+        // Use a slightly longer delay to ensure all state updates (from handleStop -> resetState) are processed
         setTimeout(() => {
+            console.log('[Room] Attempting auto-reconnect after cancellation');
+            // We call findMatch directly. It will reset state again if needed.
             findMatch();
-        }, 500);
-    }, [handleStop, findMatch, setSearching]);
+        }, 1000);
+    }, [handleStop, findMatch]);
 
     const handleUserStop = useCallback(() => {
         console.log('[Room] User manually stopped');
