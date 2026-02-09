@@ -31,4 +31,8 @@ export interface RoomLayoutProps {
     // Desktop specific
     filtersOpen?: boolean;
     setFiltersOpen?: (open: boolean) => void;
+
+    // Country Filter
+    selectedCountry: string;
+    onSelectCountry: (code: string) => void;
 }

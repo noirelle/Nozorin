@@ -10,6 +10,7 @@ import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
 import { DevicePermissionOverlay } from './DevicePermissionOverlay';
+import { CountryFilterModal } from './CountryFilterModal';
 
 interface RoomProps {
     mode: 'chat' | 'video';
@@ -42,6 +43,7 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [inputText, setInputText] = useState("");
     const [mobileLayout, setMobileLayout] = useState<'overlay' | 'split'>('overlay');
+    const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
 
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const desktopLocalVideoRef = useRef<HTMLVideoElement>(null);
@@ -318,6 +320,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 setFiltersOpen={setFiltersOpen}
                 onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
+                selectedCountry={selectedCountry}
+                onSelectCountry={setSelectedCountry}
             />
             <DesktopRoomLayout
                 videoRoomState={videoRoomState}
@@ -340,10 +344,18 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 setFiltersOpen={setFiltersOpen}
                 onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
+                selectedCountry={selectedCountry}
+                onSelectCountry={setSelectedCountry}
             />
             {videoRoomState.permissionDenied && (
                 <DevicePermissionOverlay onRetry={initMediaManager} />
             )}
+            <CountryFilterModal
+                isOpen={filtersOpen}
+                onClose={() => setFiltersOpen(false)}
+                onSelectCountry={setSelectedCountry}
+                selectedCountryCode={selectedCountry}
+            />
         </div>
     );
 }

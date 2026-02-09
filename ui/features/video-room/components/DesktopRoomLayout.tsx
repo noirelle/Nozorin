@@ -4,6 +4,7 @@ import { SkeletonLoaderDesktop } from '../../../components/SkeletonLoader';
 import ChatBox from '../../chat/components/ChatBox';
 import { LogoIcon, ArrowRightIcon } from '../../../components/icons';
 import { RoomNavbar } from '../../../components/RoomNavbar';
+import ReactCountryFlag from "react-country-flag";
 
 export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     videoRoomState,
@@ -23,6 +24,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     setFiltersOpen,
     onNavigateToChat,
     onNavigateToHistory,
+    selectedCountry,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
 
@@ -133,10 +135,22 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
 
                     <div className="absolute top-4 left-4 z-10">
                         <div className="flex flex-col gap-2 p-2">
-                            <button onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)} className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                </svg>
+                            <button onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)} className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all overflow-hidden">
+                                {selectedCountry && selectedCountry !== 'GLOBAL' ? (
+                                    <ReactCountryFlag
+                                        countryCode={selectedCountry}
+                                        svg
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                ) : (
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                )}
                             </button>
 
                             <button onClick={onToggleMute} className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all ${isMuted ? 'bg-red-500 text-white' : 'hover:bg-white/10'}`}>

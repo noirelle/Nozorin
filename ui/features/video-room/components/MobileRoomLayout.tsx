@@ -3,6 +3,7 @@ import { RoomLayoutProps } from '../types';
 import { SkeletonLoader } from '../../../components/SkeletonLoader';
 import { LogoIcon } from '../../../components/icons';
 import { RoomNavbar } from '../../../components/RoomNavbar';
+import ReactCountryFlag from "react-country-flag";
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     videoRoomState,
@@ -27,6 +28,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     setFiltersOpen,
     onNavigateToChat,
     onNavigateToHistory,
+    selectedCountry,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
 
@@ -348,9 +350,23 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
                                     className="text-white hover:text-white/80 transition-colors"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5 drop-shadow-md">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                    </svg>
+                                    {selectedCountry && selectedCountry !== 'GLOBAL' ? (
+                                        <span className="text-xl leading-none filter drop-shadow-md flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
+                                            <ReactCountryFlag
+                                                countryCode={selectedCountry}
+                                                svg
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover'
+                                                }}
+                                            />
+                                        </span>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5 drop-shadow-md">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                        </svg>
+                                    )}
                                 </button>
 
                                 <button

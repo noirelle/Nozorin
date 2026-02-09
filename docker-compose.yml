@@ -9,7 +9,6 @@ services:
       - "3001:3001"
     volumes:
       - ./api:/app
-      - /app/node_modules
     command: npm run dev
     environment:
       - PORT=3001
@@ -23,7 +22,6 @@ services:
       - "3000:3000"
     volumes:
       - ./ui:/app
-      - /app/node_modules
     command: npm run dev
     environment:
       - PORT=3000
