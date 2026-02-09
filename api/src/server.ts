@@ -1,9 +1,9 @@
 
 import http from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import dotenv from 'dotenv';
 import app from './app';
-import { setupSocketIO } from './sockets';
+import { handleSocketConnection } from './socket/connection';
 
 dotenv.config();
 
@@ -16,7 +16,10 @@ const io = new Server(server, {
 });
 
 // Setup socket handlers
-setupSocketIO(io);
+// Setup socket handlers
+io.on('connection', (socket) => {
+    handleSocketConnection(io, socket);
+});
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {

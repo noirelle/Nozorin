@@ -50,7 +50,7 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     const mobileLocalVideoRef = useRef<HTMLVideoElement>(null);
 
     // 3. Action Refs (to break circular dependencies between matching hook and its callbacks)
-    const startSearchRef = useRef<() => void>(() => { });
+    const startSearchRef = useRef<(preferredCountry?: string) => void>(() => { });
     const stopSearchRef = useRef<() => void>(() => { });
     const endCallRef = useRef<(id: string | null) => void>(() => { });
     const manualStopRef = useRef(false);
@@ -117,8 +117,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         setPartnerIsCameraOff(false);
         closePeerConnection();
         setSearching(true);
-        startSearchRef.current();
-    }, [resetState, clearMessages, closePeerConnection, setSearching]);
+        startSearchRef.current(selectedCountry === 'GLOBAL' ? undefined : selectedCountry);
+    }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry]);
 
     const handleNext = useCallback(() => {
         console.log('[Room] Skipping to next partner');

@@ -41,10 +41,10 @@ export const useMatching = ({
     }, [socket, onMatchFound, onCallEnded]);
 
     // Start searching for a match
-    const startSearch = useCallback(() => {
+    const startSearch = useCallback((preferredCountry?: string) => {
         if (!socket) return;
-        console.log(`[Matching] Starting search for ${mode}`);
-        socket.emit('find-match', { mode });
+        console.log(`[Matching] Starting search for ${mode} with preference: ${preferredCountry || 'None'}`);
+        socket.emit('find-match', { mode, preferredCountry });
     }, [socket, mode]);
 
     // Stop searching (cancel)
@@ -69,7 +69,9 @@ export const useMatching = ({
             endCall(partnerId);
             // Small delay to ensure server processes end-call first
             setTimeout(() => {
-                startSearch();
+                startSearch(); // Note: skipToNext might need to pass preference if we want to persist it. 
+                // But usually skip means "Next Random". If user wants "Next from Country X", they should use the UI filter.
+                // We should probably allow passing it here too or let the parent component handle the argument.
             }, 100);
         },
         [endCall, startSearch]

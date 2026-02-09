@@ -4,6 +4,7 @@ export interface User {
     country: string; // Full name
     countryCode: string; // ISO Code
     mode: 'chat' | 'video';
+    preferredCountry?: string;
     // ... any other fields
 }
 
