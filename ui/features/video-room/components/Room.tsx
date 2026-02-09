@@ -197,6 +197,17 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         }, 300);
     }, [handleStop, findMatch, trackSessionEnd]);
 
+    const onMatchCancelled = useCallback((data: { reason: string }) => {
+        console.warn(`[Room] Match cancelled: ${data.reason}. Re-searching...`);
+        // We stay in 'isSearching' state ideally, but handleStop resets it.
+        // Let's ensure we restart search if it was a system timeout or partner left during handshake.
+        handleStop();
+        setSearching(true);
+        setTimeout(() => {
+            findMatch();
+        }, 500);
+    }, [handleStop, findMatch, setSearching]);
+
     const handleUserStop = useCallback(() => {
         console.log('[Room] User manually stopped');
         manualStopRef.current = true;
@@ -210,6 +221,7 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         socket,
         mode,
         onMatchFound,
+        onMatchCancelled,
         onCallEnded
     });
 

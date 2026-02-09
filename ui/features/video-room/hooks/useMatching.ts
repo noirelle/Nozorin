@@ -10,6 +10,7 @@ interface UseMatchingProps {
         partnerCountry: string;
         partnerCountryCode: string;
     }) => void;
+    onMatchCancelled?: (data: { reason: string }) => void;
     onCallEnded?: () => void;
 }
 
@@ -17,11 +18,22 @@ export const useMatching = ({
     socket,
     mode,
     onMatchFound,
+    onMatchCancelled,
     onCallEnded,
 }: UseMatchingProps) => {
     // Listen for matching events
     useEffect(() => {
         if (!socket) return;
+
+        const handlePrepareMatch = (data: any) => {
+            console.log('[Matching] Match prepared, acknowledging...', data);
+            socket.emit('match-ready');
+        };
+
+        const handleMatchCancelled = (data: { reason: string }) => {
+            console.warn('[Matching] Match cancelled:', data.reason);
+            if (onMatchCancelled) onMatchCancelled(data);
+        };
 
         const handleMatchFound = (data: any) => {
             if (onMatchFound) onMatchFound(data);
@@ -31,14 +43,18 @@ export const useMatching = ({
             if (onCallEnded) onCallEnded();
         };
 
+        socket.on('prepare-match', handlePrepareMatch);
+        socket.on('match-cancelled', handleMatchCancelled);
         socket.on('match-found', handleMatchFound);
         socket.on('call-ended', handleCallEnded);
 
         return () => {
+            socket.off('prepare-match', handlePrepareMatch);
+            socket.off('match-cancelled', handleMatchCancelled);
             socket.off('match-found', handleMatchFound);
             socket.off('call-ended', handleCallEnded);
         };
-    }, [socket, onMatchFound, onCallEnded]);
+    }, [socket, onMatchFound, onMatchCancelled, onCallEnded]);
 
     // Start searching for a match
     const startSearch = useCallback((preferredCountry?: string) => {
