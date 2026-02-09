@@ -23,7 +23,7 @@ export interface HistoryStats {
     countriesConnected: string[];
 }
 
-export const useHistory = (socket: Socket | null, visitorToken: string | null) => {
+export const useHistory = (socket: Socket | null, visitorToken: string | null, onUnauthorized?: () => void) => {
     const [history, setHistory] = useState<SessionRecord[]>([]);
     const [stats, setStats] = useState<HistoryStats | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -118,6 +118,12 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null) =
             setError(data.message);
             setIsLoading(false);
             console.error('[HISTORY] Error:', data.message);
+
+            // If token is invalid, trigger regeneration if callback provided
+            if (data.message === 'Invalid token' && onUnauthorized) {
+                console.warn('[HISTORY] Unauthorized access, clearing token...');
+                onUnauthorized();
+            }
         };
 
         socket.on('history-data', handleHistoryData);
@@ -135,7 +141,7 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null) =
             socket.off('history-stats-error', handleHistoryError);
             socket.off('history-clear-error', handleHistoryError);
         };
-    }, [socket]);
+    }, [socket, onUnauthorized]);
 
     return {
         history,

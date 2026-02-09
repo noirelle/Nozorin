@@ -1,11 +1,9 @@
 
+import 'dotenv/config';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
-import dotenv from 'dotenv';
 import app from './app';
 import { handleSocketConnection } from './socket/connection';
-
-dotenv.config();
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -15,7 +13,6 @@ const io = new Server(server, {
     }
 });
 
-// Setup socket handlers
 // Setup socket handlers
 io.on('connection', (socket) => {
     handleSocketConnection(io, socket);

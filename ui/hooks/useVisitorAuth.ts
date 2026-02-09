@@ -22,17 +22,8 @@ export const useVisitorAuth = () => {
     }, []);
 
     const generateVisitorToken = async () => {
+        setIsLoading(true);
         try {
-            // For now, we'll generate the token on the backend
-            // In a future iteration, this could call /api/visitor
-            // But since we're using Socket.IO only, we'll use the JWT utils directly
-
-            // Import jwt and uuid on client side is not ideal
-            // Let's use a simple client-side UUID for now and have the server validate
-            // Actually, let's emit a socket event to get the token
-
-            // For simplicity, we'll use a pseudo-token (UUID) and the server will track sessions
-            // In production, you'd want to call a proper API endpoint
             const response = await fetch('/api/visitor', {
                 method: 'POST',
             });
@@ -43,6 +34,8 @@ export const useVisitorAuth = () => {
 
                 localStorage.setItem(VISITOR_TOKEN_KEY, token);
                 setVisitorToken(token);
+                console.log('[Auth] New visitor token generated');
+                return token;
             } else {
                 console.error('Failed to generate visitor token');
             }
@@ -51,6 +44,17 @@ export const useVisitorAuth = () => {
         } finally {
             setIsLoading(false);
         }
+        return null;
+    };
+
+    const ensureToken = async () => {
+        if (visitorToken) return visitorToken;
+        const existingToken = localStorage.getItem(VISITOR_TOKEN_KEY);
+        if (existingToken) {
+            setVisitorToken(existingToken);
+            return existingToken;
+        }
+        return await generateVisitorToken();
     };
 
     const clearToken = () => {
@@ -62,6 +66,7 @@ export const useVisitorAuth = () => {
         visitorToken,
         isLoading,
         clearToken,
+        ensureToken,
         regenerateToken: generateVisitorToken,
     };
 };

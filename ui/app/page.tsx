@@ -23,7 +23,7 @@ export default function Home() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // History hooks
-  const { visitorToken } = useVisitorAuth();
+  const { visitorToken, ensureToken, regenerateToken } = useVisitorAuth();
   const {
     history,
     stats,
@@ -32,9 +32,12 @@ export default function Home() {
     fetchHistory,
     fetchStats,
     clearHistory
-  } = useHistory(socket(), visitorToken);
+  } = useHistory(socket(), visitorToken, regenerateToken);
 
-  const handleJoin = (selectedMode: 'chat' | 'video') => {
+  const handleJoin = async (selectedMode: 'chat' | 'video') => {
+    // Always ensure we have a token before joining
+    await ensureToken();
+
     setMode(selectedMode);
     setActiveView(selectedMode === 'video' ? 'video' : 'chat');
     setIsInRoom(true);
