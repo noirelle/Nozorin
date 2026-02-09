@@ -52,6 +52,7 @@ const areUsersCompatible = (userA: User, userB: User) => {
 const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, index: number } | null => {
     for (let i = 0; i < queue.length; i++) {
         const potentialPartner = queue[i];
+        if (potentialPartner.id === currentUser.id) continue;
         if (areUsersCompatible(currentUser, potentialPartner)) {
             return { partner: potentialPartner, index: i };
         }
@@ -59,7 +60,116 @@ const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, in
     return null;
 };
 
+// Initiate handshake between two users
+const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: 'chat' | 'video') => {
+    const roomId = `room-${userAId}-${userBId}`;
+
+    // Track the last partner to prevent immediate re-matching
+    const userIdA = userService.getUserId(userAId);
+    const userIdB = userService.getUserId(userBId);
+    if (userIdA && userIdB) {
+        lastPartnerMap.set(userIdA, userIdB);
+        lastPartnerMap.set(userIdB, userIdA);
+
+        // Clear the "loop prevention" after 10 seconds to allow re-matching later
+        setTimeout(() => {
+            if (lastPartnerMap.get(userIdA) === userIdB) lastPartnerMap.delete(userIdA);
+            if (lastPartnerMap.get(userIdB) === userIdA) lastPartnerMap.delete(userIdB);
+
+            // Proactively trigger a queue scan after cooldown expires to handle stuck pairs
+            scanQueueForMatches(io);
+        }, 10000);
+    }
+
+    const startTime = Date.now();
+    const timeout = setTimeout(() => {
+        const pending = pendingMatches.get(roomId);
+        if (pending) {
+            console.log(`[MATCH] Match failed for ${roomId} due to timeout`);
+            clearTimeout(pending.timeout);
+            pendingMatches.delete(roomId);
+            pending.pair.forEach(sid => userPendingMatch.delete(sid));
+            pending.pair.forEach(sid => {
+                const s = io.sockets.sockets.get(sid);
+                if (s) s.emit('match-cancelled', { reason: 'timeout' });
+            });
+        }
+    }, 8000);
+
+    pendingMatches.set(roomId, {
+        pair: [userAId, userBId],
+        mode,
+        startTime,
+        acks: new Set(),
+        timeout,
+        roomId
+    });
+
+    userPendingMatch.set(userAId, roomId);
+    userPendingMatch.set(userBId, roomId);
+
+    const infoA = connectedUsers.get(userAId);
+    const infoB = connectedUsers.get(userBId);
+
+    // Notify both to prepare
+    io.to(userBId).emit('prepare-match', {
+        partnerCountry: infoA?.country,
+        partnerCountryCode: infoA?.countryCode,
+    });
+    io.to(userAId).emit('prepare-match', {
+        partnerCountry: infoB?.country,
+        partnerCountryCode: infoB?.countryCode,
+    });
+
+    console.log(`[MATCH] Handshake started for ${userAId} and ${userBId}`);
+};
+
+// Scan queues for potential matches
+export const scanQueueForMatches = (io: Server) => {
+    ['chat', 'video'].forEach(m => {
+        const mode = m as 'chat' | 'video';
+        const queue = mode === 'chat' ? chatQueue : videoQueue;
+
+        let i = 0;
+        while (i < queue.length) {
+            const user = queue[i];
+            const result = findMatchInQueue(queue, user);
+
+            if (result) {
+                // Found a match within the queue!
+                const partner = result.partner;
+                const partnerIdx = result.index;
+
+                // Remove both (be careful with indices)
+                // Remove the one further in the queue first
+                const indices = [i, partnerIdx].sort((a, b) => b - a);
+                queue.splice(indices[0], 1);
+                queue.splice(indices[1], 1);
+
+                initiateHandshake(io, user.id, partner.id, mode);
+                // After finding a match, indices are shifted, just restart or keep processing
+                // For simplicity, we restart scan for this mode after reduction
+                i = 0;
+                continue;
+            }
+            i++;
+        }
+    });
+};
+
+// Start a background interval to ensure matches happen even if no new users join
+let scanInterval: NodeJS.Timeout | null = null;
+const startMatchmakerHeartbeat = (io: Server) => {
+    if (scanInterval) return;
+    scanInterval = setInterval(() => {
+        if (chatQueue.length >= 2 || videoQueue.length >= 2) {
+            scanQueueForMatches(io);
+        }
+    }, 4000); // Check every 4 seconds
+};
+
 export const handleMatchmaking = (io: Server, socket: Socket) => {
+    startMatchmakerHeartbeat(io);
 
     const handleMatchFailure = (rid: string, reason: string) => {
         const pending = pendingMatches.get(rid);
@@ -100,6 +210,13 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             io.to(existingPartnerId).emit('call-ended', { by: socket.id });
             activeCalls.delete(existingPartnerId);
             activeCalls.delete(socket.id);
+        }
+
+        // Cleanup any pending match if user starts a new search during handshake
+        const pendingRoomId = userPendingMatch.get(socket.id);
+        if (pendingRoomId) {
+            console.log(`[MATCH] User ${socket.id} started new search during handshake for ${pendingRoomId}. Cancelling old match.`);
+            handleMatchFailure(pendingRoomId, 'partner-left');
         }
 
         const preferredCountry = data.preferredCountry === 'GLOBAL' ? undefined : data.preferredCountry;
@@ -145,54 +262,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         if (match && match.partner && match.partner.id !== socket.id) {
             const { partner, index } = match;
             targetQueue.splice(index, 1); // Remove partner from queue
-
-            const roomId = `room-${partner.id}-${socket.id}`;
-
-            // Track the last partner to prevent immediate re-matching
-            const userId = userService.getUserId(socket.id);
-            const partnerUserId = userService.getUserId(partner.id);
-            if (userId && partnerUserId) {
-                lastPartnerMap.set(userId, partnerUserId);
-                lastPartnerMap.set(partnerUserId, userId);
-
-                // Clear the "loop prevention" after 10 seconds to allow re-matching later
-                setTimeout(() => {
-                    if (lastPartnerMap.get(userId) === partnerUserId) lastPartnerMap.delete(userId);
-                    if (lastPartnerMap.get(partnerUserId) === userId) lastPartnerMap.delete(partnerUserId);
-                }, 10000);
-            }
-
-            const startTime = Date.now();
-            const timeout = setTimeout(() => {
-                handleMatchFailure(roomId, 'timeout');
-            }, 5000); // Increased to 5 second window for handshake
-
-            pendingMatches.set(roomId, {
-                pair: [socket.id, partner.id],
-                mode,
-                startTime,
-                acks: new Set(),
-                timeout,
-                roomId
-            });
-
-            userPendingMatch.set(socket.id, roomId);
-            userPendingMatch.set(partner.id, roomId);
-
-            const joiningUserInfo = connectedUsers.get(socket.id);
-            const waitingUserInfo = connectedUsers.get(partner.id);
-
-            // Notify both to prepare
-            io.to(partner.id).emit('prepare-match', {
-                partnerCountry: joiningUserInfo?.country,
-                partnerCountryCode: joiningUserInfo?.countryCode,
-            });
-            socket.emit('prepare-match', {
-                partnerCountry: waitingUserInfo?.country,
-                partnerCountryCode: waitingUserInfo?.countryCode,
-            });
-
-            console.log(`[MATCH] Handshake started for ${socket.id} and ${partner.id}`);
+            initiateHandshake(io, socket.id, partner.id, mode);
             return;
         }
 
@@ -231,13 +301,9 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         const pending = pendingMatches.get(roomId);
         if (!pending) return;
 
-        // Verify signal strength (Latency)
-        const latency = Date.now() - pending.startTime;
-        if (latency > 2500) { // Increased to 2.5s threshold for the initial handshake response
-            console.log(`[MATCH] Latency too high for ${socket.id}: ${latency}ms. Skipping connection.`);
-            handleMatchFailure(roomId, 'poor-signal');
-            return;
-        }
+        // Verify handshake is still valid (not timed out or already processed)
+        // Handshake window is managed by the timeout set in find-match.
+        // We removed the aggressive 2.5s latency check to prevent false positives on slower networks.
 
         pending.acks.add(socket.id);
 
