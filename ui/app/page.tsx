@@ -11,13 +11,28 @@ import AppFeatures from '../sections/AppFeatures';
 import SocialProof from '../sections/SocialProof';
 import AboutUs from '../sections/AboutUs';
 import OurStory from '../sections/OurStory';
-
 import Footer from '../sections/Footer';
+import { HistoryModal } from '../features/video-room/components/HistoryModal';
+import { useHistory, useVisitorAuth } from '../hooks';
+import { socket } from '../lib/socket';
 
 export default function Home() {
   const [isInRoom, setIsInRoom] = useState(false);
   const [mode, setMode] = useState<'chat' | 'video'>('chat');
   const [activeView, setActiveView] = useState<'video' | 'chat'>('video'); // Track which UI is active
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // History hooks
+  const { visitorToken } = useVisitorAuth();
+  const {
+    history,
+    stats,
+    isLoading,
+    error,
+    fetchHistory,
+    fetchStats,
+    clearHistory
+  } = useHistory(socket(), visitorToken);
 
   const handleJoin = (selectedMode: 'chat' | 'video') => {
     setMode(selectedMode);
@@ -39,8 +54,7 @@ export default function Home() {
   };
 
   const handleNavigateToHistory = () => {
-    // TODO: Implement history view
-    console.log('Navigate to history');
+    setIsHistoryOpen(true);
   };
 
   if (isInRoom) {
@@ -59,6 +73,19 @@ export default function Home() {
             onNavigateToHistory={handleNavigateToHistory}
           />
         )}
+        <HistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          history={history}
+          stats={stats}
+          isLoading={isLoading}
+          error={error}
+          onClearHistory={clearHistory}
+          onRefresh={() => {
+            fetchHistory();
+            fetchStats();
+          }}
+        />
       </main>
     );
   }

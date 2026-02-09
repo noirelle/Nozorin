@@ -6,6 +6,7 @@ import { useMatching } from '../hooks/useMatching';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useVideoRoom } from '../hooks/useVideoRoom';
 import { useChat } from '../../chat/hooks/useChat';
+import { useHistory, useVisitorAuth } from '../../../hooks';
 import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
@@ -35,6 +36,10 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         setPartnerSignalStrength,
         resetState,
     } = useVideoRoom(mode);
+
+    // History tracking
+    const { visitorToken } = useVisitorAuth();
+    const { trackSessionStart, trackSessionEnd } = useHistory(socket, visitorToken);
 
     // 2. Extra UI State (not in hooks)
     const [partnerIsMuted, setPartnerIsMuted] = useState(false);
@@ -123,6 +128,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     const handleNext = useCallback(() => {
         console.log('[Room] Skipping to next partner');
         manualStopRef.current = true;
+        // Track session end with skip reason
+        trackSessionEnd('skip');
         handleStop();
 
         // Show "Finding..." immediately during the cooldown
@@ -133,7 +140,7 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
             manualStopRef.current = false;
             findMatch();
         }, 500);
-    }, [handleStop, findMatch, setSearching]);
+    }, [handleStop, findMatch, setSearching, trackSessionEnd]);
 
     const onMatchFound = useCallback(async (data: any) => {
         console.log('[Room] Match found:', data);
@@ -143,10 +150,13 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         setPartnerIsMuted(!!data.partnerIsMuted);
         setPartnerIsCameraOff(!!data.partnerIsCameraOff);
 
+        // Track session start
+        trackSessionStart(data.partnerId, mode);
+
         if (mode === 'video' && data.role === 'offerer') {
             await createOffer(data.partnerId);
         }
-    }, [mode, createOffer, setSearching, setConnected, setPartner]);
+    }, [mode, createOffer, setSearching, setConnected, setPartner, trackSessionStart]);
 
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) {
@@ -156,18 +166,22 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         }
 
         console.log('[Room] Call ended by partner or system');
+        // Track session end
+        trackSessionEnd('partner-disconnect');
         handleStop();
         // Omegle-style auto-reconnect
         setTimeout(() => {
             findMatch();
         }, 300);
-    }, [handleStop, findMatch]);
+    }, [handleStop, findMatch, trackSessionEnd]);
 
     const handleUserStop = useCallback(() => {
         console.log('[Room] User manually stopped');
         manualStopRef.current = true;
+        // Track session end
+        trackSessionEnd('user-action');
         handleStop();
-    }, [handleStop]);
+    }, [handleStop, trackSessionEnd]);
 
     // 6. Matching Hook
     const matching = useMatching({

@@ -1,7 +1,7 @@
 
 import { Server, Socket } from 'socket.io';
 import { getGeoInfo } from '../utils/geo';
-import { statsService } from '../utils/statsService';
+import { statsService } from '../services/statsService';
 import {
     connectedUsers,
     activeUsers,
@@ -14,6 +14,8 @@ import {
 import { handleMediaEvents } from './media';
 import { handleSignalingEvents } from './signaling';
 import { handleMatchmaking } from './matchmaking';
+import { handleHistoryEvents } from './history';
+import { handleUserTracking, cleanupUserSession } from './tracking';
 
 export const handleSocketConnection = (io: Server, socket: Socket) => {
     console.log(`[CONNECT] User connected: ${socket.id}`);
@@ -41,6 +43,8 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     handleMatchmaking(io, socket);
     handleSignalingEvents(socket);
     handleMediaEvents(socket);
+    handleHistoryEvents(socket);
+    handleUserTracking(io, socket);
 
     // Text Chat Message
     socket.on('send-message', (data) => {
@@ -54,8 +58,11 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     });
 
     // Disconnect
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         console.log(`[DISCONNECT] User ${socket.id} disconnected`);
+
+        // Clean up any active session
+        await cleanupUserSession(socket.id);
 
         const partnerId = activeCalls.get(socket.id);
         if (partnerId) {

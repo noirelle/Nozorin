@@ -10,7 +10,7 @@ import {
     userMediaState,
     removeUserFromQueues
 } from './users';
-import { statsService } from '../utils/statsService';
+import { statsService } from '../services/statsService';
 
 // Helper to check if two users are compatible for matching
 const areUsersCompatible = (userA: User, userB: User) => {
