@@ -101,9 +101,17 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         partnerIdRef.current = videoRoomState.partnerId;
     }, [videoRoomState.partnerId]);
 
+    const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // 5. Matching Callbacks
     const handleStop = useCallback(() => {
         console.log('[Room] Stopping search or ending call');
+
+        // Clear any pending auto-reconnect or next-partner timeouts
+        if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+
         stopSearchRef.current();
         endCallRef.current(partnerIdRef.current);
         closePeerConnection();
@@ -114,6 +122,12 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     }, [closePeerConnection, resetState, clearMessages]);
 
     const findMatch = useCallback(() => {
+        // Prevent multiple simultaneous search requests
+        if (videoRoomState.isSearching && !videoRoomState.partnerId) {
+            console.log('[Room] Already searching, skipping redundant findMatch call');
+            return;
+        }
+
         console.log('[Room] Initiating new match search');
         manualStopRef.current = false;
         resetState();
@@ -123,11 +137,12 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         closePeerConnection();
         setSearching(true);
         startSearchRef.current(selectedCountry === 'GLOBAL' ? undefined : selectedCountry);
-    }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry]);
+    }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, videoRoomState.isSearching, videoRoomState.partnerId]);
 
     const handleNext = useCallback(() => {
         console.log('[Room] Skipping to next partner');
         manualStopRef.current = true;
+
         // Track session end with skip reason
         trackSessionEnd('skip');
         handleStop();
@@ -135,8 +150,11 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         // Show "Finding..." immediately during the cooldown
         setSearching(true);
 
+        // Clear previous timeout if exists
+        if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+
         // Delay ensures server cleans up before next search
-        setTimeout(() => {
+        nextTimeoutRef.current = setTimeout(() => {
             manualStopRef.current = false;
             findMatch();
         }, 500);
@@ -169,8 +187,12 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         // Track session end
         trackSessionEnd('partner-disconnect');
         handleStop();
+
+        // Clear previous timeout if exists
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+
         // Omegle-style auto-reconnect
-        setTimeout(() => {
+        reconnectTimeoutRef.current = setTimeout(() => {
             findMatch();
         }, 300);
     }, [handleStop, findMatch, trackSessionEnd]);

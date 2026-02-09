@@ -12,11 +12,26 @@ import {
 } from './users';
 import { statsService } from '../services/statsService';
 
+import { userService } from '../services/userService';
+
+// Track the last partner ID for each user to prevent immediate re-matching
+const lastPartnerMap = new Map<string, string>(); // user ID -> last partner user ID
+
 // Helper to check if two users are compatible for matching
 const areUsersCompatible = (userA: User, userB: User) => {
-    // Check if A matches B's criteria
+    // 1. Check if they were just matched (prevent loops)
+    const userIdA = userService.getUserId(userA.id);
+    const userIdB = userService.getUserId(userB.id);
+
+    if (userIdA && userIdB) {
+        if (lastPartnerMap.get(userIdA) === userIdB || lastPartnerMap.get(userIdB) === userIdA) {
+            return false;
+        }
+    }
+
+    // 2. Check if A matches B's criteria
     const aSatisfied = !userA.preferredCountry || userA.preferredCountry === userB.countryCode;
-    // Check if B matches A's criteria
+    // 3. Check if B matches A's criteria
     const bSatisfied = !userB.preferredCountry || userB.preferredCountry === userA.countryCode;
 
     return aSatisfied && bSatisfied;
@@ -35,17 +50,19 @@ const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, in
 
 export const handleMatchmaking = (io: Server, socket: Socket) => {
 
-    socket.on('find-match', (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
+    socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
         // Mark user as active if not already
         if (!activeUsers.has(socket.id)) {
             activeUsers.add(socket.id);
             statsService.incrementOnlineUsers();
             io.emit('stats-update', statsService.getStats());
         }
-
         const mode = data.mode;
 
-        // Ensure not already in a call - if so, end it
+        // Safety check: ensure user is not already being processed or already in queue
+        removeUserFromQueues(socket.id);
+
+        // Ensure not already in an active call on the server side
         const existingPartnerId = activeCalls.get(socket.id);
         if (existingPartnerId) {
             console.log(`[MATCH] Ending existing call with ${existingPartnerId} before searching`);
@@ -54,15 +71,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             activeCalls.delete(socket.id);
         }
 
-        removeUserFromQueues(socket.id); // Ensure not in multiple queues
-
         const preferredCountry = data.preferredCountry === 'GLOBAL' ? undefined : data.preferredCountry;
-        console.log(`[MATCH] User ${socket.id} looking for ${mode} match${preferredCountry ? ` in ${preferredCountry}` : ''}`);
-
-        let targetQueue = mode === 'chat' ? chatQueue : videoQueue;
-
-        // Matchmaking Logic
-        let match: { partner: User, index: number } | null = null;
 
         // Get user info (country) from connected state
         const userInfo = connectedUsers.get(socket.id);
@@ -79,18 +88,15 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             preferredCountry: preferredCountry
         };
 
-        // 1. First Attempt: Try to find a match with current preference (if any)
-        if (targetQueue.length > 0) {
-            match = findMatchInQueue(targetQueue, currentUser);
-        }
+        const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
 
-        // 2. Logic: If no match with preference, check if we should wait or fallback
+        // Matchmaking Logic
+        let match = findMatchInQueue(targetQueue, currentUser);
+
+        // If no match with preference, check if we should wait or fallback
         let shouldWait = false;
-
         if (!match && preferredCountry) {
-            // Preference was set but no one in queue matched.
-
-            // Check if anyone from that country is active/online
+            // Check if anyone from that country is active (using userService for O(1) check would be better but let's stick to current structure)
             const isSomeoneOnline = Array.from(activeUsers).some(id => {
                 const info = connectedUsers.get(id);
                 return info && info.countryCode === preferredCountry && id !== socket.id;
@@ -98,17 +104,10 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
             if (isSomeoneOnline) {
                 shouldWait = true;
-                console.log(`[MATCH] No match in queue, but user from ${preferredCountry} is online. Waiting...`);
             } else {
-                console.log(`[MATCH] No match in queue and no one from ${preferredCountry} is online. Fallback to global.`);
-
-                // Update current user to remove preference
+                // Fallback to global search immediately
                 currentUser.preferredCountry = undefined;
-
-                // Retry matching with no preference immediately
-                if (targetQueue.length > 0) {
-                    match = findMatchInQueue(targetQueue, currentUser);
-                }
+                match = findMatchInQueue(targetQueue, currentUser);
             }
         }
 
@@ -118,23 +117,34 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
             const roomId = `room-${partner.id}-${socket.id}`;
 
-            // Track the active connection
+            // Track the last partner to prevent immediate re-matching
+            const userId = userService.getUserId(socket.id);
+            const partnerUserId = userService.getUserId(partner.id);
+            if (userId && partnerUserId) {
+                lastPartnerMap.set(userId, partnerUserId);
+                lastPartnerMap.set(partnerUserId, userId);
+
+                // Clear the "loop prevention" after 10 seconds to allow re-matching later
+                setTimeout(() => {
+                    if (lastPartnerMap.get(userId) === partnerUserId) lastPartnerMap.delete(userId);
+                    if (lastPartnerMap.get(partnerUserId) === userId) lastPartnerMap.delete(partnerUserId);
+                }, 10000);
+            }
+
+            // Track active calls
             activeCalls.set(socket.id, partner.id);
             activeCalls.set(partner.id, socket.id);
 
-            // Join both users to the room
+            // ... (rest of match success logic: notify users, join rooms, etc.) ...
             socket.join(roomId);
-
             console.log(`[MATCH] ✓ Matched ${socket.id} with ${partner.id} in ${mode} mode`);
 
-            // Get media states
             const joiningUserMediaState = userMediaState.get(socket.id) || { isMuted: false, isCameraOff: false };
             const waitingUserMediaState = userMediaState.get(partner.id) || { isMuted: false, isCameraOff: false };
 
             const joiningUserInfo = connectedUsers.get(socket.id);
             const waitingUserInfo = connectedUsers.get(partner.id);
 
-            // Notify Waiting User
             io.to(partner.id).emit('match-found', {
                 role: 'offerer',
                 partnerId: socket.id,
@@ -146,7 +156,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 mode,
             });
 
-            // Notify Joining User
             socket.emit('match-found', {
                 role: 'answerer',
                 partnerId: partner.id,
@@ -158,18 +167,13 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 mode,
             });
 
-            // Track successful connection
             statsService.incrementDailyChats();
             statsService.incrementTotalConnections();
             io.emit('stats-update', statsService.getStats());
-
-            console.log(`[MATCH] Queue sizes - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
             return;
         }
 
-        // 3. No match found -> Add to queue
-
-        // If waiting with preference (shouldWait is true), use original pref. Otherwise undefined.
+        // Add to queue
         const userToAdd: User = {
             ...currentUser,
             preferredCountry: shouldWait ? preferredCountry : undefined
@@ -181,24 +185,18 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             videoQueue.push(userToAdd);
         }
 
-        console.log(`[MATCH] User ${socket.id} added to ${mode} queue. Position: ${targetQueue.length}. Preference: ${userToAdd.preferredCountry || 'None'}`);
         socket.emit('waiting-for-match', { position: targetQueue.length });
 
-        // If waiting with preference, set timeout to fallback
+        // Handle preference timeout
         if (shouldWait) {
             setTimeout(() => {
-                // Check if user is still in queue
                 const q = mode === 'chat' ? chatQueue : videoQueue;
                 const idx = q.findIndex(u => u.id === socket.id);
-                if (idx !== -1) {
-                    const u = q[idx];
-                    if (u.preferredCountry) {
-                        console.log(`[MATCH] Timeout for ${u.id} waiting for ${u.preferredCountry}. Falling back to global.`);
-                        u.preferredCountry = undefined; // Remove preference
-                        // Available for others to pick up
-                    }
+                if (idx !== -1 && q[idx].preferredCountry) {
+                    q[idx].preferredCountry = undefined;
+                    console.log(`[MATCH] Timeout for ${socket.id}, falling back to GLOBAL`);
                 }
-            }, 5000);
+            }, 8000); // 8 seconds for preference
         }
     });
 
