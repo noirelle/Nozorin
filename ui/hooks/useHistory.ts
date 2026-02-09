@@ -5,6 +5,7 @@ import { Socket } from 'socket.io-client';
 
 export interface SessionRecord {
     sessionId: string;
+    partnerId: string;
     country: string;
     countryCode: string;
     partnerCountry?: string;
@@ -14,6 +15,10 @@ export interface SessionRecord {
     duration?: number; // in seconds
     disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network';
     mode: 'chat' | 'video';
+    partnerStatus?: {
+        isOnline: boolean;
+        lastSeen: number;
+    };
 }
 
 export interface HistoryStats {
@@ -100,7 +105,24 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
         const handleHistoryData = (data: { history: SessionRecord[] }) => {
             setHistory(data.history);
             setIsLoading(false);
+
+            // Watch these partners for status changes
+            const partnerIds = [...new Set(data.history.map(s => s.partnerId).filter(id => id && id !== 'unknown'))];
+            if (partnerIds.length > 0) {
+                socket.emit('watch-user-status', { userIds: partnerIds });
+            }
+
             console.log('[HISTORY] Received history:', data.history.length, 'sessions');
+        };
+
+        const handlePartnerStatusChange = (data: { userId: string, status: { isOnline: boolean, lastSeen: number } }) => {
+            const { userId, status } = data;
+            setHistory(prev => prev.map(session =>
+                session.partnerId === userId
+                    ? { ...session, partnerStatus: status }
+                    : session
+            ));
+            // console.log(`[HISTORY] Partner ${userId.substring(0, 8)} status changed:`, status.isOnline ? 'ONLINE' : 'OFFLINE');
         };
 
         const handleHistoryStats = (data: HistoryStats) => {
@@ -127,6 +149,7 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
         };
 
         socket.on('history-data', handleHistoryData);
+        socket.on('partner-status-change', handlePartnerStatusChange);
         socket.on('history-stats', handleHistoryStats);
         socket.on('history-cleared', handleHistoryCleared);
         socket.on('history-error', handleHistoryError);
@@ -135,6 +158,7 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
 
         return () => {
             socket.off('history-data', handleHistoryData);
+            socket.off('partner-status-change', handlePartnerStatusChange);
             socket.off('history-stats', handleHistoryStats);
             socket.off('history-cleared', handleHistoryCleared);
             socket.off('history-error', handleHistoryError);

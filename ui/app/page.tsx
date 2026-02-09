@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Room from '../features/video-room/components/Room';
 import ChatRoom from '../features/chat/components/ChatRoom';
@@ -33,6 +33,17 @@ export default function Home() {
     fetchStats,
     clearHistory
   } = useHistory(socket(), visitorToken, regenerateToken);
+
+  // Identify user to socket when token is available
+  useEffect(() => {
+    const s = socket();
+    if (visitorToken && s) {
+      s.emit('user-identify', { token: visitorToken });
+
+      // Also fetch history periodically to keep status updated? 
+      // For now, let's just do it on room entry or modal open
+    }
+  }, [visitorToken]);
 
   const handleJoin = async (selectedMode: 'chat' | 'video') => {
     // Always ensure we have a token before joining

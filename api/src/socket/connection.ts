@@ -16,6 +16,9 @@ import { handleSignalingEvents } from './signaling';
 import { handleMatchmaking } from './matchmaking';
 import { handleHistoryEvents } from './history';
 import { handleUserTracking, cleanupUserSession } from './tracking';
+import { handleStatusEvents, broadcastUserStatus } from './status';
+
+import { userService } from '../services/userService';
 
 export const handleSocketConnection = (io: Server, socket: Socket) => {
     console.log(`[CONNECT] User connected: ${socket.id}`);
@@ -40,6 +43,7 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     userMediaState.set(socket.id, { isMuted: false, isCameraOff: false });
 
     // Module Handlers
+    handleStatusEvents(io, socket);
     handleMatchmaking(io, socket);
     handleSignalingEvents(socket);
     handleMediaEvents(socket);
@@ -60,6 +64,7 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Disconnect
     socket.on('disconnect', async () => {
         console.log(`[DISCONNECT] User ${socket.id} disconnected`);
+        const userId = userService.getUserId(socket.id);
 
         // Clean up any active session
         await cleanupUserSession(socket.id);
@@ -77,6 +82,12 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
         // Clean up media state
         userMediaState.delete(socket.id);
         connectedUsers.delete(socket.id);
+        userService.removeSocket(socket.id);
+
+        // Broadcast that this user is now offline
+        if (userId) {
+            await broadcastUserStatus(io, userId);
+        }
 
         // Decrement online users *only* if they were active
         if (activeUsers.has(socket.id)) {

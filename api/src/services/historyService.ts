@@ -4,6 +4,8 @@ const REDIS_TTL = process.env.REDIS_TTL ? parseInt(process.env.REDIS_TTL) : 6048
 
 export interface SessionRecord {
     sessionId: string;
+    userId: string; // The user who owns this history
+    partnerId: string; // The UUID of the partner
     country: string;
     countryCode: string;
     partnerCountry?: string;
@@ -17,6 +19,7 @@ export interface SessionRecord {
 
 export interface SessionStart {
     sessionId: string;
+    partnerId: string;
     country: string;
     countryCode: string;
     partnerCountry: string;
@@ -66,6 +69,8 @@ class HistoryService {
     async startSession(userId: string, sessionData: SessionStart): Promise<void> {
         const session: SessionRecord = {
             sessionId: sessionData.sessionId,
+            userId,
+            partnerId: sessionData.partnerId,
             country: sessionData.country,
             countryCode: sessionData.countryCode,
             partnerCountry: sessionData.partnerCountry,

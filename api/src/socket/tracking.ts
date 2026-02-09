@@ -12,17 +12,37 @@ const activeSessions = new Map<string, {
     mode: 'chat' | 'video';
 }>();
 
+import { userService } from '../services/userService';
+import { broadcastUserStatus } from './status';
+
 /**
  * Handle session tracking for history
  */
 export const handleUserTracking = (io: Server, socket: Socket) => {
 
     /**
+     * Identify user with their visitor token
+     */
+    socket.on('user-identify', async (data: { token: string }) => {
+        const { token } = data;
+        if (!token) return;
+
+        const userId = getUserIdFromToken(token);
+        if (userId) {
+            userService.setUserForSocket(socket.id, userId);
+            console.log(`[TRACKING] Identified user ${userId.substring(0, 8)}... for socket ${socket.id}`);
+
+            // Broadcast that this user is now online
+            await broadcastUserStatus(io, userId);
+        }
+    });
+
+    /**
      * Track when a match is established
      */
     socket.on('match-established', async (data: {
         token: string;
-        partnerId: string;
+        partnerId: string; // partner socket id
         mode: 'chat' | 'video';
     }) => {
         const { token, partnerId, mode } = data;
@@ -38,12 +58,24 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
             return;
         }
 
+        // Map self if not already mapped
+        userService.setUserForSocket(socket.id, userId);
+
         const userInfo = connectedUsers.get(socket.id);
         const partnerInfo = connectedUsers.get(partnerId);
 
         if (!userInfo || !partnerInfo) {
             console.warn('[TRACKING] User or partner info not found');
             return;
+        }
+
+        // Find partner's userId
+        const partnerUserId = userService.getUserId(partnerId);
+        if (!partnerUserId) {
+            console.warn(`[TRACKING] Partner userId not found for socket ${partnerId}`);
+            // Note: In some race conditions, partner might not have identified yet.
+            // For now, we'll use partnerId (socketId) as fallback or just wait for the identify event.
+            // But usually, identify happens on connection.
         }
 
         const sessionId = uuidv4();
@@ -59,6 +91,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         // Start tracking in history service
         const sessionData: SessionStart = {
             sessionId,
+            partnerId: partnerUserId || 'unknown',
             country: userInfo.country,
             countryCode: userInfo.countryCode,
             partnerCountry: partnerInfo.country,
@@ -68,7 +101,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 
         try {
             await historyService.startSession(userId, sessionData);
-            console.log(`[TRACKING] Started session ${sessionId.substring(0, 8)}... for user ${userId.substring(0, 8)}...`);
+            console.log(`[TRACKING] Started session ${sessionId.substring(0, 8)}... for user ${userId.substring(0, 8)}... with partner ${partnerUserId?.substring(0, 8) || 'unknown'}`);
         } catch (error) {
             console.error('[TRACKING] Error starting session:', error);
         }

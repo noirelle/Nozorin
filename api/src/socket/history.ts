@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io';
 import { historyService } from '../services/historyService';
-import { getUserIdFromToken, verifyVisitorToken } from '../utils/jwtUtils';
+import { getUserIdFromToken } from '../utils/jwtUtils';
+import { userService } from '../services/userService';
 
 /**
  * Handle history-related socket events
@@ -26,8 +27,21 @@ export const handleHistoryEvents = (socket: Socket) => {
 
         try {
             const history = await historyService.getHistory(userId, limit);
-            socket.emit('history-data', { history });
-            console.log(`[HISTORY] Sent ${history.length} sessions to user ${userId.substring(0, 8)}...`);
+
+            // Fetch statuses for all partners in the history
+            const partnerIds = [...new Set(history.map((s: any) => s.partnerId).filter((id: any) => id && id !== 'unknown'))] as string[];
+            const statuses = await userService.getUserStatuses(partnerIds);
+
+            // Enhance history with status info
+            const enhancedHistory = history.map((session: any) => ({
+                ...session,
+                partnerStatus: session.partnerId && session.partnerId !== 'unknown'
+                    ? statuses[session.partnerId]
+                    : { isOnline: false, lastSeen: 0 }
+            }));
+
+            socket.emit('history-data', { history: enhancedHistory });
+            console.log(`[HISTORY] Sent ${history.length} sessions (enhanced) to user ${userId.substring(0, 8)}...`);
         } catch (error) {
             console.error('[HISTORY] Error retrieving history:', error);
             socket.emit('history-error', { message: 'Failed to retrieve history' });
