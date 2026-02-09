@@ -11,6 +11,7 @@ import AppFeatures from '../sections/AppFeatures';
 import SocialProof from '../sections/SocialProof';
 import AboutUs from '../sections/AboutUs';
 import OurStory from '../sections/OurStory';
+import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
 import { HistoryModal } from '../features/video-room/components/HistoryModal';
 import { useHistory, useVisitorAuth } from '../hooks';
@@ -111,6 +112,7 @@ export default function Home() {
       <AppFeatures />
       <SocialProof />
       <AboutUs />
+      <Dedications />
       <OurStory />
       <Footer />
     </main>

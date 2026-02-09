@@ -40,7 +40,7 @@ export default function OurStory() {
                             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500"></div>
                         </div>
                         <div>
-                            <div className="font-bold text-gray-900">The Nozorin Team</div>
+                            <div className="font-bold text-gray-900">Noirelle</div>
                             <div className="text-sm text-gray-500">Builders & Dreamers</div>
                         </div>
                     </div>
