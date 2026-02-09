@@ -115,6 +115,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         stopSearchRef.current();
         endCallRef.current(partnerIdRef.current);
         closePeerConnection();
+        // Force-clear ref immediately as well to avoid race conditions with next findMatch
+        partnerIdRef.current = null;
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
@@ -123,8 +125,9 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
 
     const findMatch = useCallback(() => {
         // Prevent multiple simultaneous search requests if already in queue or connected
-        if (videoRoomState.partnerId) {
-            console.log('[Room] Already in a call, end it before searching again');
+        // Use ref to avoid stale closure issues during rapid state transitions (like auto-reconnect)
+        if (partnerIdRef.current) {
+            console.log('[Room] Already in a call, skipping redundant findMatch');
             return;
         }
 
@@ -192,22 +195,27 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
         // Omegle-style auto-reconnect
+        // Show "Finding..." immediately to prevent the Start button from flickering
+        setSearching(true);
+
         reconnectTimeoutRef.current = setTimeout(() => {
             findMatch();
         }, 300);
-    }, [handleStop, findMatch, trackSessionEnd]);
+    }, [handleStop, findMatch, trackSessionEnd, setSearching]);
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
         console.warn(`[Room] Match cancelled: ${data.reason}. Re-searching...`);
         handleStop();
 
+        // Show "Finding..." immediately to prevent the Start button from flickering
+        setSearching(true);
+
         // Use a slightly longer delay to ensure all state updates (from handleStop -> resetState) are processed
         setTimeout(() => {
             console.log('[Room] Attempting auto-reconnect after cancellation');
-            // We call findMatch directly. It will reset state again if needed.
             findMatch();
         }, 1000);
-    }, [handleStop, findMatch]);
+    }, [handleStop, findMatch, setSearching]);
 
     const handleUserStop = useCallback(() => {
         console.log('[Room] User manually stopped');
