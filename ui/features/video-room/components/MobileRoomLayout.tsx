@@ -29,6 +29,8 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     onNavigateToChat,
     onNavigateToHistory,
     selectedCountry,
+    matchmakingStatus,
+    queuePosition,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
 
@@ -66,12 +68,14 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     };
 
     const getButtonText = () => {
+        if (matchmakingStatus === 'NEGOTIATING') return 'Wait...';
         if (isSearching) return 'Stop';
         if (isConnected) return 'Next';
         return 'Start';
     };
 
     const handleButtonClick = () => {
+        if (matchmakingStatus === 'NEGOTIATING') return;
         if (isSearching) {
             onStop();
         } else if (isConnected) {
@@ -165,7 +169,18 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 {/* Not Connected State */}
                 {!isConnected && (
                     <div className="absolute inset-0 flex items-center justify-center z-0 bg-black/60 backdrop-blur-sm">
-                        {isSearching ? (
+                        {matchmakingStatus === 'NEGOTIATING' ? (
+                            <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
+                                <div className="relative flex items-center justify-center w-24 h-24 mb-6">
+                                    <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-pulse opacity-75" />
+                                    <div className="relative w-16 h-16 bg-[#1a1a1a] rounded-full border-2 border-[#FF8ba7] flex items-center justify-center shadow-[0_0_20px_rgba(255,139,167,0.3)] z-10">
+                                        <div className="w-4 h-4 bg-[#FF8ba7] rounded-full animate-ping" />
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-bold text-white mb-1 tracking-tight">Connecting...</h3>
+                                <p className="text-white/60 text-sm font-medium">Starting secure video call</p>
+                            </div>
+                        ) : matchmakingStatus === 'FINDING' || isSearching ? (
                             <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
                                 <div className="relative flex items-center justify-center w-24 h-24 mb-6">
                                     <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-ping opacity-75" />
@@ -177,7 +192,9 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     </div>
                                 </div>
                                 <h3 className="text-xl font-bold text-white mb-1 animate-pulse tracking-tight">Finding partner...</h3>
-                                <p className="text-white/60 text-sm font-medium">Please wait</p>
+                                <p className="text-white/60 text-sm font-medium">
+                                    {queuePosition ? `In Queue: #${queuePosition}` : 'Please wait'}
+                                </p>
                             </div>
                         ) : (
                             <div className="text-center px-6 animate-in fade-in zoom-in duration-500">

@@ -388,6 +388,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 onNavigateToHistory={onNavigateToHistory}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
+                matchmakingStatus={matching.status}
+                queuePosition={matching.position}
             />
             <DesktopRoomLayout
                 videoRoomState={videoRoomState}
@@ -412,6 +414,8 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 onNavigateToHistory={onNavigateToHistory}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
+                matchmakingStatus={matching.status}
+                queuePosition={matching.position}
             />
             {videoRoomState.permissionDenied && (
                 <DevicePermissionOverlay onRetry={initMediaManager} />

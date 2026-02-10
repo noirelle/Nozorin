@@ -1,6 +1,7 @@
 import { VideoRoomState } from './hooks/useVideoRoom';
 import { Message } from '../chat/hooks/useChat';
 import { RefObject } from 'react';
+import { MatchStatus } from './hooks/useMatching';
 
 export interface RoomLayoutProps {
     videoRoomState: VideoRoomState;
@@ -9,6 +10,8 @@ export interface RoomLayoutProps {
     showChat: boolean;
     messages: Message[];
     inputText: string;
+    matchmakingStatus: MatchStatus;
+    queuePosition: number | null;
 
     localVideoRef: RefObject<HTMLVideoElement | null>;
     remoteVideoRef: RefObject<HTMLVideoElement | null>;
