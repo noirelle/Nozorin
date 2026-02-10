@@ -17,7 +17,7 @@ import { userService } from '../services/userService';
 // --- CONFIGURATION ---
 
 const CONSTANTS = {
-    COOLDOWN_MS: 15000,
+    COOLDOWN_MS: 5000,
     HANDSHAKE_TIMEOUT_MS: 5000,
     HEARTBEAT_FAST_MS: 1000,
     HEARTBEAT_SLOW_MS: 4000,
@@ -413,11 +413,29 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         if (timeout) clearTimeout(timeout);
         fallbackTimeouts.delete(socket.id);
 
+        // Robustness: If connected, end the call
+        const partnerId = activeCalls.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('call-ended', { by: socket.id });
+            activeCalls.delete(partnerId);
+        }
+        activeCalls.delete(socket.id);
+
         const userInfo = connectedUsers.get(socket.id);
         if (userInfo) {
             const q = chatQueue.some(u => u.id === socket.id) ? 'chat' : 'video';
             notifyQueuePositions(io, q as any);
         }
+    });
+
+    socket.on('end-call', () => {
+        const partnerId = activeCalls.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('call-ended', { by: socket.id });
+            activeCalls.delete(partnerId);
+        }
+        activeCalls.delete(socket.id);
+        QueueManager.remove(socket.id);
     });
 
     socket.on('disconnect', () => {
