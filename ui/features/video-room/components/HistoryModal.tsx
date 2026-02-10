@@ -11,6 +11,7 @@ interface HistoryModalProps {
     error: string | null;
     onClearHistory: () => void;
     onRefresh: () => void;
+    onCall: (targetUserId: string, mode: 'chat' | 'video') => void;
 }
 
 const formatDuration = (seconds?: number): string => {
@@ -60,6 +61,7 @@ const getReasonLabel = (reason?: SessionRecord['disconnectReason']): string => {
         case 'skip': return 'Skipped';
         case 'network': return 'Network issue';
         case 'error': return 'Error';
+        case 'answered-another': return 'Answered another user\'s call';
         default: return 'Ended';
     }
 };
@@ -84,6 +86,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
     error,
     onClearHistory,
     onRefresh,
+    onCall,
 }) => {
     const hasLoadedRef = useRef(false);
 
@@ -248,7 +251,14 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
 
                                     {/* Quick Actions */}
                                     <div className="flex items-center gap-2 pt-2 border-t border-white/5">
-                                        <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-[#FF8ba7]/10 text-zinc-300 hover:text-[#FF8ba7] text-xs font-bold transition-all border border-transparent hover:border-[#FF8ba7]/20 active:scale-[0.98]">
+                                        <button
+                                            onClick={() => session.partnerId && onCall(session.partnerId, session.mode)}
+                                            disabled={!session.partnerStatus?.isOnline}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent active:scale-[0.98] ${session.partnerStatus?.isOnline
+                                                ? 'bg-white/5 hover:bg-[#FF8ba7]/10 text-zinc-300 hover:text-[#FF8ba7] hover:border-[#FF8ba7]/20'
+                                                : 'bg-zinc-800/20 text-zinc-600 cursor-not-allowed opacity-50'
+                                                }`}
+                                        >
                                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                             </svg>

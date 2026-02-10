@@ -13,7 +13,7 @@ export interface SessionRecord {
     connectionTime: number;
     disconnectionTime?: number;
     duration?: number; // in seconds
-    disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network';
+    disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
     mode: 'chat' | 'video';
 }
 

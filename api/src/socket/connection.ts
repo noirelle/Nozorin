@@ -14,6 +14,7 @@ import {
 import { handleMediaEvents } from './media';
 import { handleSignalingEvents } from './signaling';
 import { handleMatchmaking } from './matchmaking';
+import { handleDirectCall } from './directCall';
 import { handleHistoryEvents } from './history';
 import { handleUserTracking, cleanupUserSession } from './tracking';
 import { handleStatusEvents, broadcastUserStatus } from './status';
@@ -45,6 +46,7 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Module Handlers
     handleStatusEvents(io, socket);
     handleMatchmaking(io, socket);
+    handleDirectCall(io, socket);
     handleSignalingEvents(socket);
     handleMediaEvents(socket);
     handleHistoryEvents(socket);

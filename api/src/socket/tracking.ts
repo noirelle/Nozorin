@@ -114,7 +114,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
      */
     socket.on('session-end', async (data: {
         token: string;
-        reason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network';
+        reason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
     }) => {
         const { token, reason } = data;
 

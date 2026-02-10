@@ -4,6 +4,7 @@ export { useWebRTC } from '../features/video-room/hooks/useWebRTC';
 export { useMatching } from '../features/video-room/hooks/useMatching';
 export { useVisitorAuth } from './useVisitorAuth';
 export { useHistory } from './useHistory';
+export { useDirectCall } from './useDirectCall';
 export type { VideoRoomState } from '../features/video-room/hooks/useVideoRoom';
 export type { Message } from '../features/chat/hooks/useChat';
 export type { SessionRecord, HistoryStats } from './useHistory';

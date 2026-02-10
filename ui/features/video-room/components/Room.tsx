@@ -18,9 +18,10 @@ interface RoomProps {
     onLeave: () => void;
     onNavigateToChat: () => void;
     onNavigateToHistory: () => void;
+    initialMatchData?: any;
 }
 
-export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory }: RoomProps) {
+export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory, initialMatchData }: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
@@ -255,6 +256,14 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
             if (mobileLocalVideoRef.current) mobileLocalVideoRef.current.srcObject = null;
         };
     }, [mode, socket, initMediaManager, cleanupMedia, handleStop]);
+
+    // Handle initial match data (for direct calls from landing page)
+    useEffect(() => {
+        if (initialMatchData && !videoRoomState.isConnected) {
+            console.log('[Room] Initializing with direct match data:', initialMatchData);
+            onMatchFound(initialMatchData);
+        }
+    }, [initialMatchData, onMatchFound, videoRoomState.isConnected]);
 
     // Initialize/Sync Local Video
     useEffect(() => {
