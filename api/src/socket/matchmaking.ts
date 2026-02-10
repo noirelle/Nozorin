@@ -33,7 +33,12 @@ const areUsersCompatible = (userA: User, userB: User) => {
     const userIdA = userService.getUserId(userA.id);
     const userIdB = userService.getUserId(userB.id);
 
-    // 1. Block immediate re-matching
+    // 1. Prevent matching with self (same user ID across devices/tabs)
+    if (userIdA && userIdB && userIdA === userIdB) {
+        return false;
+    }
+
+    // 2. Block immediate re-matching
     if (userIdA && userIdB) {
         if (lastPartnerMap.get(userIdA) === userIdB || lastPartnerMap.get(userIdB) === userIdA) {
             return false;
@@ -64,7 +69,7 @@ const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, in
 const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: 'chat' | 'video') => {
     // Determine a stable roomId based on sorted socket IDs
     const sortedIds = [userAId, userBId].sort();
-    const roomId = `room-${sortedIds[0]}-${sortedIds[1]}`;
+    const roomId = `room-${sortedIds[0]}-${sortedIds[1]}-${Date.now()}`;
 
     // Track the last partner to prevent immediate re-matching
     const userIdA = userService.getUserId(userAId);
@@ -80,7 +85,7 @@ const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: '
 
             // Proactively trigger a queue scan after cooldown expires to handle stuck pairs
             scanQueueForMatches(io);
-        }, 5000);
+        }, 2000);
     }
 
     const startTime = Date.now();
