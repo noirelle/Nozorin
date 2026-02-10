@@ -13,7 +13,7 @@ import {
 } from './users';
 import { handleMediaEvents } from './media';
 import { handleSignalingEvents } from './signaling';
-import { handleMatchmaking } from './matchmaking';
+import { handleMatchmaking, setupMatchmaking } from './matchmaking';
 import { handleDirectCall } from './directCall';
 import { handleHistoryEvents } from './history';
 import { handleUserTracking, cleanupUserSession } from './tracking';
@@ -22,6 +22,7 @@ import { handleStatusEvents, broadcastUserStatus } from './status';
 import { userService } from '../services/userService';
 
 export const handleSocketConnection = (io: Server, socket: Socket) => {
+    setupMatchmaking(io);
     console.log(`[CONNECT] User connected: ${socket.id}`);
 
     const clientIp =

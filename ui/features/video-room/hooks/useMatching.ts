@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 
 export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
@@ -58,7 +58,9 @@ export const useMatching = ({
         };
 
         const handleCallEnded = () => {
+            console.log('[Matching] Call ended. Resetting state to IDLE.');
             setStatus('IDLE');
+            setPosition(null);
             if (onCallEnded) onCallEnded();
         };
 
@@ -76,12 +78,17 @@ export const useMatching = ({
         socket.on('multi-session', handleMultiSession);
 
         return () => {
+            console.log('[Matching] Cleaning up socket listeners...');
             socket.off('waiting-for-match', handleWaitingForMatch);
             socket.off('prepare-match', handlePrepareMatch);
             socket.off('match-cancelled', handleMatchCancelled);
             socket.off('match-found', handleMatchFound);
             socket.off('call-ended', handleCallEnded);
             socket.off('multi-session', handleMultiSession);
+
+            // AUTHORITATIVE RESET on unmount
+            setStatus('IDLE');
+            setPosition(null);
         };
     }, [socket, onMatchFound, onMatchCancelled, onCallEnded, onMultiSession]);
 
@@ -111,17 +118,50 @@ export const useMatching = ({
         [socket]
     );
 
-    // Skip to next partner (end current call and start new search)
+    const [isSkipping, setIsSkipping] = useState(false);
+    const skipTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup timers on unmount
+    useEffect(() => {
+        return () => {
+            if (skipTimerRef.current) {
+                clearTimeout(skipTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Skip to next partner (Atomic operation on server)
     const skipToNext = useCallback(
         (partnerId: string | null, preferredCountry?: string) => {
-            endCall(partnerId);
-            // Small delay to ensure server processes end-call first
-            setTimeout(() => {
-                startSearch(preferredCountry);
-            }, 100);
+            if (!socket || isSkipping) return;
+
+            console.log(`[Matching] Skipping to next for ${mode}...`);
+            setIsSkipping(true);
+
+            if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
+
+            startSearch(preferredCountry);
+
+            // Safety timeout to reset skipping state if server doesn't respond
+            skipTimerRef.current = setTimeout(() => {
+                setIsSkipping(false);
+                skipTimerRef.current = null;
+            }, 2000);
         },
-        [endCall, startSearch]
+        [socket, mode, startSearch, isSkipping]
     );
+
+    // Reset skipping state when a match is found or position updated
+    useEffect(() => {
+        if (status === 'MATCHED') {
+            setIsSkipping(false);
+        } else if (status === 'FINDING') {
+            // Add a small 500ms delay if we're re-entering 'FINDING' (e.g. after a skip or cancel)
+            // to prevent rapid button spamming
+            const timer = setTimeout(() => setIsSkipping(false), 500);
+            return () => clearTimeout(timer);
+        }
+    }, [status]);
 
     return {
         startSearch,
@@ -130,5 +170,6 @@ export const useMatching = ({
         skipToNext,
         status,
         position,
+        isSkipping,
     };
 };
