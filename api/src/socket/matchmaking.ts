@@ -86,28 +86,7 @@ const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 
         const pending = pendingMatches.get(roomId);
         if (pending) {
             console.log(`[MATCH] Handshake failed for ${roomId} due to timeout`);
-            clearTimeout(pending.timeout);
-            pendingMatches.delete(roomId);
-            pending.pair.forEach(u => userPendingMatch.delete(u.id));
-
-            pending.pair.forEach(u => {
-                const s = io.sockets.sockets.get(u.id);
-                if (s) {
-                    s.emit('match-cancelled', { reason: 'timeout' });
-                    // Re-queue or IDLE based on connection
-                    const userInfo = connectedUsers.get(u.id);
-                    if (userInfo) {
-                        // RE-QUEUE at the FRONT
-                        u.state = 'FINDING';
-                        const gQueue = u.mode === 'chat' ? chatQueue : videoQueue;
-                        const buckets = u.mode === 'chat' ? chatBuckets : videoBuckets;
-                        gQueue.unshift(u);
-                        if (!buckets.has(u.countryCode)) buckets.set(u.countryCode, []);
-                        buckets.get(u.countryCode)!.unshift(u);
-                    }
-                }
-            });
-            scanQueueForMatches(io);
+            handleMatchFailure(io, roomId, 'timeout');
         }
     }, 5000); // Production-ready: 5s handshake window (Azar style)
 
@@ -214,39 +193,42 @@ const startMatchmakerHeartbeat = (io: Server) => {
     }, 4000); // Check every 4 seconds
 };
 
+const handleMatchFailure = (io: Server, rid: string, reason: string) => {
+    const pending = pendingMatches.get(rid);
+    if (!pending) return;
+
+    console.log(`[MATCH] Match failed for ${rid} due to ${reason}`);
+
+    // Cleanup
+    clearTimeout(pending.timeout);
+    pendingMatches.delete(rid);
+    pending.pair.forEach(u => userPendingMatch.delete(u.id));
+
+    // Notify victims and RE-QUEUE at the FRONT (seniority preservation)
+    pending.pair.forEach(u => {
+        const s = io.sockets.sockets.get(u.id);
+        if (s) {
+            s.emit('match-cancelled', { reason });
+            // Re-insert into queue while preserving strict FIFO (sorted by joinedAt)
+            u.state = 'FINDING';
+            const gQueue = u.mode === 'chat' ? chatQueue : videoQueue;
+            const buckets = u.mode === 'chat' ? chatBuckets : videoBuckets;
+
+            gQueue.push(u);
+            gQueue.sort((a, b) => a.joinedAt - b.joinedAt);
+
+            if (!buckets.has(u.countryCode)) buckets.set(u.countryCode, []);
+            buckets.get(u.countryCode)!.push(u);
+            buckets.get(u.countryCode)!.sort((a, b) => a.joinedAt - b.joinedAt);
+        }
+    });
+
+    scanQueueForMatches(io);
+    notifyQueuePositions(io, pending.mode);
+};
+
 export const handleMatchmaking = (io: Server, socket: Socket) => {
     startMatchmakerHeartbeat(io);
-
-    const handleMatchFailure = (rid: string, reason: string) => {
-        const pending = pendingMatches.get(rid);
-        if (!pending) return;
-
-        console.log(`[MATCH] Match failed for ${rid} due to ${reason}`);
-
-        // Cleanup
-        clearTimeout(pending.timeout);
-        pendingMatches.delete(rid);
-        pending.pair.forEach(u => userPendingMatch.delete(u.id));
-
-        // Notify victims and RE-QUEUE at the FRONT (seniority preservation)
-        pending.pair.forEach(u => {
-            const s = io.sockets.sockets.get(u.id);
-            if (s) {
-                s.emit('match-cancelled', { reason });
-                // Re-insert at the head of the global queue and bucket
-                u.state = 'FINDING';
-                const gQueue = u.mode === 'chat' ? chatQueue : videoQueue;
-                const buckets = u.mode === 'chat' ? chatBuckets : videoBuckets;
-
-                gQueue.unshift(u); // Preserves their spot at the top
-                if (!buckets.has(u.countryCode)) buckets.set(u.countryCode, []);
-                buckets.get(u.countryCode)!.unshift(u);
-            }
-        });
-
-        scanQueueForMatches(io);
-        notifyQueuePositions(io, pending.mode);
-    };
 
     socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
         const mode = data.mode;
@@ -264,10 +246,11 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         console.log(`[MATCH] User ${userId.substring(0, 8)}... (${socket.id}) starting search in ${mode} mode`);
 
         // 1. Mandatory Cleanup: Remove user from all queues and pending matches
-        removeUserFromQueues(socket.id);
+        const userInfoForCleanup = connectedUsers.get(socket.id);
+        removeUserFromQueues(socket.id, userInfoForCleanup?.countryCode);
         const pendingRoomId = userPendingMatch.get(socket.id);
         if (pendingRoomId) {
-            handleMatchFailure(pendingRoomId, 'partner-left');
+            handleMatchFailure(io, pendingRoomId, 'partner-left');
         }
 
         // 2. End existing call if any
@@ -424,10 +407,10 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
     // Stop searching
     socket.on('stop-searching', () => {
-        const userInfo = connectedUsers.get(socket.id);
-        removeUserFromQueues(socket.id, userInfo?.countryCode);
+        const userInfoForStop = connectedUsers.get(socket.id);
+        removeUserFromQueues(socket.id, userInfoForStop?.countryCode);
         const roomId = userPendingMatch.get(socket.id);
-        if (roomId) handleMatchFailure(roomId, 'partner-left');
+        if (roomId) handleMatchFailure(io, roomId, 'partner-left');
         scanQueueForMatches(io);
     });
 
@@ -440,7 +423,8 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             activeCalls.delete(socket.id);
         }
         activeCalls.delete(socket.id);
-        removeUserFromQueues(socket.id);
+        const userInfoForEnd = connectedUsers.get(socket.id);
+        removeUserFromQueues(socket.id, userInfoForEnd?.countryCode);
         scanQueueForMatches(io);
     });
 
@@ -452,7 +436,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         // 2. Cleanup from handshake
         const roomId = userPendingMatch.get(socket.id);
-        if (roomId) handleMatchFailure(roomId, 'partner-disconnected');
+        if (roomId) handleMatchFailure(io, roomId, 'partner-disconnected');
 
         // 3. Cleanup from active calls
         const partnerId = activeCalls.get(socket.id);
