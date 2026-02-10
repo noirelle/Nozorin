@@ -30,10 +30,10 @@ const userPendingMatch = new Map<string, string>(); // socketId -> roomId
 
 // Helper to check if two users are compatible for matching
 const areUsersCompatible = (userA: User, userB: User) => {
-    // 1. Check if they were just matched (prevent loops)
     const userIdA = userService.getUserId(userA.id);
     const userIdB = userService.getUserId(userB.id);
 
+    // 1. Block immediate re-matching
     if (userIdA && userIdB) {
         if (lastPartnerMap.get(userIdA) === userIdB || lastPartnerMap.get(userIdB) === userIdA) {
             return false;
@@ -62,7 +62,9 @@ const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, in
 
 // Initiate handshake between two users
 const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: 'chat' | 'video') => {
-    const roomId = `room-${userAId}-${userBId}`;
+    // Determine a stable roomId based on sorted socket IDs
+    const sortedIds = [userAId, userBId].sort();
+    const roomId = `room-${sortedIds[0]}-${sortedIds[1]}`;
 
     // Track the last partner to prevent immediate re-matching
     const userIdA = userService.getUserId(userAId);
@@ -192,15 +194,10 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
     };
 
     socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
-        // Mark user as active if not already
-        if (!activeUsers.has(socket.id)) {
-            activeUsers.add(socket.id);
-            statsService.incrementOnlineUsers();
-            io.emit('stats-update', statsService.getStats());
-        }
         const mode = data.mode;
+        console.log(`[MATCH] User ${socket.id} starting search in ${mode} mode`);
 
-        // Safety check: ensure user is not already being processed or already in queue
+        // Mandatory Cleanup: Remove user from all queues first
         removeUserFromQueues(socket.id);
 
         // Ensure not already in an active call on the server side
@@ -215,8 +212,15 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         // Cleanup any pending match if user starts a new search during handshake
         const pendingRoomId = userPendingMatch.get(socket.id);
         if (pendingRoomId) {
-            console.log(`[MATCH] User ${socket.id} started new search during handshake for ${pendingRoomId}. Cancelling old match.`);
+            console.log(`[MATCH] User ${socket.id} still in handshake for ${pendingRoomId}. Cancelling before new search.`);
             handleMatchFailure(pendingRoomId, 'partner-left');
+        }
+
+        // Mark user as active
+        if (!activeUsers.has(socket.id)) {
+            activeUsers.add(socket.id);
+            statsService.incrementOnlineUsers();
+            io.emit('stats-update', statsService.getStats());
         }
 
         const preferredCountry = data.preferredCountry === 'GLOBAL' ? undefined : data.preferredCountry;
@@ -224,7 +228,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         // Get user info (country) from connected state
         const userInfo = connectedUsers.get(socket.id);
         if (!userInfo) {
-            console.warn(`[MATCH] User info not found for ${socket.id}`);
+            console.warn(`[MATCH] User info not found for ${socket.id}. Cannot match.`);
             return;
         }
 
@@ -238,13 +242,12 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
 
-        // Matchmaking Logic
+        // MATCHMAKING: Find compatible partner
         let match = findMatchInQueue(targetQueue, currentUser);
 
-        // If no match with preference, check if we should wait or fallback
+        // Preference logic fallback
         let shouldWait = false;
         if (!match && preferredCountry) {
-            // Check if anyone from that country is active
             const isSomeoneOnline = Array.from(activeUsers).some(id => {
                 const info = connectedUsers.get(id);
                 return info && info.countryCode === preferredCountry && id !== socket.id;
@@ -253,7 +256,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             if (isSomeoneOnline) {
                 shouldWait = true;
             } else {
-                // Fallback to global search immediately
                 currentUser.preferredCountry = undefined;
                 match = findMatchInQueue(targetQueue, currentUser);
             }
@@ -261,36 +263,50 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         if (match && match.partner && match.partner.id !== socket.id) {
             const { partner, index } = match;
-            targetQueue.splice(index, 1); // Remove partner from queue
+
+            // Re-verify partner is still compatible and NOT in a handshake themselves
+            if (userPendingMatch.has(partner.id)) {
+                console.log(`[MATCH] Partner ${partner.id} found in queue but already in another handshake. Skipping.`);
+                targetQueue.splice(index, 1);
+                // Recursive retry or just add self to queue
+                iFindMatch();
+                return;
+            }
+
+            targetQueue.splice(index, 1);
             initiateHandshake(io, socket.id, partner.id, mode);
             return;
         }
 
-        // Add to queue
-        const userToAdd: User = {
-            ...currentUser,
-            preferredCountry: shouldWait ? preferredCountry : undefined
-        };
+        function iFindMatch() {
+            // Re-add self to queue if match failed or wasn't found
+            const userToAdd: User = {
+                ...currentUser,
+                preferredCountry: shouldWait ? preferredCountry : undefined
+            };
 
-        if (mode === 'chat') {
-            chatQueue.push(userToAdd);
-        } else {
-            videoQueue.push(userToAdd);
+            if (mode === 'chat') {
+                chatQueue.push(userToAdd);
+            } else {
+                videoQueue.push(userToAdd);
+            }
+
+            socket.emit('waiting-for-match', { position: targetQueue.length });
+
+            if (shouldWait) {
+                setTimeout(() => {
+                    const q = mode === 'chat' ? chatQueue : videoQueue;
+                    const idx = q.findIndex(u => u.id === socket.id);
+                    if (idx !== -1 && q[idx].preferredCountry) {
+                        q[idx].preferredCountry = undefined;
+                        console.log(`[MATCH] Preference timeout for ${socket.id}`);
+                        scanQueueForMatches(io);
+                    }
+                }, 8000);
+            }
         }
 
-        socket.emit('waiting-for-match', { position: targetQueue.length });
-
-        // Handle preference timeout
-        if (shouldWait) {
-            setTimeout(() => {
-                const q = mode === 'chat' ? chatQueue : videoQueue;
-                const idx = q.findIndex(u => u.id === socket.id);
-                if (idx !== -1 && q[idx].preferredCountry) {
-                    q[idx].preferredCountry = undefined;
-                    console.log(`[MATCH] Timeout for ${socket.id}, falling back to GLOBAL`);
-                }
-            }, 8000); // 8 seconds for preference
-        }
+        iFindMatch();
     });
 
     // Handle Match Ready (Handshake Ack)
@@ -385,6 +401,9 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 pending.pair.forEach(sid => userPendingMatch.delete(sid));
             }
         }
+
+        // Proactively scan after someone leaves
+        scanQueueForMatches(io);
     });
 
     // End Call / Next Match / Skip
@@ -408,6 +427,9 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         removeUserFromQueues(socket.id);
 
         console.log(`Active calls after end: ${activeCalls.size}, Queue - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
+
+        // Proactively scan after call ends
+        scanQueueForMatches(io);
     });
 
     // Handle Disconnect during handshake
@@ -423,5 +445,8 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 pending.pair.forEach(sid => userPendingMatch.delete(sid));
             }
         }
+
+        // Final cleanup and scan
+        scanQueueForMatches(io);
     });
 };
