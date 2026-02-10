@@ -20,11 +20,13 @@ class UserService {
     /**
      * Map a socket ID to a User ID (from JWT)
      */
-    setUserForSocket(socketId: string, userId: string) {
-        // Cleanup old mappings if they exist
-        const oldUserId = socketToUserMap.get(socketId);
-        if (oldUserId) {
-            userToSocketMap.delete(oldUserId);
+    setUserForSocket(socketId: string, userId: string): string | undefined {
+        const oldSocketId = userToSocketMap.get(userId);
+
+        // Cleanup old mapping if it exists for this socket
+        const prevUserIdForSocket = socketToUserMap.get(socketId);
+        if (prevUserIdForSocket && prevUserIdForSocket !== userId) {
+            userToSocketMap.delete(prevUserIdForSocket);
         }
 
         socketToUserMap.set(socketId, userId);
@@ -32,6 +34,8 @@ class UserService {
 
         // Update status as online
         this.updateUserStatus(userId, true);
+
+        return oldSocketId;
     }
 
     /**

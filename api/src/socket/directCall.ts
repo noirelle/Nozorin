@@ -9,6 +9,16 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
      */
     socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'chat' | 'video' }) => {
         const { targetUserId, mode } = data;
+
+        // ROBUSTNESS: Ensure caller is identified and authoritative
+        const myUserId = userService.getUserId(socket.id);
+        const authoritativeSocketId = myUserId ? userService.getSocketId(myUserId) : null;
+
+        if (!myUserId || authoritativeSocketId !== socket.id) {
+            socket.emit('multi-session', { message: 'Session no longer active. Please reconnect.' });
+            return;
+        }
+
         const targetSocketId = userService.getSocketId(targetUserId);
 
         if (!targetSocketId) {
@@ -62,6 +72,16 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
      */
     socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'chat' | 'video' }) => {
         const { callerSocketId, accepted, mode } = data;
+
+        // ROBUSTNESS: Ensure responder is identified and authoritative
+        const myUserId = userService.getUserId(socket.id);
+        const authoritativeSocketId = myUserId ? userService.getSocketId(myUserId) : null;
+
+        if (!myUserId || authoritativeSocketId !== socket.id) {
+            socket.emit('multi-session', { message: 'Session no longer active. Please reconnect.' });
+            return;
+        }
+
         const callerSocket = io.sockets.sockets.get(callerSocketId);
 
         if (!callerSocket) {

@@ -200,7 +200,18 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
     socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
         const mode = data.mode;
-        console.log(`[MATCH] User ${socket.id} starting search in ${mode} mode`);
+
+        // ROBUSTNESS: Ensure user is identified and this is the authoritative socket
+        const userId = userService.getUserId(socket.id);
+        const authoritativeSocketId = userId ? userService.getSocketId(userId) : null;
+
+        if (!userId || authoritativeSocketId !== socket.id) {
+            console.warn(`[MATCH] Non-authoritative session ${socket.id} tried to find-match.`);
+            socket.emit('multi-session', { message: 'Your session is no longer active. Please reconnect.' });
+            return;
+        }
+
+        console.log(`[MATCH] User ${userId.substring(0, 8)}... (${socket.id}) starting search in ${mode} mode`);
 
         // Mandatory Cleanup: Remove user from all queues first
         removeUserFromQueues(socket.id);

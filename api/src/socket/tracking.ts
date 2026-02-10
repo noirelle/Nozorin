@@ -28,14 +28,56 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         if (!token) return;
 
         const userId = getUserIdFromToken(token);
-        if (userId) {
-            userService.setUserForSocket(socket.id, userId);
-            await userService.registerUser(userId);
-            console.log(`[TRACKING] Identified user ${userId.substring(0, 8)}... for socket ${socket.id}`);
+        if (!userId) return;
 
-            // Broadcast that this user is now online
-            await broadcastUserStatus(io, userId);
+        const existingSocketId = userService.getSocketId(userId);
+
+        // Check for conflict: user already connected on ANOTHER socket
+        if (existingSocketId && existingSocketId !== socket.id) {
+            console.log(`[TRACKING] Conflict detected for user ${userId.substring(0, 8)}... (New: ${socket.id}, Old: ${existingSocketId})`);
+            socket.emit('session-conflict', { message: 'Existing session detected.' });
+            return;
         }
+
+        // No conflict, proceed with identification
+        userService.setUserForSocket(socket.id, userId);
+        await userService.registerUser(userId);
+        console.log(`[TRACKING] Identified user ${userId.substring(0, 8)}... for socket ${socket.id}`);
+
+        // Broadcast that this user is now online
+        await broadcastUserStatus(io, userId);
+    });
+
+    /**
+     * Forcefully take over a session from another tab/device 
+     */
+    socket.on('force-reconnect', async (data: { token: string }) => {
+        const { token } = data;
+        if (!token) return;
+
+        const userId = getUserIdFromToken(token);
+        if (!userId) return;
+
+        console.log(`[TRACKING] Force reconnect request from ${socket.id} for user ${userId.substring(0, 8)}...`);
+
+        // Use the atomic setUserForSocket which returns the old ID
+        const oldSocketId = userService.setUserForSocket(socket.id, userId);
+
+        if (oldSocketId && oldSocketId !== socket.id) {
+            console.log(`[TRACKING] Kicking old session ${oldSocketId} for user ${userId.substring(0, 8)}...`);
+            io.to(oldSocketId).emit('multi-session', { message: 'You have been disconnected because a new session was started elsewhere.' });
+
+            const oldSocket = io.sockets.sockets.get(oldSocketId);
+            if (oldSocket) {
+                oldSocket.disconnect(true);
+            }
+        }
+
+        await userService.registerUser(userId);
+        await broadcastUserStatus(io, userId);
+
+        // Notify the new socket that they are now the primary session
+        socket.emit('identify-success', { userId });
     });
 
     /**

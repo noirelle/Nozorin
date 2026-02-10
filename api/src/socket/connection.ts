@@ -43,6 +43,26 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Initialize user media state (unmuted, camera on by default)
     userMediaState.set(socket.id, { isMuted: false, isCameraOff: false });
 
+    // Global middleware for this socket: Block any activity if not identified or if superseded by another tab
+    socket.use(([event, ...args], next) => {
+        // Always allow identification and system events
+        if (event === 'user-identify' || event === 'force-reconnect' || event === 'disconnect' || event === 'stats-update') {
+            return next();
+        }
+
+        const userId = userService.getUserId(socket.id);
+        const masterSocketId = userId ? userService.getSocketId(userId) : null;
+
+        // If not identifying AND (no userId OR another socket is master), block and notify
+        if (!userId || masterSocketId !== socket.id) {
+            console.warn(`[AUTH] Blocked '${event}' from non-authoritative session: ${socket.id}`);
+            socket.emit('multi-session', { message: 'Your session has been superseded or expired.' });
+            return; // Stop processing this event
+        }
+
+        next();
+    });
+
     // Module Handlers
     handleStatusEvents(io, socket);
     handleMatchmaking(io, socket);

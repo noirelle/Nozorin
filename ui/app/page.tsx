@@ -18,6 +18,7 @@ import { useHistory, useVisitorAuth, useDirectCall } from '../hooks';
 import { socket } from '../lib/socket';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '../features/direct-call/components/OutgoingCallOverlay';
+import { MultiSessionOverlay } from '../features/auth/components/MultiSessionOverlay';
 
 export default function Home() {
   const [isInRoom, setIsInRoom] = useState(false);
@@ -25,6 +26,7 @@ export default function Home() {
   const [activeView, setActiveView] = useState<'video' | 'chat'>('video'); // Track which UI is active
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [directMatchData, setDirectMatchData] = useState<any>(null);
+  const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
 
   const handleCloseHistory = useCallback(() => {
     setIsHistoryOpen(false);
@@ -32,6 +34,16 @@ export default function Home() {
 
   // History hooks
   const { visitorToken, ensureToken, regenerateToken } = useVisitorAuth();
+
+  const handleForceReconnect = useCallback(() => {
+    const s = socket();
+    if (s && visitorToken) {
+      console.log('[Home] Forcing reconnect...');
+      s.emit('force-reconnect', { token: visitorToken });
+      setSessionError(null);
+    }
+  }, [visitorToken]);
+
   const {
     history,
     stats,
@@ -77,20 +89,82 @@ export default function Home() {
       }
     };
 
+    const handleMultiSession = () => {
+      console.warn('[Home] Multi-session detected (kicked), blocking UI...');
+      setSessionError('kicked');
+      setIsInRoom(false); // Force exit room if inside
+    };
+
+    const handleSessionConflict = () => {
+      console.warn('[Home] Session conflict detected (new tab), blocking UI...');
+      setSessionError('conflict');
+    };
+
+    const handleIdentifySuccess = () => {
+      console.log('[Home] Identification successful');
+      setSessionError(null);
+    };
+
     s.on('match-found', handleMatchFound);
-    return () => { s.off('match-found', handleMatchFound); };
+    s.on('multi-session', handleMultiSession);
+    s.on('session-conflict', handleSessionConflict);
+    s.on('identify-success', handleIdentifySuccess);
+
+    return () => {
+      s.off('match-found', handleMatchFound);
+      s.off('multi-session', handleMultiSession);
+      s.off('session-conflict', handleSessionConflict);
+      s.off('identify-success', handleIdentifySuccess);
+    };
   }, [isInRoom]);
 
-  // Identify user to socket when token is available
+  // Identify user to socket when token is available or socket reconnects
   useEffect(() => {
     const s = socket();
-    if (visitorToken && s) {
-      s.emit('user-identify', { token: visitorToken });
+    if (!s) return;
 
-      // Also fetch history periodically to keep status updated? 
-      // For now, let's just do it on room entry or modal open
-    }
-  }, [visitorToken]);
+    const identify = () => {
+      if (visitorToken) {
+        console.log('[Home] Identifying socket...', s.id);
+        s.emit('user-identify', { token: visitorToken });
+      }
+    };
+
+    // Run once on load/token change
+    identify();
+
+    // Re-verify on focus (robustness against background tab throttling)
+    const onFocus = () => {
+      console.log('[Home] Re-verifying session on focus...');
+      identify();
+    };
+
+    // Periodic check (every 10s) to catch overlaps missed by events
+    const interval = setInterval(() => {
+      if (s.connected && !sessionError) {
+        identify();
+      }
+    }, 10000);
+
+    // Watch for localStorage changes from other tabs
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === 'nozorin_visitor_token') {
+        console.log('[Home] Visitor token changed in another tab, re-identifying...');
+        window.location.reload(); // Hard reset is safest if identity changes
+      }
+    };
+
+    s.on('connect', identify);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('storage', onStorageChange);
+
+    return () => {
+      s.off('connect', identify);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('storage', onStorageChange);
+      clearInterval(interval);
+    };
+  }, [visitorToken, sessionError]);
 
   const handleJoin = async (selectedMode: 'chat' | 'video') => {
     // Always ensure we have a token before joining
@@ -180,6 +254,13 @@ export default function Home() {
         <OutgoingCallOverlay
           onCancel={cancelCall}
           error={callError}
+        />
+      )}
+
+      {sessionError && (
+        <MultiSessionOverlay
+          onReconnect={handleForceReconnect}
+          reason={sessionError}
         />
       )}
     </main>
