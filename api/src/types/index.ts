@@ -1,11 +1,12 @@
 
 export interface User {
-    id: string;
+    id: string; // Socket ID
+    userId: string; // Persistent Visitor ID
     country: string; // Full name
     countryCode: string; // ISO Code
     mode: 'chat' | 'video';
     preferredCountry?: string;
-    // ... any other fields
+    joinedAt: number; // For strict FIFO ordering
 }
 
 export interface Room {

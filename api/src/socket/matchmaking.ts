@@ -30,52 +30,52 @@ const userPendingMatch = new Map<string, string>(); // socketId -> roomId
 
 // Helper to check if two users are compatible for matching
 const areUsersCompatible = (userA: User, userB: User) => {
-    const userIdA = userService.getUserId(userA.id);
-    const userIdB = userService.getUserId(userB.id);
-
     // 1. Prevent matching with self (same user ID across devices/tabs)
-    if (userIdA && userIdB && userIdA === userIdB) {
+    if (userA.userId === userB.userId) {
         return false;
     }
 
     // 2. Block immediate re-matching
-    if (userIdA && userIdB) {
-        if (lastPartnerMap.get(userIdA) === userIdB || lastPartnerMap.get(userIdB) === userIdA) {
-            return false;
-        }
+    if (lastPartnerMap.get(userA.userId) === userB.userId || lastPartnerMap.get(userB.userId) === userA.userId) {
+        return false;
     }
 
-    // 2. Check if A matches B's criteria
+    // 3. Check if A matches B's criteria
     const aSatisfied = !userA.preferredCountry || userA.preferredCountry === userB.countryCode;
-    // 3. Check if B matches A's criteria
+    // 4. Check if B matches A's criteria
     const bSatisfied = !userB.preferredCountry || userB.preferredCountry === userA.countryCode;
 
     return aSatisfied && bSatisfied;
 };
 
+// Notify all users in the queue of their current position
+const notifyQueuePositions = (io: Server, mode: 'chat' | 'video') => {
+    const queue = mode === 'chat' ? chatQueue : videoQueue;
+    queue.forEach((user, index) => {
+        const socket = io.sockets.sockets.get(user.id);
+        if (socket) {
+            socket.emit('waiting-for-match', { position: index + 1 });
+        }
+    });
+};
 
 // Initiate handshake between two users
-const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: 'chat' | 'video') => {
+const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 'video') => {
     // Determine a stable roomId based on sorted socket IDs
-    const sortedIds = [userAId, userBId].sort();
+    const sortedIds = [userA.id, userB.id].sort();
     const roomId = `room-${sortedIds[0]}-${sortedIds[1]}-${Date.now()}`;
 
     // Track the last partner to prevent immediate re-matching
-    const userIdA = userService.getUserId(userAId);
-    const userIdB = userService.getUserId(userBId);
-    if (userIdA && userIdB) {
-        lastPartnerMap.set(userIdA, userIdB);
-        lastPartnerMap.set(userIdB, userIdA);
+    lastPartnerMap.set(userA.userId, userB.userId);
+    lastPartnerMap.set(userB.userId, userA.userId);
 
-        // Clear the "loop prevention" after 5 seconds to allow re-matching later
-        setTimeout(() => {
-            if (lastPartnerMap.get(userIdA) === userIdB) lastPartnerMap.delete(userIdA);
-            if (lastPartnerMap.get(userIdB) === userIdA) lastPartnerMap.delete(userIdB);
-
-            // Proactively trigger a queue scan after cooldown expires to handle stuck pairs
-            scanQueueForMatches(io);
-        }, 5000);
-    }
+    // Clear the "loop prevention" after 10 seconds to allow re-matching later
+    setTimeout(() => {
+        if (lastPartnerMap.get(userA.userId) === userB.userId) lastPartnerMap.delete(userA.userId);
+        if (lastPartnerMap.get(userB.userId) === userA.userId) lastPartnerMap.delete(userB.userId);
+        // Proactively trigger a queue scan after cooldown expires
+        scanQueueForMatches(io);
+    }, 10000);
 
     const startTime = Date.now();
     const timeout = setTimeout(() => {
@@ -89,11 +89,13 @@ const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: '
                 const s = io.sockets.sockets.get(sid);
                 if (s) s.emit('match-cancelled', { reason: 'timeout' });
             });
+            // Rescan after failure
+            scanQueueForMatches(io);
         }
     }, 8000);
 
     pendingMatches.set(roomId, {
-        pair: [userAId, userBId],
+        pair: [userA.id, userB.id],
         mode,
         startTime,
         acks: new Set(),
@@ -101,23 +103,20 @@ const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: '
         roomId
     });
 
-    userPendingMatch.set(userAId, roomId);
-    userPendingMatch.set(userBId, roomId);
-
-    const infoA = connectedUsers.get(userAId);
-    const infoB = connectedUsers.get(userBId);
+    userPendingMatch.set(userA.id, roomId);
+    userPendingMatch.set(userB.id, roomId);
 
     // Notify both to prepare
-    io.to(userBId).emit('prepare-match', {
-        partnerCountry: infoA?.country,
-        partnerCountryCode: infoA?.countryCode,
+    io.to(userB.id).emit('prepare-match', {
+        partnerCountry: userA.country,
+        partnerCountryCode: userA.countryCode,
     });
-    io.to(userAId).emit('prepare-match', {
-        partnerCountry: infoB?.country,
-        partnerCountryCode: infoB?.countryCode,
+    io.to(userA.id).emit('prepare-match', {
+        partnerCountry: userB.country,
+        partnerCountryCode: userB.countryCode,
     });
 
-    console.log(`[MATCH] Handshake started for ${userAId} and ${userBId}`);
+    console.log(`[MATCH] Handshake started for ${userA.id} and ${userB.id}`);
 };
 
 // Scan queues for potential matches
@@ -126,17 +125,21 @@ export const scanQueueForMatches = (io: Server) => {
         const mode = m as 'chat' | 'video';
         const queue = mode === 'chat' ? chatQueue : videoQueue;
 
+        if (queue.length < 2) return;
+
         let i = 0;
+        let matchHappened = false;
         while (i < queue.length) {
             const userA = queue[i];
 
             // Safety cleanup: If user is busy or disconnected, remove them
             if (!io.sockets.sockets.has(userA.id) || userPendingMatch.has(userA.id)) {
                 queue.splice(i, 1);
+                matchHappened = true;
                 continue;
             }
 
-            let matchFound = false;
+            let found = false;
             // Try to match userA (the oldest available person) with anyone further down
             for (let j = i + 1; j < queue.length; j++) {
                 const userB = queue[j];
@@ -145,28 +148,32 @@ export const scanQueueForMatches = (io: Server) => {
                 if (!io.sockets.sockets.has(userB.id) || userPendingMatch.has(userB.id)) {
                     queue.splice(j, 1);
                     j--; // Adjust index after splice
+                    matchHappened = true;
                     continue;
                 }
 
                 if (areUsersCompatible(userA, userB)) {
-                    // Match found! Oldest person A gets paired with compatible person B.
-                    // Important: Splice from highest index first to avoid index shifting issues
+                    // Match found!
                     queue.splice(j, 1);
                     queue.splice(i, 1);
 
-                    initiateHandshake(io, userA.id, userB.id, mode);
-                    matchFound = true;
+                    initiateHandshake(io, userA, userB, mode);
+                    found = true;
+                    matchHappened = true;
                     break;
                 }
             }
 
-            if (matchFound) {
-                // Restart scan for this mode to ensure we always try to match the NEW head of the queue next
+            if (found) {
+                // Restart scan for this mode
                 i = 0;
-                continue;
+            } else {
+                i++;
             }
-            // No match found for userA, try to match the next person in line
-            i++;
+        }
+
+        if (matchHappened) {
+            notifyQueuePositions(io, mode);
         }
     });
 };
@@ -203,6 +210,9 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 s.emit('match-cancelled', { reason });
             }
         });
+
+        // Proactively scan after failure to handle remaining queue
+        scanQueueForMatches(io);
     };
 
     socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
@@ -260,22 +270,29 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         // 5. ADD TO QUEUE FIRST (Ensures strict FIFO and avoids race conditions)
         const currentUser: User = {
             id: socket.id,
+            userId: userId,
             country: userInfo.country,
             countryCode: userInfo.countryCode,
             mode: mode,
-            preferredCountry: shouldWait ? preferredCountry : undefined
+            preferredCountry: shouldWait ? preferredCountry : undefined,
+            joinedAt: Date.now()
         };
 
         const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
         targetQueue.push(currentUser);
 
+        // Safety: Ensure it's sorted by time (usually redundant but good for robustness)
+        targetQueue.sort((a, b) => a.joinedAt - b.joinedAt);
+
         // 6. TRIGGER GLOBAL SCAN (Immediately try to satisfy the oldest people in queue, including this newcomer)
         scanQueueForMatches(io);
+        notifyQueuePositions(io, mode);
 
         // 7. Handle feedback to client if still in queue
         const currentIdx = targetQueue.findIndex(u => u.id === socket.id);
         if (currentIdx !== -1) {
-            socket.emit('waiting-for-match', { position: currentIdx });
+            // Already handled by notifyQueuePositions, but sending initial confirm is good
+            socket.emit('waiting-for-match', { position: currentIdx + 1 });
 
             // Handle preference timeout if applicable
             if (shouldWait) {
@@ -287,7 +304,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                         console.log(`[MATCH] Preference timeout for ${socket.id}`);
                         scanQueueForMatches(io);
                     }
-                }, 8000);
+                }, 10000); // 10s wait for preference
             }
         }
     });
