@@ -9,7 +9,6 @@ export interface User {
     preferredCountry?: string;
     joinedAt: number; // For strict FIFO ordering
     state: MatchState;
-    lastPartnerId?: string; // For re-match prevention
 }
 
 export interface Room {

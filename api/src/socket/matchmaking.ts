@@ -38,8 +38,10 @@ const areUsersCompatible = (userA: User, userB: User) => {
     // 2. Prevent matching with self
     if (userA.userId === userB.userId) return false;
 
-    // 3. Block immediate re-matching
-    if (userA.lastPartnerId === userB.userId || userB.lastPartnerId === userA.userId) return false;
+    // 3. Block immediate re-matching (Persistent Re-match Prevention)
+    const lastA = lastPartnerMap.get(userA.userId);
+    const lastB = lastPartnerMap.get(userB.userId);
+    if (lastA === userB.userId || lastB === userA.userId) return false;
 
     // 4. Criteria Check
     const aSatisfied = !userA.preferredCountry || userA.preferredCountry === userB.countryCode;
@@ -68,14 +70,14 @@ const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 
     const sortedIds = [userA.id, userB.id].sort();
     const roomId = `room-${sortedIds[0]}-${sortedIds[1]}-${Date.now()}`;
 
-    // 2. Persistent Re-match Prevention
-    userA.lastPartnerId = userB.userId;
-    userB.lastPartnerId = userA.userId;
+    // 2. Persistent Re-match Prevention (using persistent User IDs)
+    lastPartnerMap.set(userA.userId, userB.userId);
+    lastPartnerMap.set(userB.userId, userA.userId);
 
     // Clear cooldown after 10s
     setTimeout(() => {
-        if (userA.lastPartnerId === userB.userId) userA.lastPartnerId = undefined;
-        if (userB.lastPartnerId === userA.userId) userB.lastPartnerId = undefined;
+        if (lastPartnerMap.get(userA.userId) === userB.userId) lastPartnerMap.delete(userA.userId);
+        if (lastPartnerMap.get(userB.userId) === userA.userId) lastPartnerMap.delete(userB.userId);
         scanQueueForMatches(io);
     }, 10000);
 
