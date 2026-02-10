@@ -53,17 +53,6 @@ const areUsersCompatible = (userA: User, userB: User) => {
     return aSatisfied && bSatisfied;
 };
 
-// Helper to find a compatible match in the queue
-const findMatchInQueue = (queue: User[], currentUser: User): { partner: User, index: number } | null => {
-    for (let i = 0; i < queue.length; i++) {
-        const potentialPartner = queue[i];
-        if (potentialPartner.id === currentUser.id) continue;
-        if (areUsersCompatible(currentUser, potentialPartner)) {
-            return { partner: potentialPartner, index: i };
-        }
-    }
-    return null;
-};
 
 // Initiate handshake between two users
 const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: 'chat' | 'video') => {
@@ -139,26 +128,44 @@ export const scanQueueForMatches = (io: Server) => {
 
         let i = 0;
         while (i < queue.length) {
-            const user = queue[i];
-            const result = findMatchInQueue(queue, user);
+            const userA = queue[i];
 
-            if (result) {
-                // Found a match within the queue!
-                const partner = result.partner;
-                const partnerIdx = result.index;
+            // Safety cleanup: If user is busy or disconnected, remove them
+            if (!io.sockets.sockets.has(userA.id) || userPendingMatch.has(userA.id)) {
+                queue.splice(i, 1);
+                continue;
+            }
 
-                // Remove both (be careful with indices)
-                // Remove the one further in the queue first
-                const indices = [i, partnerIdx].sort((a, b) => b - a);
-                queue.splice(indices[0], 1);
-                queue.splice(indices[1], 1);
+            let matchFound = false;
+            // Try to match userA (the oldest available person) with anyone further down
+            for (let j = i + 1; j < queue.length; j++) {
+                const userB = queue[j];
 
-                initiateHandshake(io, user.id, partner.id, mode);
-                // After finding a match, indices are shifted, just restart or keep processing
-                // For simplicity, we restart scan for this mode after reduction
+                // Skip busy/disconnected partners
+                if (!io.sockets.sockets.has(userB.id) || userPendingMatch.has(userB.id)) {
+                    queue.splice(j, 1);
+                    j--; // Adjust index after splice
+                    continue;
+                }
+
+                if (areUsersCompatible(userA, userB)) {
+                    // Match found! Oldest person A gets paired with compatible person B.
+                    // Important: Splice from highest index first to avoid index shifting issues
+                    queue.splice(j, 1);
+                    queue.splice(i, 1);
+
+                    initiateHandshake(io, userA.id, userB.id, mode);
+                    matchFound = true;
+                    break;
+                }
+            }
+
+            if (matchFound) {
+                // Restart scan for this mode to ensure we always try to match the NEW head of the queue next
                 i = 0;
                 continue;
             }
+            // No match found for userA, try to match the next person in line
             i++;
         }
     });
@@ -213,107 +220,64 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         console.log(`[MATCH] User ${userId.substring(0, 8)}... (${socket.id}) starting search in ${mode} mode`);
 
-        // Mandatory Cleanup: Remove user from all queues first
+        // 1. Mandatory Cleanup: Remove user from all queues and pending matches
         removeUserFromQueues(socket.id);
+        const pendingRoomId = userPendingMatch.get(socket.id);
+        if (pendingRoomId) {
+            handleMatchFailure(pendingRoomId, 'partner-left');
+        }
 
-        // Ensure not already in an active call on the server side
+        // 2. End existing call if any
         const existingPartnerId = activeCalls.get(socket.id);
         if (existingPartnerId) {
-            console.log(`[MATCH] Ending existing call with ${existingPartnerId} before searching`);
             io.to(existingPartnerId).emit('call-ended', { by: socket.id });
             activeCalls.delete(existingPartnerId);
             activeCalls.delete(socket.id);
         }
 
-        // Cleanup any pending match if user starts a new search during handshake
-        const pendingRoomId = userPendingMatch.get(socket.id);
-        if (pendingRoomId) {
-            console.log(`[MATCH] User ${socket.id} still in handshake for ${pendingRoomId}. Cancelling before new search.`);
-            handleMatchFailure(pendingRoomId, 'partner-left');
-        }
-
-        // Mark user as active
+        // 3. Update stats and state
         if (!activeUsers.has(socket.id)) {
             activeUsers.add(socket.id);
             statsService.incrementOnlineUsers();
             io.emit('stats-update', statsService.getStats());
         }
 
+        // 4. Determine criteria
         const preferredCountry = data.preferredCountry === 'GLOBAL' ? undefined : data.preferredCountry;
-
-        // Get user info (country) from connected state
         const userInfo = connectedUsers.get(socket.id);
         if (!userInfo) {
             console.warn(`[MATCH] User info not found for ${socket.id}. Cannot match.`);
             return;
         }
 
+        // Check if we should wait for a preferred country
+        const isSomeoneWaitable = preferredCountry ? Array.from(activeUsers).some(id => {
+            const info = connectedUsers.get(id);
+            return info && info.countryCode === preferredCountry && id !== socket.id;
+        }) : false;
+        const shouldWait = preferredCountry && isSomeoneWaitable;
+
+        // 5. ADD TO QUEUE FIRST (Ensures strict FIFO and avoids race conditions)
         const currentUser: User = {
             id: socket.id,
             country: userInfo.country,
             countryCode: userInfo.countryCode,
             mode: mode,
-            preferredCountry: preferredCountry
+            preferredCountry: shouldWait ? preferredCountry : undefined
         };
 
         const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
+        targetQueue.push(currentUser);
 
-        // MATCHMAKING: Find compatible partner
-        let bestMatchIdx = -1;
-        let bestMatchPartner: User | null = null;
+        // 6. TRIGGER GLOBAL SCAN (Immediately try to satisfy the oldest people in queue, including this newcomer)
+        scanQueueForMatches(io);
 
-        // Preference logic fallback
-        const isSomeoneWaitable = preferredCountry ? Array.from(activeUsers).some(id => {
-            const info = connectedUsers.get(id);
-            return info && info.countryCode === preferredCountry && id !== socket.id;
-        }) : false;
+        // 7. Handle feedback to client if still in queue
+        const currentIdx = targetQueue.findIndex(u => u.id === socket.id);
+        if (currentIdx !== -1) {
+            socket.emit('waiting-for-match', { position: currentIdx });
 
-        let shouldWait = preferredCountry && isSomeoneWaitable;
-
-        // Exhaustive Search for the OLDEST compatible and AVAILABLE partner
-        for (let i = 0; i < targetQueue.length; i++) {
-            const potential = targetQueue[i];
-
-            // Skip self and check basic compatibility (including re-match cooldown)
-            if (potential.id !== socket.id && areUsersCompatible(currentUser, potential)) {
-
-                // If partner is busy in a handshake, clean them from queue and keep looking for next oldest
-                if (userPendingMatch.has(potential.id)) {
-                    console.log(`[MATCH] Partner ${potential.id} busy. Cleaning and continuing search.`);
-                    targetQueue.splice(i, 1);
-                    i--; // Correct index after splice
-                    continue;
-                }
-
-                // Found the oldest compatible & available partner!
-                bestMatchPartner = potential;
-                bestMatchIdx = i;
-                break;
-            }
-        }
-
-        // If we found a match, initiate it
-        if (bestMatchPartner && bestMatchIdx !== -1) {
-            targetQueue.splice(bestMatchIdx, 1);
-            initiateHandshake(io, socket.id, bestMatchPartner.id, mode);
-            return;
-        }
-
-        function iFindMatch() {
-            // Re-add self to queue if match failed or wasn't found
-            const userToAdd: User = {
-                ...currentUser,
-                preferredCountry: shouldWait ? preferredCountry : undefined
-            };
-
-            if (mode === 'chat') {
-                chatQueue.push(userToAdd);
-            } else {
-                videoQueue.push(userToAdd);
-            }
-
-            socket.emit('waiting-for-match', { position: targetQueue.length });
-
+            // Handle preference timeout if applicable
             if (shouldWait) {
                 setTimeout(() => {
                     const q = mode === 'chat' ? chatQueue : videoQueue;
@@ -326,8 +290,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 }, 8000);
             }
         }
-
-        iFindMatch();
     });
 
     // Handle Match Ready (Handshake Ack)
