@@ -85,7 +85,7 @@ const initiateHandshake = (io: Server, userAId: string, userBId: string, mode: '
 
             // Proactively trigger a queue scan after cooldown expires to handle stuck pairs
             scanQueueForMatches(io);
-        }, 2000);
+        }, 5000);
     }
 
     const startTime = Date.now();
@@ -248,38 +248,43 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
 
         // MATCHMAKING: Find compatible partner
-        let match = findMatchInQueue(targetQueue, currentUser);
+        let bestMatchIdx = -1;
+        let bestMatchPartner: User | null = null;
 
         // Preference logic fallback
-        let shouldWait = false;
-        if (!match && preferredCountry) {
-            const isSomeoneOnline = Array.from(activeUsers).some(id => {
-                const info = connectedUsers.get(id);
-                return info && info.countryCode === preferredCountry && id !== socket.id;
-            });
+        const isSomeoneWaitable = preferredCountry ? Array.from(activeUsers).some(id => {
+            const info = connectedUsers.get(id);
+            return info && info.countryCode === preferredCountry && id !== socket.id;
+        }) : false;
 
-            if (isSomeoneOnline) {
-                shouldWait = true;
-            } else {
-                currentUser.preferredCountry = undefined;
-                match = findMatchInQueue(targetQueue, currentUser);
+        let shouldWait = preferredCountry && isSomeoneWaitable;
+
+        // Exhaustive Search for the OLDEST compatible and AVAILABLE partner
+        for (let i = 0; i < targetQueue.length; i++) {
+            const potential = targetQueue[i];
+
+            // Skip self and check basic compatibility (including re-match cooldown)
+            if (potential.id !== socket.id && areUsersCompatible(currentUser, potential)) {
+
+                // If partner is busy in a handshake, clean them from queue and keep looking for next oldest
+                if (userPendingMatch.has(potential.id)) {
+                    console.log(`[MATCH] Partner ${potential.id} busy. Cleaning and continuing search.`);
+                    targetQueue.splice(i, 1);
+                    i--; // Correct index after splice
+                    continue;
+                }
+
+                // Found the oldest compatible & available partner!
+                bestMatchPartner = potential;
+                bestMatchIdx = i;
+                break;
             }
         }
 
-        if (match && match.partner && match.partner.id !== socket.id) {
-            const { partner, index } = match;
-
-            // Re-verify partner is still compatible and NOT in a handshake themselves
-            if (userPendingMatch.has(partner.id)) {
-                console.log(`[MATCH] Partner ${partner.id} found in queue but already in another handshake. Skipping.`);
-                targetQueue.splice(index, 1);
-                // Recursive retry or just add self to queue
-                iFindMatch();
-                return;
-            }
-
-            targetQueue.splice(index, 1);
-            initiateHandshake(io, socket.id, partner.id, mode);
+        // If we found a match, initiate it
+        if (bestMatchPartner && bestMatchIdx !== -1) {
+            targetQueue.splice(bestMatchIdx, 1);
+            initiateHandshake(io, socket.id, bestMatchPartner.id, mode);
             return;
         }
 
