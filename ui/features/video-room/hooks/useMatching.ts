@@ -46,7 +46,7 @@ export const useMatching = ({
 
         const handleMatchCancelled = (data: { reason: string }) => {
             console.warn('[Matching] Match cancelled:', data.reason);
-            setStatus('IDLE'); // Or back to FINDING if auto-requeue is handled by server
+            setStatus('FINDING'); // Server auto-requeues at the front
             setPosition(null);
             if (onMatchCancelled) onMatchCancelled(data);
         };

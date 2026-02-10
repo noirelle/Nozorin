@@ -152,23 +152,27 @@ export const scanQueueForMatches = (io: Server) => {
             if (!io.sockets.sockets.has(userA.id) || userA.state !== 'FINDING') {
                 removeUserFromQueues(userA.id);
                 matchHappened = true;
-                continue; // removeUserFromQueues modifies globalQueue, so we don't increment i
+                continue;
             }
 
-            let foundPartner = false;
             let partner: User | undefined;
 
-            // 2. PRIORITY 1: Targeted Preference Match
+            // 2. PRIORITY 1: Targeted Preference Match (O(1) bucket lookup)
             if (userA.preferredCountry) {
                 const targetBucket = buckets.get(userA.preferredCountry);
                 if (targetBucket) {
-                    partner = targetBucket.find(userB => userB.id !== userA.id && areUsersCompatible(userA, userB));
+                    partner = targetBucket.find(userB =>
+                        userB.id !== userA.id &&
+                        areUsersCompatible(userA, userB)
+                    );
                 }
             }
 
-            // 3. PRIORITY 2: Global Fallback (Look in global queue)
-            if (!partner) {
-                // We only look ahead in the global queue to maintain FIFO integrity
+            // 3. PRIORITY 2: Global Fallback (O(N) scan)
+            // If userA has a preference, they are locked into Priority 1 for at least 5s
+            // (The preferredCountry property is cleared after 5s by a timer in find-match)
+            if (!partner && !userA.preferredCountry) {
+                // Find someone else who is also compatible (respecting THEIR preferences)
                 for (let j = i + 1; j < globalQueue.length; j++) {
                     const userB = globalQueue[j];
                     if (areUsersCompatible(userA, userB)) {
@@ -184,11 +188,8 @@ export const scanQueueForMatches = (io: Server) => {
                 removeUserFromQueues(partner.id, partner.countryCode);
                 initiateHandshake(io, userA, partner, mode);
                 matchHappened = true;
-                foundPartner = true;
-            }
-
-            if (foundPartner) {
-                i = 0; // Restart to satisfy the new head of the queue
+                // Restart from head to satisfy the new head of queue
+                i = 0;
             } else {
                 i++;
             }
@@ -242,6 +243,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         });
 
         scanQueueForMatches(io);
+        notifyQueuePositions(io, pending.mode);
     };
 
     socket.on('find-match', async (data: { mode: 'chat' | 'video', preferredCountry?: string }) => {
@@ -289,13 +291,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             return;
         }
 
-        // Check if we should wait for a preferred country
-        const isSomeoneWaitable = preferredCountry ? Array.from(activeUsers).some(id => {
-            const info = connectedUsers.get(id);
-            return info && info.countryCode === preferredCountry && id !== socket.id;
-        }) : false;
-        const shouldWait = preferredCountry && isSomeoneWaitable;
-
         // 5. ADD TO QUEUE FIRST (Ensures strict FIFO and avoids race conditions)
         const currentUser: User = {
             id: socket.id,
@@ -303,7 +298,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             country: userInfo.country,
             countryCode: userInfo.countryCode,
             mode: mode,
-            preferredCountry: shouldWait ? preferredCountry : undefined,
+            preferredCountry: preferredCountry, // Respect preference IMMEDIATELY
             joinedAt: Date.now(),
             state: 'FINDING'
         };
@@ -313,6 +308,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         // Add to global FIFO
         targetGlobalQueue.push(currentUser);
+        // Ensure strictly ascending joinedAt for FIFO integrity
         targetGlobalQueue.sort((a, b) => a.joinedAt - b.joinedAt);
 
         // Add to country bucket for O(1) discovery
@@ -331,7 +327,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             socket.emit('waiting-for-match', { position: currentIdx + 1 });
 
             // 5-Second Fallback: Relax preference to Global
-            if (shouldWait) {
+            if (preferredCountry) {
                 setTimeout(() => {
                     const u = targetGlobalQueue.find((q: User) => q.id === socket.id);
                     if (u && u.state === 'FINDING' && u.preferredCountry) {
