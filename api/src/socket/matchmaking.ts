@@ -4,6 +4,8 @@ import { User } from '../types';
 import {
     chatQueue,
     videoQueue,
+    chatBuckets,
+    videoBuckets,
     activeCalls,
     activeUsers,
     connectedUsers,
@@ -18,7 +20,7 @@ const lastPartnerMap = new Map<string, string>(); // user ID -> last partner use
 
 // Track pending matches during handshake
 interface PendingMatch {
-    pair: [string, string]; // [socketIdA, socketIdB]
+    pair: [User, User]; // [userA, userB]
     mode: 'chat' | 'video';
     startTime: number;
     acks: Set<string>;
@@ -30,19 +32,17 @@ const userPendingMatch = new Map<string, string>(); // socketId -> roomId
 
 // Helper to check if two users are compatible for matching
 const areUsersCompatible = (userA: User, userB: User) => {
-    // 1. Prevent matching with self (same user ID across devices/tabs)
-    if (userA.userId === userB.userId) {
-        return false;
-    }
+    // 1. MUST be in FINDING state
+    if (userA.state !== 'FINDING' || userB.state !== 'FINDING') return false;
 
-    // 2. Block immediate re-matching
-    if (lastPartnerMap.get(userA.userId) === userB.userId || lastPartnerMap.get(userB.userId) === userA.userId) {
-        return false;
-    }
+    // 2. Prevent matching with self
+    if (userA.userId === userB.userId) return false;
 
-    // 3. Check if A matches B's criteria
+    // 3. Block immediate re-matching
+    if (userA.lastPartnerId === userB.userId || userB.lastPartnerId === userA.userId) return false;
+
+    // 4. Criteria Check
     const aSatisfied = !userA.preferredCountry || userA.preferredCountry === userB.countryCode;
-    // 4. Check if B matches A's criteria
     const bSatisfied = !userB.preferredCountry || userB.preferredCountry === userA.countryCode;
 
     return aSatisfied && bSatisfied;
@@ -61,19 +61,21 @@ const notifyQueuePositions = (io: Server, mode: 'chat' | 'video') => {
 
 // Initiate handshake between two users
 const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 'video') => {
-    // Determine a stable roomId based on sorted socket IDs
+    // 1. Transition to NEGOTIATING (isolates them from dispatcher)
+    userA.state = 'NEGOTIATING';
+    userB.state = 'NEGOTIATING';
+
     const sortedIds = [userA.id, userB.id].sort();
     const roomId = `room-${sortedIds[0]}-${sortedIds[1]}-${Date.now()}`;
 
-    // Track the last partner to prevent immediate re-matching
-    lastPartnerMap.set(userA.userId, userB.userId);
-    lastPartnerMap.set(userB.userId, userA.userId);
+    // 2. Persistent Re-match Prevention
+    userA.lastPartnerId = userB.userId;
+    userB.lastPartnerId = userA.userId;
 
-    // Clear the "loop prevention" after 10 seconds to allow re-matching later
+    // Clear cooldown after 10s
     setTimeout(() => {
-        if (lastPartnerMap.get(userA.userId) === userB.userId) lastPartnerMap.delete(userA.userId);
-        if (lastPartnerMap.get(userB.userId) === userA.userId) lastPartnerMap.delete(userB.userId);
-        // Proactively trigger a queue scan after cooldown expires
+        if (userA.lastPartnerId === userB.userId) userA.lastPartnerId = undefined;
+        if (userB.lastPartnerId === userA.userId) userB.lastPartnerId = undefined;
         scanQueueForMatches(io);
     }, 10000);
 
@@ -81,21 +83,34 @@ const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 
     const timeout = setTimeout(() => {
         const pending = pendingMatches.get(roomId);
         if (pending) {
-            console.log(`[MATCH] Match failed for ${roomId} due to timeout`);
+            console.log(`[MATCH] Handshake failed for ${roomId} due to timeout`);
             clearTimeout(pending.timeout);
             pendingMatches.delete(roomId);
-            pending.pair.forEach(sid => userPendingMatch.delete(sid));
-            pending.pair.forEach(sid => {
-                const s = io.sockets.sockets.get(sid);
-                if (s) s.emit('match-cancelled', { reason: 'timeout' });
+            pending.pair.forEach(u => userPendingMatch.delete(u.id));
+
+            pending.pair.forEach(u => {
+                const s = io.sockets.sockets.get(u.id);
+                if (s) {
+                    s.emit('match-cancelled', { reason: 'timeout' });
+                    // Re-queue or IDLE based on connection
+                    const userInfo = connectedUsers.get(u.id);
+                    if (userInfo) {
+                        // RE-QUEUE at the FRONT
+                        u.state = 'FINDING';
+                        const gQueue = u.mode === 'chat' ? chatQueue : videoQueue;
+                        const buckets = u.mode === 'chat' ? chatBuckets : videoBuckets;
+                        gQueue.unshift(u);
+                        if (!buckets.has(u.countryCode)) buckets.set(u.countryCode, []);
+                        buckets.get(u.countryCode)!.unshift(u);
+                    }
+                }
             });
-            // Rescan after failure
             scanQueueForMatches(io);
         }
-    }, 8000);
+    }, 5000); // Production-ready: 5s handshake window (Azar style)
 
     pendingMatches.set(roomId, {
-        pair: [userA.id, userB.id],
+        pair: [userA, userB],
         mode,
         startTime,
         acks: new Set(),
@@ -106,7 +121,6 @@ const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 
     userPendingMatch.set(userA.id, roomId);
     userPendingMatch.set(userB.id, roomId);
 
-    // Notify both to prepare
     io.to(userB.id).emit('prepare-match', {
         partnerCountry: userA.country,
         partnerCountryCode: userA.countryCode,
@@ -119,54 +133,62 @@ const initiateHandshake = (io: Server, userA: User, userB: User, mode: 'chat' | 
     console.log(`[MATCH] Handshake started for ${userA.id} and ${userB.id}`);
 };
 
-// Scan queues for potential matches
+// Scan queues for potential matches using Bucketed Discovery
 export const scanQueueForMatches = (io: Server) => {
     ['chat', 'video'].forEach(m => {
         const mode = m as 'chat' | 'video';
-        const queue = mode === 'chat' ? chatQueue : videoQueue;
+        const globalQueue = mode === 'chat' ? chatQueue : videoQueue;
+        const buckets = mode === 'chat' ? chatBuckets : videoBuckets;
 
-        if (queue.length < 2) return;
+        if (globalQueue.length < 2) return;
 
         let i = 0;
         let matchHappened = false;
-        while (i < queue.length) {
-            const userA = queue[i];
 
-            // Safety cleanup: If user is busy or disconnected, remove them
-            if (!io.sockets.sockets.has(userA.id) || userPendingMatch.has(userA.id)) {
-                queue.splice(i, 1);
+        while (i < globalQueue.length) {
+            const userA = globalQueue[i];
+
+            // 1. Safety Cleanup: If user is busy/disconnected, remove from all lists
+            if (!io.sockets.sockets.has(userA.id) || userA.state !== 'FINDING') {
+                removeUserFromQueues(userA.id);
                 matchHappened = true;
-                continue;
+                continue; // removeUserFromQueues modifies globalQueue, so we don't increment i
             }
 
-            let found = false;
-            // Try to match userA (the oldest available person) with anyone further down
-            for (let j = i + 1; j < queue.length; j++) {
-                const userB = queue[j];
+            let foundPartner = false;
+            let partner: User | undefined;
 
-                // Skip busy/disconnected partners
-                if (!io.sockets.sockets.has(userB.id) || userPendingMatch.has(userB.id)) {
-                    queue.splice(j, 1);
-                    j--; // Adjust index after splice
-                    matchHappened = true;
-                    continue;
-                }
-
-                if (areUsersCompatible(userA, userB)) {
-                    // Match found!
-                    queue.splice(j, 1);
-                    queue.splice(i, 1);
-
-                    initiateHandshake(io, userA, userB, mode);
-                    found = true;
-                    matchHappened = true;
-                    break;
+            // 2. PRIORITY 1: Targeted Preference Match
+            if (userA.preferredCountry) {
+                const targetBucket = buckets.get(userA.preferredCountry);
+                if (targetBucket) {
+                    partner = targetBucket.find(userB => userB.id !== userA.id && areUsersCompatible(userA, userB));
                 }
             }
 
-            if (found) {
-                // Restart scan for this mode
-                i = 0;
+            // 3. PRIORITY 2: Global Fallback (Look in global queue)
+            if (!partner) {
+                // We only look ahead in the global queue to maintain FIFO integrity
+                for (let j = i + 1; j < globalQueue.length; j++) {
+                    const userB = globalQueue[j];
+                    if (areUsersCompatible(userA, userB)) {
+                        partner = userB;
+                        break;
+                    }
+                }
+            }
+
+            if (partner) {
+                // MATCH FOUND!
+                removeUserFromQueues(userA.id, userA.countryCode);
+                removeUserFromQueues(partner.id, partner.countryCode);
+                initiateHandshake(io, userA, partner, mode);
+                matchHappened = true;
+                foundPartner = true;
+            }
+
+            if (foundPartner) {
+                i = 0; // Restart to satisfy the new head of the queue
             } else {
                 i++;
             }
@@ -201,17 +223,24 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         // Cleanup
         clearTimeout(pending.timeout);
         pendingMatches.delete(rid);
-        pending.pair.forEach(sid => userPendingMatch.delete(sid));
+        pending.pair.forEach(u => userPendingMatch.delete(u.id));
 
-        // Notify victims and potentially requeue them
-        pending.pair.forEach(sid => {
-            const s = io.sockets.sockets.get(sid);
+        // Notify victims and RE-QUEUE at the FRONT (seniority preservation)
+        pending.pair.forEach(u => {
+            const s = io.sockets.sockets.get(u.id);
             if (s) {
                 s.emit('match-cancelled', { reason });
+                // Re-insert at the head of the global queue and bucket
+                u.state = 'FINDING';
+                const gQueue = u.mode === 'chat' ? chatQueue : videoQueue;
+                const buckets = u.mode === 'chat' ? chatBuckets : videoBuckets;
+
+                gQueue.unshift(u); // Preserves their spot at the top
+                if (!buckets.has(u.countryCode)) buckets.set(u.countryCode, []);
+                buckets.get(u.countryCode)!.unshift(u);
             }
         });
 
-        // Proactively scan after failure to handle remaining queue
         scanQueueForMatches(io);
     };
 
@@ -275,36 +304,42 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             countryCode: userInfo.countryCode,
             mode: mode,
             preferredCountry: shouldWait ? preferredCountry : undefined,
-            joinedAt: Date.now()
+            joinedAt: Date.now(),
+            state: 'FINDING'
         };
 
-        const targetQueue = mode === 'chat' ? chatQueue : videoQueue;
-        targetQueue.push(currentUser);
+        const targetGlobalQueue = mode === 'chat' ? chatQueue : videoQueue;
+        const targetBuckets = mode === 'chat' ? chatBuckets : videoBuckets;
 
-        // Safety: Ensure it's sorted by time (usually redundant but good for robustness)
-        targetQueue.sort((a, b) => a.joinedAt - b.joinedAt);
+        // Add to global FIFO
+        targetGlobalQueue.push(currentUser);
+        targetGlobalQueue.sort((a, b) => a.joinedAt - b.joinedAt);
 
-        // 6. TRIGGER GLOBAL SCAN (Immediately try to satisfy the oldest people in queue, including this newcomer)
+        // Add to country bucket for O(1) discovery
+        if (!targetBuckets.has(userInfo.countryCode)) {
+            targetBuckets.set(userInfo.countryCode, []);
+        }
+        targetBuckets.get(userInfo.countryCode)!.push(currentUser);
+
+        // 6. TRIGGER GLOBAL SCAN
         scanQueueForMatches(io);
         notifyQueuePositions(io, mode);
 
-        // 7. Handle feedback to client if still in queue
-        const currentIdx = targetQueue.findIndex(u => u.id === socket.id);
+        // 7. Handle feedback and 5s Fallback
+        const currentIdx = targetGlobalQueue.findIndex(u => u.id === socket.id);
         if (currentIdx !== -1) {
-            // Already handled by notifyQueuePositions, but sending initial confirm is good
             socket.emit('waiting-for-match', { position: currentIdx + 1 });
 
-            // Handle preference timeout if applicable
+            // 5-Second Fallback: Relax preference to Global
             if (shouldWait) {
                 setTimeout(() => {
-                    const q = mode === 'chat' ? chatQueue : videoQueue;
-                    const idx = q.findIndex(u => u.id === socket.id);
-                    if (idx !== -1 && q[idx].preferredCountry) {
-                        q[idx].preferredCountry = undefined;
-                        console.log(`[MATCH] Preference timeout for ${socket.id}`);
+                    const u = targetGlobalQueue.find((q: User) => q.id === socket.id);
+                    if (u && u.state === 'FINDING' && u.preferredCountry) {
+                        u.preferredCountry = undefined;
+                        console.log(`[MATCH] 5s Fallback triggered for ${socket.id}`);
                         scanQueueForMatches(io);
                     }
-                }, 10000); // 10s wait for preference
+                }, 5000); // production-ready: 5s preference relaxation
             }
         }
     });
@@ -327,10 +362,17 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             // BOTH are ready - Finalize the match!
             clearTimeout(pending.timeout);
             pendingMatches.delete(roomId);
-            pending.pair.forEach(sid => userPendingMatch.delete(sid));
+            pending.pair.forEach(u => userPendingMatch.delete(u.id));
 
-            const [idA, idB] = pending.pair;
+            const [userA, userB] = pending.pair;
             const mode = pending.mode;
+
+            // Transition to MATCHED state
+            userA.state = 'MATCHED';
+            userB.state = 'MATCHED';
+
+            const idA = userA.id;
+            const idB = userB.id;
 
             activeCalls.set(idA, idB);
             activeCalls.set(idB, idA);
@@ -382,71 +424,49 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         }
     });
 
-    // Stop searching (cancel finding a match)
+    // Stop searching
     socket.on('stop-searching', () => {
-        console.log(`[STOP] User ${socket.id} stopped searching`);
-        removeUserFromQueues(socket.id);
-
-        // Cleanup pending match if in handshake
+        const userInfo = connectedUsers.get(socket.id);
+        removeUserFromQueues(socket.id, userInfo?.countryCode);
         const roomId = userPendingMatch.get(socket.id);
-        if (roomId) {
-            const pending = pendingMatches.get(roomId);
-            if (pending) {
-                // Determine other partner and notify them
-                const otherId = pending.pair.find(id => id !== socket.id);
-                if (otherId) io.to(otherId).emit('match-cancelled', { reason: 'partner-left' });
-
-                clearTimeout(pending.timeout);
-                pendingMatches.delete(roomId);
-                pending.pair.forEach(sid => userPendingMatch.delete(sid));
-            }
-        }
-
-        // Proactively scan after someone leaves
+        if (roomId) handleMatchFailure(roomId, 'partner-left');
         scanQueueForMatches(io);
     });
 
-    // End Call / Next Match / Skip
+    // End Call / Next
     socket.on('end-call', (data?: { target?: string }) => {
-        console.log(`User ${socket.id} ending call`);
-
-        // Get partner ID from either the data or the active calls map
         let partnerId = data?.target || activeCalls.get(socket.id);
-
         if (partnerId) {
-            console.log(`Notifying partner ${partnerId} that call ended`);
             io.to(partnerId).emit('call-ended', { by: socket.id });
             activeCalls.delete(partnerId);
             activeCalls.delete(socket.id);
-        } else {
-            // Just remove from active calls if no partner
-            activeCalls.delete(socket.id);
         }
-
-        // Remove self from queues
+        activeCalls.delete(socket.id);
         removeUserFromQueues(socket.id);
-
-        console.log(`Active calls after end: ${activeCalls.size}, Queue - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
-
-        // Proactively scan after call ends
         scanQueueForMatches(io);
     });
 
-    // Handle Disconnect during handshake
+    // Handle Disconnect during handshake or while searching
     socket.on('disconnect', () => {
-        const roomId = userPendingMatch.get(socket.id);
-        if (roomId) {
-            const pending = pendingMatches.get(roomId);
-            if (pending) {
-                const otherId = pending.pair.find(id => id !== socket.id);
-                if (otherId) io.to(otherId).emit('match-cancelled', { reason: 'partner-disconnected' });
-                clearTimeout(pending.timeout);
-                pendingMatches.delete(roomId);
-                pending.pair.forEach(sid => userPendingMatch.delete(sid));
-            }
-        }
+        // 1. Cleanup from matching pools
+        const userInfo = connectedUsers.get(socket.id);
+        removeUserFromQueues(socket.id, userInfo?.countryCode);
 
-        // Final cleanup and scan
+        // 2. Cleanup from handshake
+        const roomId = userPendingMatch.get(socket.id);
+        if (roomId) handleMatchFailure(roomId, 'partner-disconnected');
+
+        // 3. Cleanup from active calls
+        const partnerId = activeCalls.get(socket.id);
+        if (partnerId) {
+            io.to(partnerId).emit('call-ended', { by: socket.id });
+            activeCalls.delete(partnerId);
+        }
+        activeCalls.delete(socket.id);
+
+        statsService.decrementOnlineUsers();
+        activeUsers.delete(socket.id);
+        io.emit('stats-update', statsService.getStats());
         scanQueueForMatches(io);
     });
 };

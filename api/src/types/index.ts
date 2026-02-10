@@ -1,3 +1,4 @@
+export type MatchState = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
 
 export interface User {
     id: string; // Socket ID
@@ -7,6 +8,8 @@ export interface User {
     mode: 'chat' | 'video';
     preferredCountry?: string;
     joinedAt: number; // For strict FIFO ordering
+    state: MatchState;
+    lastPartnerId?: string; // For re-match prevention
 }
 
 export interface Room {
