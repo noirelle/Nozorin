@@ -18,10 +18,11 @@ interface RoomProps {
     onLeave: () => void;
     onNavigateToChat: () => void;
     onNavigateToHistory: () => void;
+    onConnectionChange: (connected: boolean) => void;
     initialMatchData?: any;
 }
 
-export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory, initialMatchData }: RoomProps) {
+export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory, onConnectionChange, initialMatchData }: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
@@ -37,6 +38,11 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
         setPartnerSignalStrength,
         resetState,
     } = useVideoRoom(mode);
+
+    // Notify parent about connection state changes
+    useEffect(() => {
+        onConnectionChange(videoRoomState.isConnected);
+    }, [videoRoomState.isConnected, onConnectionChange]);
 
     // History tracking
     const { visitorToken } = useVisitorAuth();

@@ -27,6 +27,7 @@ export default function Home() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [directMatchData, setDirectMatchData] = useState<any>(null);
   const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
+  const [isConnected, setIsConnected] = useState(false); // Track connection state from Room/ChatRoom
 
   const handleCloseHistory = useCallback(() => {
     setIsHistoryOpen(false);
@@ -177,6 +178,7 @@ export default function Home() {
 
   const handleLeave = () => {
     setIsInRoom(false);
+    setIsConnected(false);
     setDirectMatchData(null);
     // Ideally disconnect socket here or in Room's unmount
   };
@@ -203,11 +205,13 @@ export default function Home() {
             onNavigateToChat={handleSwitchToChat}
             onNavigateToHistory={handleNavigateToHistory}
             initialMatchData={directMatchData}
+            onConnectionChange={setIsConnected}
           />
         ) : (
           <ChatRoom
             onNavigateToVideo={handleSwitchToVideo}
             onNavigateToHistory={handleNavigateToHistory}
+            onConnectionChange={setIsConnected}
           />
         )
       ) : (
@@ -237,6 +241,7 @@ export default function Home() {
           fetchStats();
         }}
         onCall={(targetId, m) => initiateCall(targetId, m)}
+        isConnected={isConnected}
       />
 
       {incomingCall && (

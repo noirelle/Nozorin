@@ -11,9 +11,10 @@ import { RoomNavbar } from '../../../components/RoomNavbar';
 interface ChatRoomProps {
     onNavigateToVideo: () => void;
     onNavigateToHistory: () => void;
+    onConnectionChange: (connected: boolean) => void;
 }
 
-export default function ChatRoom({ onNavigateToVideo, onNavigateToHistory }: ChatRoomProps) {
+export default function ChatRoom({ onNavigateToVideo, onNavigateToHistory, onConnectionChange }: ChatRoomProps) {
     const socket = getSocket() as Socket | null;
 
     // State
@@ -25,6 +26,11 @@ export default function ChatRoom({ onNavigateToVideo, onNavigateToHistory }: Cha
 
     const manualStopRef = useRef(false);
     const partnerIdRef = useRef<string | null>(null);
+
+    // Notify parent about connection state changes
+    useEffect(() => {
+        onConnectionChange(isConnected);
+    }, [isConnected, onConnectionChange]);
 
     // Refs
     const startSearchRef = useRef<() => void>(() => { });
