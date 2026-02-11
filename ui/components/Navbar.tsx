@@ -12,12 +12,17 @@ export default function Navbar() {
                 </span>
             </Link>
 
-            <Link
-                href="/join"
-                className="px-6 py-2.5 bg-[#FF8ba7] hover:bg-[#ff7b9c] text-white rounded-full font-bold text-sm shadow-lg shadow-pink-200 hover:shadow-xl hover:shadow-pink-300 transition-all transform hover:-translate-y-0.5 active:scale-95"
-            >
-                Join Us
-            </Link>
+            <div className="flex items-center gap-6">
+                <Link href="/login" className="text-gray-500 hover:text-[#FF8ba7] font-bold text-sm transition-colors hidden sm:block">
+                    Sign In
+                </Link>
+                <Link
+                    href="/get-started"
+                    className="px-6 py-2.5 bg-[#FF8ba7] hover:bg-[#ff7b9c] text-white rounded-full font-bold text-sm shadow-lg shadow-pink-200 hover:shadow-xl hover:shadow-pink-300 transition-all transform hover:-translate-y-0.5 active:scale-95"
+                >
+                    Get Started
+                </Link>
+            </div>
         </nav>
     );
 }
