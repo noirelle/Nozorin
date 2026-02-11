@@ -58,8 +58,12 @@ class UserService {
     removeSocket(socketId: string) {
         const userId = socketToUserMap.get(socketId);
         if (userId) {
-            this.updateUserStatus(userId, false);
-            userToSocketMap.delete(userId);
+            // Only update status and clear mapping if this is still the active socket for the user
+            // This prevents an old session's disconnect from killing a newly established session (takeover)
+            if (userToSocketMap.get(userId) === socketId) {
+                this.updateUserStatus(userId, false);
+                userToSocketMap.delete(userId);
+            }
         }
         socketToUserMap.delete(socketId);
     }

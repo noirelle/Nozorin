@@ -1,7 +1,6 @@
-
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface MultiSessionOverlayProps {
     onReconnect: () => void;
@@ -9,6 +8,13 @@ interface MultiSessionOverlayProps {
 }
 
 export const MultiSessionOverlay: React.FC<MultiSessionOverlayProps> = ({ onReconnect, reason = 'kicked' }) => {
+    const [isReconnecting, setIsReconnecting] = useState(false);
+
+    const handleReconnect = () => {
+        setIsReconnecting(true);
+        onReconnect();
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-[#18181b] p-8 rounded-3xl border border-white/10 shadow-2xl w-full max-w-sm flex flex-col items-center animate-in zoom-in-95 duration-300">
@@ -28,10 +34,16 @@ export const MultiSessionOverlay: React.FC<MultiSessionOverlayProps> = ({ onReco
                 </p>
 
                 <button
-                    onClick={onReconnect}
-                    className="w-full py-4 bg-[#FF8ba7] hover:bg-[#ff7a99] text-white rounded-2xl font-semibold transition-all shadow-lg shadow-pink-500/20 active:scale-95"
+                    onClick={handleReconnect}
+                    disabled={isReconnecting}
+                    className="w-full py-4 bg-[#FF8ba7] hover:bg-[#ff7a99] disabled:bg-zinc-700 disabled:opacity-50 text-white rounded-2xl font-semibold transition-all shadow-lg shadow-pink-500/20 active:scale-95 flex items-center justify-center gap-2"
                 >
-                    Reconnect Here
+                    {isReconnecting ? (
+                        <>
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            <span>Connecting...</span>
+                        </>
+                    ) : 'Reconnect Here'}
                 </button>
 
                 <p className="mt-4 text-xs text-zinc-500 uppercase tracking-widest font-medium">

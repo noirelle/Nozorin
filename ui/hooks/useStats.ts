@@ -1,62 +1,59 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { socket as getSharedSocket } from '../lib/socket';
 
 interface Stats {
     peopleOnline: number;
-    dailyChats: number;
+    matchesToday: number;
     totalConnections: number;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
 
 export function useStats() {
     const [stats, setStats] = useState<Stats>({
         peopleOnline: 0,
-        dailyChats: 0,
+        matchesToday: 0,
         totalConnections: 0,
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        let socket: Socket | null = null;
+        const socket = getSharedSocket();
+        if (!socket) return;
 
-        try {
-            // Connect to socket
-            socket = io(API_URL, {
-                transports: ['websocket', 'polling'],
-            });
+        // Ensure socket is connected if not already
+        if (!socket.connected) {
+            socket.connect();
+        }
 
-            socket.on('connect', () => {
-                console.log('[STATS] Connected to stats socket');
-                setError(null);
-            });
+        const handleStatsUpdate = (data: Stats) => {
+            setStats(data);
+            setIsLoading(false);
+        };
 
-            // Listen for stats updates
-            socket.on('stats-update', (data: Stats) => {
-                setStats(data);
-                setIsLoading(false);
-            });
+        const handleConnectError = (err: Error) => {
+            console.error('[STATS] Connection error:', err);
+            setError(err);
+            setIsLoading(false);
+        };
 
-            socket.on('connect_error', (err) => {
-                console.error('[STATS] Connection error:', err);
-                setError(err as Error);
-                setIsLoading(false);
-            });
+        // If already connected, we might have missed the initial stats 
+        // but the server emits it on connection or we can wait for the next broadcast
+        socket.on('stats-update', handleStatsUpdate);
+        socket.on('connect_error', handleConnectError);
 
-        } catch (err) {
-            console.error('[STATS] Error setting up socket:', err);
-            setError(err as Error);
+        // Fetch initial stats if already connected
+        if (socket.connected) {
+            // Usually the server sends this on join, but we can't easily trigger it again 
+            // without a specific event. However, broadcasts are frequent.
             setIsLoading(false);
         }
 
         return () => {
-            if (socket) {
-                socket.off('stats-update');
-                socket.disconnect();
-            }
+            socket.off('stats-update', handleStatsUpdate);
+            socket.off('connect_error', handleConnectError);
+            // We DON'T disconnect here because other components use this shared socket
         };
     }, []);
 

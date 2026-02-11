@@ -380,6 +380,10 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 };
                 emitMatch(uB.id, uA, 'offerer');
                 emitMatch(uA.id, uB, 'answerer');
+
+                // TRACK STATS
+                statsService.incrementMatchesToday();
+                io.emit('stats-update', statsService.getStats());
             }
         }
     });
@@ -434,9 +438,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         }
         activeCalls.delete(socket.id);
 
-        statsService.decrementOnlineUsers();
-        activeUsers.delete(socket.id);
-        io.emit('stats-update', statsService.getStats());
         scanQueueForMatches(io);
     });
 };

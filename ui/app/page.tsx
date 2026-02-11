@@ -37,10 +37,25 @@ export default function Home() {
     const s = socket();
     if (s && visitorToken) {
       console.log('[Home] Forcing reconnect...');
+
+      // Ensure socket is connected. If let's say we were disconnected, connect() should be called.
+      if (!s.connected) {
+        s.connect();
+      }
+
       s.emit('force-reconnect', { token: visitorToken });
+
+      // Fallback: If after 3 seconds we are still in an error state, just reload
+      setTimeout(() => {
+        if (sessionError) {
+          console.log('[Home] Reconnect timeout, reloading page...');
+          window.location.reload();
+        }
+      }, 3000);
+
       setSessionError(null);
     }
-  }, [visitorToken]);
+  }, [visitorToken, sessionError]);
 
   const {
     history,

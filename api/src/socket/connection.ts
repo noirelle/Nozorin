@@ -35,10 +35,15 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Store user info
     connectedUsers.set(socket.id, { country, countryCode });
 
-    console.log(`[CONNECT] ${socket.id} from ${country} (${countryCode})`);
+    // Track online state
+    activeUsers.add(socket.id);
+    statsService.setOnlineUsers(activeUsers.size);
+    statsService.incrementTotalConnections();
 
     // Send current stats to the newly connected user
     socket.emit('stats-update', statsService.getStats());
+    // Broadcast to all that others are online
+    io.emit('stats-update', statsService.getStats());
 
     // Initialize user media state (unmuted, camera on by default)
     userMediaState.set(socket.id, { isMuted: false, isCameraOff: false });
@@ -111,12 +116,10 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
             await broadcastUserStatus(io, userId);
         }
 
-        // Decrement online users *only* if they were active
-        if (activeUsers.has(socket.id)) {
-            activeUsers.delete(socket.id);
-            statsService.decrementOnlineUsers();
-            io.emit('stats-update', statsService.getStats());
-        }
+        // Decrement online users
+        activeUsers.delete(socket.id);
+        statsService.setOnlineUsers(activeUsers.size);
+        io.emit('stats-update', statsService.getStats());
 
         console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue: ${videoQueue.length}`);
     });
