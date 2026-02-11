@@ -26,13 +26,7 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => v
             </div>
 
             <div className="flex-1 max-w-2xl z-10 w-full pt-4 lg:pt-0 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 border border-pink-100 text-pink-600 rounded-full font-bold text-xs mb-6 hover:bg-pink-100 transition-colors cursor-default">
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
-                    </span>
-                    <span>Live Video Matching</span>
-                </div>
+
 
                 <h1 className="text-5xl sm:text-7xl lg:text-[5.5rem] font-bold text-gray-900 leading-[1] mb-4 md:mb-6 tracking-tight">
                     Discover <br />
