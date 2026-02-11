@@ -2,17 +2,11 @@ import React from 'react';
 import { LogoIcon } from './icons';
 
 interface RoomNavbarProps {
-    activeTab: 'video' | 'chat';
-    onNavigateToVideo?: () => void;
-    onNavigateToChat?: () => void;
     onNavigateToHistory?: () => void;
     variant?: 'desktop' | 'mobile';
 }
 
 export function RoomNavbar({
-    activeTab,
-    onNavigateToVideo,
-    onNavigateToChat,
     onNavigateToHistory,
     variant = 'desktop'
 }: RoomNavbarProps) {
@@ -24,35 +18,6 @@ export function RoomNavbar({
                     <div className="flex items-center gap-4">
                         <LogoIcon className="w-14 h-14 text-[#FF8ba7]" />
                         <span className="text-4xl font-display font-bold tracking-tight text-white leading-none">nozorin</span>
-                    </div>
-                    <div className="flex items-center gap-8 hidden xl:flex translate-y-[7px]">
-                        {activeTab === 'video' ? (
-                            <div className="relative">
-                                <button className="text-white font-display font-bold tracking-tight text-xl leading-none shadow-black drop-shadow-md">Video Chat</button>
-                                <div className="absolute left-0 right-0 bottom-[-4px] h-0.5 bg-[#FF8ba7]"></div>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={onNavigateToVideo}
-                                className="text-zinc-400 font-display font-medium tracking-tight text-xl hover:text-white transition-colors leading-none"
-                            >
-                                Video Chat
-                            </button>
-                        )}
-
-                        {activeTab === 'chat' ? (
-                            <div className="relative">
-                                <button className="text-white font-display font-bold tracking-tight text-xl leading-none shadow-black drop-shadow-md">Chats Only</button>
-                                <div className="absolute left-0 right-0 bottom-[-4px] h-0.5 bg-[#FF8ba7]"></div>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={onNavigateToChat}
-                                className="text-zinc-400 font-display font-medium tracking-tight text-xl hover:text-white transition-colors leading-none"
-                            >
-                                Chats Only
-                            </button>
-                        )}
                     </div>
                 </div>
 
@@ -78,35 +43,6 @@ export function RoomNavbar({
                 <div className="flex items-center gap-2 flex-shrink-0">
                     <LogoIcon className="w-7 h-7 text-[#FF8ba7] flex-shrink-0" />
                     <span className="text-lg font-display font-bold tracking-tight text-white leading-none">nozorin</span>
-                </div>
-                <div className="flex items-center gap-4 translate-y-[2px]">
-                    {activeTab === 'video' ? (
-                        <div className="relative">
-                            <button className="text-white font-display font-bold tracking-tight text-[15px] leading-none shadow-black drop-shadow-md">Video Chat</button>
-                            <div className="absolute left-0 right-0 bottom-[-3px] h-0.5 bg-[#FF8ba7]"></div>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={onNavigateToVideo}
-                            className="text-white/70 font-display font-medium tracking-tight text-[15px] hover:text-white transition-colors shadow-black drop-shadow-md leading-none"
-                        >
-                            Video Chat
-                        </button>
-                    )}
-
-                    {activeTab === 'chat' ? (
-                        <div className="relative">
-                            <button className="text-white font-display font-bold tracking-tight text-[15px] leading-none shadow-black drop-shadow-md">Chats</button>
-                            <div className="absolute left-0 right-0 bottom-[-3px] h-0.5 bg-[#FF8ba7]"></div>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={onNavigateToChat}
-                            className="text-white/70 font-display font-medium tracking-tight text-[15px] hover:text-white transition-colors shadow-black drop-shadow-md leading-none"
-                        >
-                            Chats
-                        </button>
-                    )}
                 </div>
             </div>
             <button

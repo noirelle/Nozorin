@@ -5,7 +5,7 @@ import { socket as getSocket } from '../../../lib/socket';
 import { useMatching } from '../hooks/useMatching';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useVideoRoom } from '../hooks/useVideoRoom';
-import { useChat } from '../../chat/hooks/useChat';
+import { useChat } from '../hooks/useChat';
 import { useHistory, useVisitorAuth } from '../../../hooks';
 import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
@@ -14,15 +14,14 @@ import { DevicePermissionOverlay } from './DevicePermissionOverlay';
 import { CountryFilterModal } from './CountryFilterModal';
 
 interface RoomProps {
-    mode: 'chat' | 'video';
+    mode: 'video';
     onLeave: () => void;
-    onNavigateToChat: () => void;
     onNavigateToHistory: () => void;
     onConnectionChange: (connected: boolean) => void;
     initialMatchData?: any;
 }
 
-export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHistory, onConnectionChange, initialMatchData }: RoomProps) {
+export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionChange, initialMatchData }: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
@@ -235,7 +234,6 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
     // 6. Matching Hook
     const matching = useMatching({
         socket,
-        mode,
         onMatchFound,
         onMatchCancelled,
         onCallEnded
@@ -390,7 +388,6 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 setMobileLayout={setMobileLayout}
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
-                onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
@@ -416,7 +413,6 @@ export default function Room({ mode, onLeave, onNavigateToChat, onNavigateToHist
                 setInputText={setInputText}
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
-                onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}

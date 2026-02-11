@@ -1,7 +1,7 @@
 import React from 'react';
 import { RoomLayoutProps } from '../types';
 import { SkeletonLoaderDesktop } from '../../../components/SkeletonLoader';
-import ChatBox from '../../chat/components/ChatBox';
+import ChatBox from './ChatBox';
 import { LogoIcon, ArrowRightIcon } from '../../../components/icons';
 import { RoomNavbar } from '../../../components/RoomNavbar';
 import ReactCountryFlag from "react-country-flag";
@@ -22,7 +22,6 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     setShowChat,
     filtersOpen,
     setFiltersOpen,
-    onNavigateToChat,
     onNavigateToHistory,
     selectedCountry,
     matchmakingStatus,
@@ -110,8 +109,6 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     return (
         <div className="hidden lg:flex flex-col w-full h-full p-4 gap-4">
             <RoomNavbar
-                activeTab="video"
-                onNavigateToChat={onNavigateToChat}
                 onNavigateToHistory={onNavigateToHistory}
                 variant="desktop"
             />

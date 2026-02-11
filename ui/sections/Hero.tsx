@@ -51,13 +51,6 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => v
                         <VideoIcon className="w-5 h-5" />
                         Start Matching
                     </button>
-                    <button
-                        onClick={() => onJoin('chat')}
-                        className="flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full font-bold text-lg shadow-sm hover:shadow transition-all border border-gray-100 w-full sm:w-auto min-w-[200px]"
-                    >
-                        <MessageIcon className="w-5 h-5" />
-                        Text Chat
-                    </button>
                 </div>
 
                 <div className="mt-8 md:mt-12 flex items-center justify-center lg:justify-start gap-4 text-sm font-medium text-gray-400">

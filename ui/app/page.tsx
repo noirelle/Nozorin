@@ -4,7 +4,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import Room from '../features/video-room/components/Room';
-import ChatRoom from '../features/chat/components/ChatRoom';
 import Navbar from '../components/Navbar';
 import Hero from '../sections/Hero';
 import AppFeatures from '../sections/AppFeatures';
@@ -22,12 +21,10 @@ import { MultiSessionOverlay } from '../features/auth/components/MultiSessionOve
 
 export default function Home() {
   const [isInRoom, setIsInRoom] = useState(false);
-  const [mode, setMode] = useState<'chat' | 'video'>('chat');
-  const [activeView, setActiveView] = useState<'video' | 'chat'>('video'); // Track which UI is active
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [directMatchData, setDirectMatchData] = useState<any>(null);
   const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
-  const [isConnected, setIsConnected] = useState(false); // Track connection state from Room/ChatRoom
+  const [isConnected, setIsConnected] = useState(false); // Track connection state from Room
 
   const handleCloseHistory = useCallback(() => {
     setIsHistoryOpen(false);
@@ -82,9 +79,6 @@ export default function Home() {
         console.log('[Home] Match found via direct call, entering room...');
         // Store data to pass to Room component
         setDirectMatchData(data);
-        // Set mode and view
-        setMode(data.mode);
-        setActiveView(data.mode === 'video' ? 'video' : 'chat');
         // Transition to room
         setIsInRoom(true);
       }
@@ -167,12 +161,9 @@ export default function Home() {
     };
   }, [visitorToken, sessionError]);
 
-  const handleJoin = async (selectedMode: 'chat' | 'video') => {
+  const handleJoin = async () => {
     // Always ensure we have a token before joining
     await ensureToken();
-
-    setMode(selectedMode);
-    setActiveView(selectedMode === 'video' ? 'video' : 'chat');
     setIsInRoom(true);
   };
 
@@ -180,15 +171,6 @@ export default function Home() {
     setIsInRoom(false);
     setIsConnected(false);
     setDirectMatchData(null);
-    // Ideally disconnect socket here or in Room's unmount
-  };
-
-  const handleSwitchToChat = () => {
-    setActiveView('chat');
-  };
-
-  const handleSwitchToVideo = () => {
-    setActiveView('video');
   };
 
   const handleNavigateToHistory = () => {
@@ -198,22 +180,13 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white font-sans selection:bg-pink-100">
       {isInRoom ? (
-        activeView === 'video' ? (
-          <Room
-            mode={mode}
-            onLeave={handleLeave}
-            onNavigateToChat={handleSwitchToChat}
-            onNavigateToHistory={handleNavigateToHistory}
-            initialMatchData={directMatchData}
-            onConnectionChange={setIsConnected}
-          />
-        ) : (
-          <ChatRoom
-            onNavigateToVideo={handleSwitchToVideo}
-            onNavigateToHistory={handleNavigateToHistory}
-            onConnectionChange={setIsConnected}
-          />
-        )
+        <Room
+          mode="video"
+          onLeave={handleLeave}
+          onNavigateToHistory={handleNavigateToHistory}
+          initialMatchData={directMatchData}
+          onConnectionChange={setIsConnected}
+        />
       ) : (
         <>
           <Navbar />

@@ -14,7 +14,7 @@ export interface VideoRoomState {
     partnerSignalStrength: 'good' | 'fair' | 'poor' | 'reconnecting';
 }
 
-export const useVideoRoom = (mode: 'chat' | 'video') => {
+export const useVideoRoom = (mode: 'video') => {
     const [state, setState] = useState<VideoRoomState>({
         isSearching: false,
         isConnected: false,
@@ -33,7 +33,7 @@ export const useVideoRoom = (mode: 'chat' | 'video') => {
 
     // Initialize media manager
     const initMediaManager = useCallback(async () => {
-        if (mode === 'video' && !mediaManager.current) {
+        if (!mediaManager.current) {
             const manager = new MediaStreamManager();
             mediaManager.current = manager;
 

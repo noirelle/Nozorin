@@ -7,7 +7,6 @@ import {
     activeUsers,
     userMediaState,
     activeCalls,
-    chatQueue,
     videoQueue,
     removeUserFromQueues
 } from './users';
@@ -119,6 +118,6 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
             io.emit('stats-update', statsService.getStats());
         }
 
-        console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue - Chat: ${chatQueue.length}, Video: ${videoQueue.length}`);
+        console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue: ${videoQueue.length}`);
     });
 };

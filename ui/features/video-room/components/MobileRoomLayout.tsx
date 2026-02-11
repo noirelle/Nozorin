@@ -26,7 +26,6 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     setMobileLayout,
     filtersOpen,
     setFiltersOpen,
-    onNavigateToChat,
     onNavigateToHistory,
     selectedCountry,
     matchmakingStatus,
@@ -224,8 +223,6 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
             <div className="fixed top-0 left-0 right-0 z-30 flex flex-col pointer-events-none">
                 {/* Top Nav */}
                 <RoomNavbar
-                    activeTab="video"
-                    onNavigateToChat={onNavigateToChat}
                     onNavigateToHistory={onNavigateToHistory}
                     variant="mobile"
                 />

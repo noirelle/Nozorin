@@ -1,5 +1,5 @@
 import { VideoRoomState } from './hooks/useVideoRoom';
-import { Message } from '../chat/hooks/useChat';
+import { Message } from './hooks/useChat';
 import { RefObject } from 'react';
 import { MatchStatus } from './hooks/useMatching';
 
@@ -24,7 +24,6 @@ export interface RoomLayoutProps {
     onSendMessage: (text: string) => void;
     setShowChat: (show: boolean) => void;
     setInputText: (text: string) => void;
-    onNavigateToChat?: () => void;
     onNavigateToHistory?: () => void;
 
     // Mobile specific

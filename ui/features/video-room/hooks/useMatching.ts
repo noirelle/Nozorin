@@ -5,7 +5,6 @@ export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
 
 interface UseMatchingProps {
     socket: Socket | null;
-    mode: 'chat' | 'video';
     onMatchFound?: (data: {
         role: 'offerer' | 'answerer';
         partnerId: string;
@@ -19,7 +18,6 @@ interface UseMatchingProps {
 
 export const useMatching = ({
     socket,
-    mode,
     onMatchFound,
     onMatchCancelled,
     onCallEnded,
@@ -95,10 +93,10 @@ export const useMatching = ({
     // Start searching for a match
     const startSearch = useCallback((preferredCountry?: string) => {
         if (!socket) return;
-        console.log(`[Matching] Starting search for ${mode} with preference: ${preferredCountry || 'None'}`);
+        console.log(`[Matching] Starting search for video with preference: ${preferredCountry || 'None'}`);
         setStatus('FINDING');
-        socket.emit('find-match', { mode, preferredCountry });
-    }, [socket, mode]);
+        socket.emit('find-match', { mode: 'video', preferredCountry });
+    }, [socket]);
 
     // Stop searching (cancel)
     const stopSearch = useCallback(() => {
@@ -135,7 +133,7 @@ export const useMatching = ({
         (partnerId: string | null, preferredCountry?: string) => {
             if (!socket || isSkipping) return;
 
-            console.log(`[Matching] Skipping to next for ${mode}...`);
+            console.log(`[Matching] Skipping to next for video...`);
             setIsSkipping(true);
 
             if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
@@ -148,7 +146,7 @@ export const useMatching = ({
                 skipTimerRef.current = null;
             }, 2000);
         },
-        [socket, mode, startSearch, isSkipping]
+        [socket, startSearch, isSkipping]
     );
 
     // Reset skipping state when a match is found or position updated
