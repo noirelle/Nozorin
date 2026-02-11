@@ -11,7 +11,7 @@ interface HistoryModalProps {
     error: string | null;
     onClearHistory: () => void;
     onRefresh: () => void;
-    onCall: (targetUserId: string, mode: 'chat' | 'video') => void;
+    onCall: (targetUserId: string) => void;
     isConnected: boolean;
 }
 
@@ -254,7 +254,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                                     {/* Quick Actions */}
                                     <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                                         <button
-                                            onClick={() => session.partnerId && onCall(session.partnerId, session.mode)}
+                                            onClick={() => session.partnerId && onCall(session.partnerId)}
                                             disabled={!session.partnerStatus?.isOnline || isConnected}
                                             title={isConnected ? 'You are currently in a call' : !session.partnerStatus?.isOnline ? 'User is offline' : 'Call this user'}
                                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all border border-transparent active:scale-[0.98] ${session.partnerStatus?.isOnline && !isConnected

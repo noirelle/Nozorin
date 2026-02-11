@@ -7,7 +7,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Initiate a call to a specific user by their userId
      */
-    socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'chat' | 'video' }) => {
+    socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'video' }) => {
         const { targetUserId, mode } = data;
 
         // ROBUSTNESS: Ensure caller is identified and authoritative
@@ -30,15 +30,6 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         if (!targetSocket) {
             socket.emit('call-error', { message: 'User is offline' });
             return;
-        }
-
-        // PRIORITY: If target is in another call, disconnect it
-        const existingPartnerId = activeCalls.get(targetSocketId);
-        if (existingPartnerId) {
-            console.log(`[DIRECT-CALL] Target ${targetUserId} in call, disconnecting existing partner ${existingPartnerId} (PRIORITY CALL)`);
-            io.to(existingPartnerId).emit('call-ended', { by: 'system-priority' });
-            activeCalls.delete(existingPartnerId);
-            activeCalls.delete(targetSocketId);
         }
 
         // Also check if sender is currently in a call
@@ -70,7 +61,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Handle response to an incoming direct call
      */
-    socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'chat' | 'video' }) => {
+    socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'video' }) => {
         const { callerSocketId, accepted, mode } = data;
 
         // ROBUSTNESS: Ensure responder is identified and authoritative

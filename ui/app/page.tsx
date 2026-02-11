@@ -213,7 +213,7 @@ export default function Home() {
           fetchHistory();
           fetchStats();
         }}
-        onCall={(targetId, m) => initiateCall(targetId, m)}
+        onCall={(targetId) => initiateCall(targetId, 'video')}
         isConnected={isConnected}
       />
 

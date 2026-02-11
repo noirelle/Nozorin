@@ -5,7 +5,7 @@ import ReactCountryFlag from 'react-country-flag';
 interface IncomingCallOverlayProps {
     fromCountry: string;
     fromCountryCode: string;
-    mode: 'chat' | 'video';
+    mode: 'video';
     onAccept: () => void;
     onDecline: () => void;
     error?: string | null;
@@ -43,7 +43,7 @@ export const IncomingCallOverlay: React.FC<IncomingCallOverlayProps> = ({
                 </div>
 
                 <h2 className="text-2xl font-bold text-white mb-1">
-                    {error ? 'Call Ended' : `Incoming ${mode === 'video' ? 'Video' : 'Text'} Call`}
+                    {error ? 'Call Ended' : 'Incoming Video Call'}
                 </h2>
                 <p className="text-zinc-400 mb-8 flex items-center gap-2">
                     {error ? error : (
