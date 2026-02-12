@@ -40,7 +40,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
             />
 
             {/* Header */}
-            <div className="absolute top-0 left-0 w-full z-50 bg-transparent shrink-0">
+            <div className="sticky top-0 left-0 w-full z-50 shrink-0">
                 <RoomNavbar
                     onNavigateToHistory={onNavigateToHistory}
                     variant="mobile"
@@ -48,10 +48,10 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 relative z-10 w-full h-full overflow-hidden flex flex-col items-center justify-center">
+            <div className="flex-1 relative z-10 w-full overflow-hidden flex flex-col items-center justify-center py-4">
 
                 {/* Center Action Circle */}
-                <div className="relative mb-8">
+                <div className="relative mb-6">
                     <button
                         onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
                         className="relative group outline-none focus:outline-none"
@@ -202,12 +202,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
             </div>
 
             {/* Fixed Bottom Toolbar */}
-            <div className="h-20 bg-white border-t border-slate-50 px-4 flex items-center justify-between z-50 shrink-0">
+            <div className="bg-white/80 backdrop-blur-xl border-t border-slate-100 px-6 py-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))] flex items-center justify-between z-50 shrink-0 shadow-[0_-8px_30px_-10px_rgba(0,0,0,0.05)]">
                 {/* Left Actions - Balanced spacing */}
                 <div className="flex-1 flex items-center gap-6 justify-start">
                     <button
                         onClick={onNavigateToHistory}
-                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100"
+                        className="w-10 h-10 rounded-full bg-slate-50/50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100/50"
                         title="History"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,7 +216,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                     </button>
                     <button
                         onClick={() => { }} // Friends Placeholder
-                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100"
+                        className="w-10 h-10 rounded-full bg-slate-50/50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100/50"
                         title="Friends"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -230,9 +230,9 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                     {isConnected ? (
                         <button
                             onClick={onToggleMute}
-                            className={`h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 -translate-y-4 shadow-lg ring-2 ring-white ${isMuted
-                                ? 'bg-red-500 text-white shadow-red-200'
-                                : 'bg-white text-slate-700 border border-slate-100 shadow-slate-200'
+                            className={`h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 -translate-y-6 shadow-lg ring-4 ring-white ${isMuted
+                                ? 'bg-red-500 text-white shadow-red-200/50'
+                                : 'bg-white text-slate-700 border border-slate-100 shadow-slate-200/50'
                                 }`}
                         >
                             {isMuted ? (
@@ -249,24 +249,24 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                     ) : (
                         <button
                             onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
-                            className={`h-11 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-300 border shadow-sm ${filtersOpen || (selectedCountry && selectedCountry !== 'GLOBAL')
-                                ? 'bg-[#FF8ba7]/10 border-[#FF8ba7] text-[#FF8ba7] ring-1 ring-[#FF8ba7]/20'
-                                : 'bg-slate-50 border-slate-200 text-slate-500 active:bg-white'
+                            className={`h-10 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-300 border shadow-sm -translate-y-1 ${filtersOpen || (selectedCountry && selectedCountry !== 'GLOBAL')
+                                ? 'bg-[#FF8ba7] text-white border-[#FF8ba7] ring-2 ring-[#FF8ba7]/20 shadow-[#FF8ba7]/20'
+                                : 'bg-slate-50 border-slate-200 text-slate-500 active:bg-white active:scale-95'
                                 }`}
                         >
                             {selectedCountry && selectedCountry !== 'GLOBAL' ? (
                                 <>
-                                    <div className="w-5 h-5 rounded-full overflow-hidden border border-black/10 shrink-0">
+                                    <div className="w-4 h-4 rounded-full overflow-hidden border border-black/10 shrink-0">
                                         <ReactCountryFlag countryCode={selectedCountry} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     </div>
-                                    <span className="font-bold text-xs tracking-wide">{selectedCountry}</span>
+                                    <span className="font-bold text-[10px] tracking-wide uppercase">{selectedCountry}</span>
                                 </>
                             ) : (
                                 <>
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21c0-2.5 4-5 9-5s9 2.5 9 5M12 11a5 5 0 100-10 5 5 0 000 10z" />
                                     </svg>
-                                    <span className="font-bold text-xs tracking-wide uppercase">Global</span>
+                                    <span className="font-bold text-[10px] tracking-wide uppercase">Global</span>
                                 </>
                             )}
                         </button>
@@ -277,12 +277,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 <div className="flex-1 flex items-center justify-end">
                     <button
                         onClick={() => setShowChat(!showChat)}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all relative shadow-sm ring-1 ring-slate-100 ${showChat ? 'bg-slate-100 text-[#FF8ba7]' : 'bg-slate-50 text-slate-400 active:text-[#FF8ba7]'}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all relative shadow-sm ring-1 ring-slate-100/50 ${showChat ? 'bg-[#FF8ba7]/10 text-[#FF8ba7]' : 'bg-slate-50 text-slate-400 active:text-[#FF8ba7] active:bg-white'}`}
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                         </svg>
-                        {messages.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
+                        {messages.length > 0 && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white shadow-sm" />}
                     </button>
                 </div>
             </div>

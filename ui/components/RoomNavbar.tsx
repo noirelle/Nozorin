@@ -26,7 +26,7 @@ export function RoomNavbar({
 
     // Mobile navbar (for small screens)
     return (
-        <div className="lg:hidden px-4 py-2.5 flex items-center justify-between pointer-events-auto bg-transparent">
+        <div className="lg:hidden px-4 py-3 flex items-center justify-between pointer-events-auto bg-transparent">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 flex-shrink-0">
                     <LogoIcon className="w-7 h-7 text-[#FF8ba7] flex-shrink-0" />
