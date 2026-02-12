@@ -11,7 +11,7 @@ import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
 import { DevicePermissionOverlay } from './DevicePermissionOverlay';
-import { CountryFilterModal } from './CountryFilterModal';
+import { FilterDrawer } from './FilterDrawer';
 
 interface RoomProps {
     mode: 'voice';
@@ -379,11 +379,11 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
             {callRoomState.permissionDenied && (
                 <DevicePermissionOverlay onRetry={initMediaManager} />
             )}
-            <CountryFilterModal
+            <FilterDrawer
                 isOpen={filtersOpen}
                 onClose={() => setFiltersOpen(false)}
                 onSelectCountry={setSelectedCountry}
-                selectedCountryCode={selectedCountry}
+                currentCountry={selectedCountry}
             />
         </div>
     );

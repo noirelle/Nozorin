@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RoomLayoutProps } from '../types';
-import { SkeletonLoader } from '../../../components/SkeletonLoader';
-import { LogoIcon } from '../../../components/icons';
 import { RoomNavbar } from '../../../components/RoomNavbar';
+import ChatBox from './ChatBox';
 import ReactCountryFlag from "react-country-flag";
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
@@ -10,404 +9,309 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     partnerIsMuted,
     showChat,
     messages,
-    inputText,
     remoteAudioRef,
-    messagesEndRef,
     onStop,
     onNext,
     onToggleMute,
     onSendMessage,
     setShowChat,
-    setInputText,
-    mobileLayout = 'overlay',
-    setMobileLayout,
     filtersOpen,
     setFiltersOpen,
     onNavigateToHistory,
     selectedCountry,
-    matchmakingStatus,
     queuePosition,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, partnerSignalStrength } = callRoomState;
-
-    const getSignalIcon = () => {
-        if (partnerSignalStrength === 'reconnecting') return (
-            <div className="flex items-center gap-1 animate-pulse text-yellow-500">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-xs font-bold">Reconnecting...</span>
-            </div>
-        );
-
-        // Signal bars
-        const bars = {
-            good: 3,
-            fair: 2,
-            poor: 1
-        }[partnerSignalStrength] || 3;
-
-        return (
-            <div className="flex items-end gap-0.5 h-3">
-                {[1, 2, 3].map(i => (
-                    <div
-                        key={i}
-                        className={`w-1 rounded-sm ${i <= bars ? (
-                            partnerSignalStrength === 'poor' ? 'bg-red-500' :
-                                partnerSignalStrength === 'fair' ? 'bg-yellow-500' : 'bg-green-500'
-                        ) : 'bg-white/20'}`}
-                        style={{ height: `${i * 33}%` }}
-                    />
-                ))}
-            </div>
-        );
-    };
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted } = callRoomState;
 
     const getButtonText = () => {
-        if (matchmakingStatus === 'NEGOTIATING') return 'Wait...';
-        if (isSearching) return 'Stop';
-        if (isConnected) return 'Next';
-        return 'Start';
+        if (isSearching) return 'SCANNING';
+        if (isConnected) return 'TUNED';
+        return 'CONNECT';
     };
-
-    const handleButtonClick = () => {
-        if (matchmakingStatus === 'NEGOTIATING') return;
-        if (isSearching) {
-            onStop();
-        } else if (isConnected) {
-            onNext();
-        } else {
-            // "Start" logic is implicitly handled by onNext/onStop if not connected/searching? 
-            // In original Room.tsx:
-            // if (videoRoomState.isSearching) handleStop();
-            // else if (videoRoomState.isConnected) handleNext();
-            // else findMatch();
-            // We need to pass findMatch functionality. 
-            // Wait, onNext performs "Next" (skip). Start/FindMatch is separate.
-            // I should treat "Next" button as the main action button.
-            // If checking the props, onNext calls handleNext which calls findMatch after stop.
-            // If not connected and not searching, we need to call findMatch directly.
-            // Let's assume onNext handles the "Start" case too or pass a separate onStart.
-            // Check Room.tsx line 271: findMatch().
-            // I'll update props to include onStart, or assume onNext can handle it if I modify Room.tsx to pass the right function.
-            // Actually, let's keep it simple: The parent component passes the correct handler or we pass onStart.
-            onNext();
-        }
-    };
-
-    const [showGuidelines, setShowGuidelines] = useState(false);
-
-    useEffect(() => {
-        if (isConnected) {
-            setShowGuidelines(true);
-            const timer = setTimeout(() => setShowGuidelines(false), 3000);
-            return () => clearTimeout(timer);
-        } else {
-            setShowGuidelines(false);
-        }
-    }, [isConnected]);
-
-    const [showIntro, setShowIntro] = useState(false);
-
-    useEffect(() => {
-        if (isConnected) {
-            setShowIntro(true);
-            const timer = setTimeout(() => setShowIntro(false), 2000);
-            return () => clearTimeout(timer);
-        } else {
-            setShowIntro(false);
-        }
-    }, [isConnected]);
 
     return (
-        <div className="lg:hidden w-full h-full fixed inset-0 font-sans touch-none">
-            <div className={`fixed left-0 right-0 top-0 z-0 bg-black transition-[height,border] duration-200 ease-out ${mobileLayout === 'split' ? 'h-[50%] bottom-auto border-b border-white/10' : 'h-full bottom-0'}`}>
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 z-10 pointer-events-none"></div>
+        <div className="lg:hidden flex flex-col w-full h-screen bg-[#FDFDFD] relative overflow-hidden font-sans text-slate-900">
+            {/* Background Grid Pattern */}
+            <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+                style={{
+                    backgroundImage: `linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)`,
+                    backgroundSize: '30px 30px'
+                }}
+            />
 
-                {/* Intro Animation Overlay */}
-                {isConnected && showIntro && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-zinc-900 animate-in fade-in duration-300">
-                        <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-500 delay-100">
-                            <div className="w-24 h-24 rounded-full bg-zinc-800 border-4 border-[#FF8ba7]/20 flex items-center justify-center shadow-2xl">
-                                <span className="text-3xl font-bold text-white">{partnerCountryCode}</span>
-                            </div>
-                            <div className="text-center">
-                                <h2 className="text-2xl font-bold text-white mb-1">{partnerCountry || 'Stranger'}</h2>
-                                <p className="text-zinc-400 text-sm">Connected!</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Audio Element */}
-                <audio ref={remoteAudioRef} autoPlay />
-
-                {/* Voice Call Visualization (Connected) */}
-                {isConnected && !showIntro && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center top-[-10%] animate-in fade-in duration-500">
-                        <div className="w-40 h-40 rounded-full bg-zinc-800 border-4 border-[#FF8ba7]/20 flex items-center justify-center shadow-2xl relative">
-                            <span className="text-5xl font-bold text-white">{partnerCountryCode}</span>
-                            {/* Pulse */}
-                            <div className="absolute inset-0 -m-2 rounded-full border border-[#FF8ba7]/20 animate-pulse" />
-                        </div>
-                        <h2 className="text-3xl font-bold text-white mt-6 drop-shadow-md">{partnerCountry || 'Stranger'}</h2>
-                        <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-white/80 text-sm font-medium">Voice Connected</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Not Connected State */}
-                {!isConnected && (
-                    <div className="absolute inset-0 flex items-center justify-center z-0 bg-black/60 backdrop-blur-sm">
-                        {matchmakingStatus === 'NEGOTIATING' ? (
-                            <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                                <div className="relative flex items-center justify-center w-24 h-24 mb-6">
-                                    <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-pulse opacity-75" />
-                                    <div className="relative w-16 h-16 bg-[#1a1a1a] rounded-full border-2 border-[#FF8ba7] flex items-center justify-center shadow-[0_0_20px_rgba(255,139,167,0.3)] z-10">
-                                        <div className="w-4 h-4 bg-[#FF8ba7] rounded-full animate-ping" />
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-1 tracking-tight">Connecting...</h3>
-                                <p className="text-white/60 text-sm font-medium">Starting secure video call</p>
-                            </div>
-                        ) : matchmakingStatus === 'FINDING' || isSearching ? (
-                            <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                                <div className="relative flex items-center justify-center w-24 h-24 mb-6">
-                                    <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-ping opacity-75" />
-                                    <div className="absolute inset-0 bg-[#FF8ba7]/10 rounded-full animate-ping delay-300 opacity-50" />
-                                    <div className="relative w-16 h-16 bg-[#1a1a1a] rounded-full border-2 border-[#FF8ba7] flex items-center justify-center shadow-[0_0_20px_rgba(255,139,167,0.3)] z-10">
-                                        <svg className="w-6 h-6 text-[#FF8ba7] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-1 animate-pulse tracking-tight">Finding partner...</h3>
-                                <p className="text-white/60 text-sm font-medium">
-                                    {queuePosition ? `In Queue: #${queuePosition}` : 'Please wait'}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="text-center px-6 animate-in fade-in zoom-in duration-500">
-                                <div className="text-5xl mb-4 grayscale opacity-40 animate-pulse">
-                                    <span role="img" aria-label="Wave">👋</span>
-                                </div>
-                                <h3 className="text-2xl font-bold text-white mb-1 shadow-black drop-shadow-md tracking-tight">Ready to meet?</h3>
-                                <p className="text-white/60 text-sm font-medium shadow-black drop-shadow-md">Click Start</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Partner Mute Indicator (Discord-style - top left for mobile) */}
-                {isConnected && partnerIsMuted && mobileLayout === 'split' && (
-                    <div className="absolute top-16 right-4 z-20 animate-in fade-in duration-200">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-red-500/90 backdrop-blur-md shadow-lg border border-red-400/20">
-                            <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z" />
-                            </svg>
-                            <span className="text-white text-[11px] font-semibold">Muted</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="fixed top-0 left-0 right-0 z-30 flex flex-col pointer-events-none">
-                {/* Top Nav */}
+            {/* Header */}
+            <div className="absolute top-0 left-0 w-full z-50 bg-transparent shrink-0">
                 <RoomNavbar
                     onNavigateToHistory={onNavigateToHistory}
                     variant="mobile"
                 />
-
-                {/* Existing Controls */}
-                {/* Existing Controls */}
-                <div className="px-4 py-1 flex items-start justify-between pointer-events-auto">
-                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                        {partnerCountryCode && !showIntro && (
-                            <div className="w-8 h-8 rounded-full bg-black/20 backdrop-blur-md border border-white/5 overflow-hidden flex items-center justify-center shrink-0 shadow-md animate-in fade-in slide-in-from-top-4 duration-500">
-                                <span className="text-xs font-bold text-white/90 shadow-black drop-shadow-md">
-                                    {partnerCountryCode}
-                                </span>
-                            </div>
-                        )}
-                        {isConnected && (
-                            <div className="flex items-center justify-center h-8 px-2 rounded-full bg-black/20 backdrop-blur-md border border-white/5 shadow-md">
-                                {getSignalIcon()}
-                            </div>
-                        )}
-                        {isConnected && partnerIsMuted && mobileLayout !== 'split' && (
-                            <div className="flex items-center justify-center h-8 px-2 gap-1 rounded-full bg-red-500/90 backdrop-blur-md shadow-md border border-red-400/20">
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z" />
-                                </svg>
-                                <span className="text-white text-[10px] font-semibold">Muted</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
 
+            {/* Main Content */}
+            <div className="flex-1 relative z-10 w-full h-full overflow-hidden flex flex-col items-center justify-center">
 
-
-            <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-col justify-end pointer-events-none pb-safe-area">
-                <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 pointer-events-none z-0 ${showChat ? 'h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent' : 'h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`} />
-
-                {showChat && (
-                    <div
-                        className="fixed inset-0 z-10 pointer-events-auto bg-transparent"
-                        onClick={() => setShowChat(false)}
-                    />
-                )}
-
-                {/* Guidelines Popup */}
-                {showGuidelines && !showChat && (
-                    <div className="absolute bottom-[4.5rem] left-4 right-16 z-40 animate-in fade-in slide-in-from-bottom-2 duration-500 pointer-events-none">
-                        <p className="text-white text-[13px] font-medium leading-relaxed drop-shadow-md text-left shadow-black">
-                            <span className="font-bold">Nozorin</span> cares about your safety. Check out our <span className="text-[#00ff88] font-bold cursor-pointer hover:underline pointer-events-auto">Community Guidelines</span> and have fun!
-                        </p>
-                    </div>
-                )}
-
-                <div className={`relative z-20 w-full px-4 py-2 flex flex-col justify-end transition-all duration-300 pointer-events-auto ${showChat ? 'max-h-[40vh] mb-0' : 'max-h-[35vh] min-h-[50px] mb-0'}`}>
-                    <div className="overflow-y-auto scrollbar-hide flex flex-col gap-2 pb-2 mask-image-gradient overscroll-contain touch-pan-y">
-                        {messages.length === 0 && (
-                            <></>
+                {/* Center Action Circle */}
+                <div className="relative mb-8">
+                    <button
+                        onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
+                        className="relative group outline-none focus:outline-none"
+                    >
+                        {/* Pulsing Rings (Searching) */}
+                        {isSearching && (
+                            <>
+                                <div className="absolute inset-0 -m-3 border border-[#FF8ba7]/30 rounded-full animate-ping duration-[1500ms]" />
+                                <div className="absolute inset-0 -m-8 border border-[#FF8ba7]/20 rounded-full animate-ping duration-[2000ms] delay-300" />
+                                <div className="absolute inset-0 -m-16 border border-[#FF8ba7]/10 rounded-full animate-ping duration-[3000ms] delay-700" />
+                            </>
                         )}
 
-                        {messages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
-                                <div className={`px-4 py-2 rounded-2xl text-[15px] font-medium backdrop-blur-md shadow-sm max-w-[85%] break-words leading-relaxed drop-shadow-sm ${msg.isSelf ? 'bg-[#FF8ba7]/90 text-white rounded-tr-sm' : 'bg-black/40 text-white rounded-tl-sm'}`}>
-                                    {msg.message}
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                </div>
+                        {/* Connected Glow */}
+                        {isConnected && (
+                            <div className="absolute inset-0 rounded-full bg-[#FF8ba7] blur-[40px] opacity-40 animate-pulse" />
+                        )}
 
-                <div className="relative z-30 pointer-events-auto">
-                    {showChat ? (
-                        <form
-                            className="bg-transparent p-4 pb-6 flex items-end gap-2 animate-in slide-in-from-bottom-4 duration-300 ease-out"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                if (inputText.trim()) {
-                                    onSendMessage(inputText);
-                                }
-                            }}
-                        >
-                            <input
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                placeholder="Type a message..."
-                                className="flex-1 bg-black/40 text-white placeholder-white/70 rounded-full px-5 py-3 focus:outline-none focus:bg-black/60 border-none text-[16px] transition-all backdrop-blur-xl shadow-lg"
-                                autoFocus
-                            />
-                            <button
-                                type="submit"
-                                disabled={!inputText.trim()}
-                                className="p-3 rounded-full bg-[#FF8ba7]/90 hover:bg-[#FF8ba7] text-white disabled:opacity-0 disabled:scale-75 transition-all active:scale-90 shadow-lg backdrop-blur-md"
-                            >
-                                <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                                </svg>
-                            </button>
-                        </form>
-                    ) : (
-                        <div className="px-4 pb-6 pt-2 flex items-center justify-between w-full">
-                            {/* Left Icons Group */}
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => setShowChat(true)}
-                                    className="text-white hover:text-white/80 transition-colors relative"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                        <path fillRule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.223zM8.25 10.875a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clipRule="evenodd" />
-                                    </svg>
-                                    {messages.length > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full border border-black"></span>}
-                                </button>
+                        {/* Main Circle - Scaled for Mobile */}
+                        <div className={`w-52 h-52 rounded-full flex flex-col items-center justify-center transition-all duration-700 relative z-10 overflow-hidden ${isConnected
+                            ? 'bg-gradient-to-br from-[#FF8ba7] to-[#fe5f8f] border-[3px] border-white/20 scale-105'
+                            : 'bg-gradient-to-br from-[#FF8ba7] to-[#FFA0B5] border-[6px] border-white'
+                            }`}>
 
-                                <button
-                                    onClick={() => setMobileLayout && setMobileLayout(mobileLayout === 'overlay' ? 'split' : 'overlay')}
-                                    className="text-white hover:text-white/80 transition-colors"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                        <path fillRule="evenodd" d="M3 6a3 3 0 013-3h2.25a3 3 0 013 3v2.25a3 3 0 01-3 3H6a3 3 0 01-3-3V6zm9.75 0a3 3 0 013-3H18a3 3 0 013 3v2.25a3 3 0 01-3 3h-2.25a3 3 0 01-3-3V6zM3 15.75a3 3 0 013-3h2.25a3 3 0 013 3V18a3 3 0 01-3 3H6a3 3 0 01-3-3v-2.25zm9.75 0a3 3 0 013-3H18a3 3 0 013 3V18a3 3 0 01-3 3h-2.25a3 3 0 01-3-3v-2.25z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
-
-                                <button
-                                    onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
-                                    className="text-white hover:text-white/80 transition-colors"
-                                >
-                                    {selectedCountry && selectedCountry !== 'GLOBAL' ? (
-                                        <span className="text-xl leading-none filter drop-shadow-md flex items-center justify-center w-6 h-6 rounded-full overflow-hidden">
-                                            <ReactCountryFlag
-                                                countryCode={selectedCountry}
-                                                svg
+                            {/* Inner Content */}
+                            {isConnected ? (
+                                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-700 text-white">
+                                    <div className="flex items-center gap-1 h-10 mb-3">
+                                        {[1, 2, 3, 4, 5, 4, 3, 2, 1].map((h, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-1.5 bg-white/90 rounded-full animate-pulse"
                                                 style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover'
+                                                    height: `${h * 4}px`,
+                                                    animationDelay: `${i * 0.15}s`
                                                 }}
                                             />
-                                        </span>
+                                        ))}
+                                    </div>
+                                    <div className="px-3 py-1 bg-black/20 backdrop-blur-md rounded-full text-white text-[8px] font-bold tracking-[0.2em] border border-white/10 uppercase mb-2">
+                                        TUNED • 88.4 MHZ
+                                    </div>
+                                    <span className="text-[8px] font-bold text-white/80 tracking-widest uppercase">Tap to Skip</span>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center text-white relative h-full w-full justify-center">
+                                    {isSearching ? (
+                                        <>
+                                            <div className="relative w-16 h-16 mb-3 flex items-center justify-center shrink-0">
+                                                <div className="absolute inset-0 border-[3px] border-white/30 rounded-full" />
+                                                <div className="absolute inset-0 border-[3px] border-t-white border-r-white border-b-transparent border-l-transparent rounded-full animate-spin" />
+                                            </div>
+                                            <span className="text-white font-bold tracking-widest uppercase text-[10px] animate-pulse mb-4">{queuePosition ? `POS: ${queuePosition}` : 'Scanning...'}</span>
+                                            <span className="text-[8px] font-bold text-white uppercase tracking-widest opacity-80 cursor-pointer">Tap to Stop</span>
+                                        </>
                                     ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5 drop-shadow-md">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                        </svg>
+                                        <>
+                                            <div className="w-16 h-16 mb-4 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 transition-all duration-300 flex items-center justify-center shrink-0 relative overflow-hidden">
+                                                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-white font-bold tracking-widest uppercase text-[10px]">Tap to Connect</span>
+                                        </>
                                     )}
-                                </button>
+                                </div>
+                            )}
+                        </div>
+                    </button>
+                </div>
 
-                                <button
-                                    onClick={onToggleMute}
-                                    className={`${isMuted ? 'text-red-500' : 'text-white hover:text-white/80'} transition-colors`}
-                                >
-                                    {isMuted ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
-                                            <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
-                                        </svg>
-                                    ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                            <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
-                                            <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
-                                        </svg>
-                                    )}
-                                </button>
+                {/* Profiles Area - Bottom Half */}
+                <div className="w-full px-6 transition-all duration-500 flex flex-col gap-3">
+                    {/* Header Label */}
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-700 px-1">
+                        <span className="text-[#FF8ba7] text-xs">|•|</span>
+                        <span className="text-[9px] font-bold text-slate-400 tracking-[0.2em] uppercase">
+                            Connection Info
+                        </span>
+                    </div>
 
-
+                    {/* Compact Profile Stack */}
+                    <div className="space-y-2.5">
+                        {/* You */}
+                        <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl ring-1 ring-slate-100">
+                            <div className="relative shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-slate-50 overflow-hidden border border-slate-100 p-0.5">
+                                    <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Av" className="w-full h-full object-cover rounded-full bg-orange-100" />
+                                </div>
+                                <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500" />
                             </div>
-
-                            {/* Right Actions: Stop & Next */}
-                            <div className="flex items-center gap-3">
-                                {(isConnected || isSearching) && (
-                                    <button
-                                        onClick={onStop}
-                                        className="w-9 h-9 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all active:scale-95 backdrop-blur-md"
-                                        aria-label="Stop"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                            <path fillRule="evenodd" d="M4.5 7.5a3 3 0 013-3h9a3 3 0 013 3v9a3 3 0 01-3 3h-9a3 3 0 01-3-3v-9z" clipRule="evenodd" />
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-slate-800 text-xs">Alex (You)</h3>
+                                    <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">LOCAL</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <div className={`p-1 rounded-md transition-colors ${isMuted ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            {isMuted && <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3l18 18" />}
                                         </svg>
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={handleButtonClick}
-                                    className="flex items-center gap-1 pl-1 pr-0 text-white font-bold text-[16px] tracking-wide hover:opacity-80 active:scale-95 transition-all drop-shadow-md"
-                                >
-                                    <span>{getButtonText()}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                        <path fillRule="evenodd" d="M16.28 11.47a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 01-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 011.06-1.06l7.5 7.5z" clipRule="evenodd" />
-                                    </svg>
-                                </button>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 font-medium">Mic is {isMuted ? 'Off' : 'On'}</p>
+                                </div>
                             </div>
                         </div>
-                    )}
+
+                        {/* Partner */}
+                        <div className={`flex items-center gap-3 bg-white p-2.5 rounded-2xl ring-1 ring-slate-100 transition-all duration-500 ${isConnected || isSearching ? 'opacity-100' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+                            <div className="relative shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100">
+                                    {isConnected && partnerCountryCode ? (
+                                        <ReactCountryFlag countryCode={partnerCountryCode} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <svg className="w-5 h-5 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <div className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isConnected ? 'bg-green-500' : 'bg-slate-200 animate-pulse'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h3 className={`font-bold text-xs truncate pr-2 ${isConnected ? 'text-slate-800' : 'text-slate-400'}`}>
+                                        {isConnected ? (partnerCountry || 'Stranger') : 'Scanning...'}
+                                    </h3>
+                                    {isConnected && (
+                                        <span className="text-[8px] font-bold bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                                            CONNECTED
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    {isConnected && (
+                                        <button className="bg-[#FF0055] text-white text-[8px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
+                                            ADD FRIEND
+                                        </button>
+                                    )}
+                                    <p className="text-[9px] text-slate-500 font-medium truncate">
+                                        {isConnected ? (partnerCountryCode ? `${partnerCountryCode} Frequency` : 'Stranger') : 'Searching frequencies...'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Fixed Bottom Toolbar */}
+            <div className="h-20 bg-white border-t border-slate-50 px-4 flex items-center justify-between z-50 shrink-0">
+                {/* Left Actions - Balanced spacing */}
+                <div className="flex-1 flex items-center gap-6 justify-start">
+                    <button
+                        onClick={onNavigateToHistory}
+                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100"
+                        title="History"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => { }} // Friends Placeholder
+                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:text-[#FF8ba7] active:bg-slate-100 transition-all shadow-sm ring-1 ring-slate-100"
+                        title="Friends"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Center Action - Perfectly Centered */}
+                <div className="flex items-center justify-center px-2">
+                    {isConnected ? (
+                        <button
+                            onClick={onToggleMute}
+                            className={`h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 -translate-y-4 shadow-lg ring-2 ring-white ${isMuted
+                                ? 'bg-red-500 text-white shadow-red-200'
+                                : 'bg-white text-slate-700 border border-slate-100 shadow-slate-200'
+                                }`}
+                        >
+                            {isMuted ? (
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3l18 18" />
+                                </svg>
+                            ) : (
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
+                            className={`h-11 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-300 border shadow-sm ${filtersOpen || (selectedCountry && selectedCountry !== 'GLOBAL')
+                                ? 'bg-[#FF8ba7]/10 border-[#FF8ba7] text-[#FF8ba7] ring-1 ring-[#FF8ba7]/20'
+                                : 'bg-slate-50 border-slate-200 text-slate-500 active:bg-white'
+                                }`}
+                        >
+                            {selectedCountry && selectedCountry !== 'GLOBAL' ? (
+                                <>
+                                    <div className="w-5 h-5 rounded-full overflow-hidden border border-black/10 shrink-0">
+                                        <ReactCountryFlag countryCode={selectedCountry} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                    <span className="font-bold text-xs tracking-wide">{selectedCountry}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21c0-2.5 4-5 9-5s9 2.5 9 5M12 11a5 5 0 100-10 5 5 0 000 10z" />
+                                    </svg>
+                                    <span className="font-bold text-xs tracking-wide uppercase">Global</span>
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
+
+                {/* Right Actions - Balanced spacing */}
+                <div className="flex-1 flex items-center justify-end">
+                    <button
+                        onClick={() => setShowChat(!showChat)}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all relative shadow-sm ring-1 ring-slate-100 ${showChat ? 'bg-slate-100 text-[#FF8ba7]' : 'bg-slate-50 text-slate-400 active:text-[#FF8ba7]'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        {messages.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
+                    </button>
+                </div>
+            </div>
+
+            {/* Chat Popover */}
+            <div className={`absolute bottom-24 left-4 right-4 z-40 transition-all duration-300 origin-bottom ${showChat ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
+                <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-100 overflow-hidden h-[60vh] flex flex-col">
+                    <div className="px-5 py-3 border-b border-slate-50 bg-white/50 flex justify-between items-center">
+                        <span className="font-bold text-slate-800 text-sm">Frequency Chat</span>
+                        <button onClick={() => setShowChat(false)} className="text-slate-400">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <ChatBox
+                            messages={messages}
+                            onSendMessage={onSendMessage}
+                            isConnected={isConnected}
+                            minimal={true}
+                            showScrollbar={true}
+                            theme="light"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Audio Ref */}
+            <audio ref={remoteAudioRef} autoPlay />
         </div>
     );
 };
+

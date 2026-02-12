@@ -13,9 +13,10 @@ interface ChatBoxProps {
     isConnected: boolean;
     minimal?: boolean;
     showScrollbar?: boolean;
+    theme?: 'light' | 'dark';
 }
 
-export default function ChatBox({ messages, onSendMessage, isConnected, minimal, showScrollbar }: ChatBoxProps) {
+export default function ChatBox({ messages, onSendMessage, isConnected, minimal, showScrollbar, theme = 'dark' }: ChatBoxProps) {
     const [input, setInput] = React.useState("");
     const endRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +36,7 @@ export default function ChatBox({ messages, onSendMessage, isConnected, minimal,
         <div className={`flex flex-col h-full font-sans text-sm md:text-base ${minimal ? 'bg-transparent' : 'bg-white'}`}>
             <div className={`flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth ${minimal && !showScrollbar ? 'scrollbar-hide' : 'scrollbar-sleek'}`}>
                 {messages.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-white/50">
+                    <div className={`h-full flex flex-col items-center justify-center ${theme === 'light' ? 'text-slate-400' : 'text-white/50'}`}>
                         <div className="text-4xl mb-2 grayscale opacity-50">✨</div>
                         <p className="font-medium">Say hi!</p>
                     </div>
@@ -48,7 +49,9 @@ export default function ChatBox({ messages, onSendMessage, isConnected, minimal,
                         <div
                             className={`max-w-[85%] px-4 py-2.5 shadow-sm relative backdrop-blur-sm ${msg.isSelf
                                 ? "bg-[#FF8ba7] text-white rounded-2xl rounded-tr-none"
-                                : "bg-white/10 text-white border border-white/10 rounded-2xl rounded-tl-none"
+                                : theme === 'light'
+                                    ? "bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl rounded-tl-none"
+                                    : "bg-white/10 text-white border border-white/10 rounded-2xl rounded-tl-none"
                                 }`}
                         >
                             <p className="leading-relaxed font-medium">{msg.message}</p>
@@ -71,7 +74,9 @@ export default function ChatBox({ messages, onSendMessage, isConnected, minimal,
                         disabled={!isConnected}
                         className={`w-full rounded-full pl-5 pr-12 py-3 focus:outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-[15px]
                             ${minimal
-                                ? 'bg-black/50 border border-white/20 text-white placeholder-zinc-400 focus:border-white/40 focus:bg-black/70 backdrop-blur-md'
+                                ? theme === 'light'
+                                    ? 'bg-slate-100 border border-slate-200 text-slate-800 placeholder-slate-400 focus:border-[#FF8ba7]/50 focus:bg-white'
+                                    : 'bg-black/50 border border-white/20 text-white placeholder-zinc-400 focus:border-white/40 focus:bg-black/70 backdrop-blur-md'
                                 : 'bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:bg-black/40 focus:border-white/20'
                             }`}
                     />

@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RoomLayoutProps } from '../types';
-import ChatBox from './ChatBox'; // Assuming ChatBox is exported from its own file
-import { ArrowRightIcon } from '../../../components/icons';
+import ChatBox from './ChatBox';
 import { RoomNavbar } from '../../../components/RoomNavbar';
 import ReactCountryFlag from "react-country-flag";
 
@@ -25,230 +24,402 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, partnerSignalStrength } = callRoomState;
 
-    const getSignalIcon = () => {
-        if (partnerSignalStrength === 'reconnecting') return (
-            <div className="flex items-center gap-2 h-10 px-3 bg-black/60 backdrop-blur-md border border-yellow-500/30 rounded-full animate-pulse shadow-lg ml-2">
-                <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-xs text-yellow-500 font-bold uppercase tracking-wider">Reconnecting</span>
-            </div>
-        );
-
-        const bars = {
-            good: 3,
-            fair: 2,
-            poor: 1
-        }[partnerSignalStrength] || 3;
-
-        const tooltip = {
-            good: 'Good Connection',
-            fair: 'Fair Connection',
-            poor: 'Poor Connection'
-        }[partnerSignalStrength] || 'Unknown';
-
-        return (
-            <div className="flex flex-col justify-center h-10 ml-1 group relative">
-                <div className="flex items-end gap-1 px-2.5 py-2 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-xl border border-white/5 transition-all cursor-help">
-                    {[1, 2, 3].map(i => (
-                        <div
-                            key={i}
-                            className={`w-1 rounded-full transition-all duration-500 ${i <= bars ? (
-                                partnerSignalStrength === 'poor' ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' :
-                                    partnerSignalStrength === 'fair' ? 'bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]' : 'bg-[#00ff88] shadow-[0_0_5px_rgba(0,255,136,0.3)]'
-                            ) : 'bg-white/10'}`}
-                            style={{ height: `${6 + (i * 4)}px` }}
-                        />
-                    ))}
-                </div>
-
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/90 text-white text-[10px] font-medium rounded border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50">
-                    {tooltip}
-                </div>
-            </div>
-        );
-    };
-
-    const handleButtonClick = () => {
-        if (matchmakingStatus === 'NEGOTIATING') return;
-        if (isSearching) {
-            onStop();
-        } else {
-            onNext();
-        }
+    // Helper for signal strength (dark text for light mode)
+    const getSignalText = () => {
+        if (partnerSignalStrength === 'reconnecting') return 'Reconnecting...';
+        return `${partnerSignalStrength.toUpperCase()} SIGNAL`;
     };
 
     return (
-        <div className="hidden lg:flex flex-col w-full h-full p-4 gap-4">
-            <RoomNavbar
-                onNavigateToHistory={onNavigateToHistory}
-                variant="desktop"
+        <div className="hidden lg:flex flex-col w-full h-screen bg-[#FDFDFD] relative overflow-hidden font-sans text-slate-900">
+            {/* Background Grid Pattern */}
+            <div className="absolute inset-0 z-0 opacity-[0.03]"
+                style={{
+                    backgroundImage: `linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)`,
+                    backgroundSize: '40px 40px'
+                }}
             />
 
-            <div className="flex-1 flex gap-4 min-h-0">
-                {/* Main Content Area */}
-                <div className="flex-1 rounded-3xl overflow-hidden relative border border-white/5 bg-zinc-900 flex flex-col items-center justify-center">
+            {/* Header */}
+            <div className="absolute top-0 left-0 w-full z-50 bg-transparent shrink-0">
+                <RoomNavbar
+                    onNavigateToHistory={onNavigateToHistory}
+                    variant="desktop"
+                />
+            </div>
 
-                    {/* Audio Element */}
-                    <audio ref={remoteAudioRef} autoPlay />
+            {/* Main Content */}
+            <div className="flex-1 relative z-10 w-full h-full overflow-hidden">
 
-                    {/* Status / Partner Info */}
-                    <div className="flex flex-col items-center gap-6 z-10">
-                        {isConnected ? (
+                {/* Center Circle / Connection Area - Centered Absolutely */}
+                <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
+                    <button
+                        onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
+                        className="relative group outline-none focus:outline-none"
+                    >
+                        {/* Pulsing Rings (Searching) */}
+                        {isSearching && (
                             <>
-                                <div className="w-32 h-32 rounded-full bg-zinc-800 border-4 border-white/5 flex items-center justify-center shadow-2xl relative group">
-                                    <span className="text-4xl font-bold text-white tracking-wider">
-                                        {partnerCountryCode || '?'}
-                                    </span>
-                                    {/* Pulse effect */}
-                                    <div className="absolute inset-0 -m-1 rounded-full border border-white/5 animate-pulse opacity-50" />
-                                </div>
-                                <div className="text-center">
-                                    <h2 className="text-3xl font-bold text-white mb-2">{partnerCountry || 'Stranger'}</h2>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                        <p className="text-zinc-400 font-medium">Connected (Voice Only)</p>
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="relative flex items-center justify-center w-32 h-32 mb-4">
-                                    {isSearching ? (
-                                        <>
-                                            <div className="absolute inset-0 bg-[#FF8ba7]/20 rounded-full animate-ping opacity-75 duration-[2000ms]" />
-                                            <div className="relative w-24 h-24 bg-[#18181b] rounded-full border border-white/10 flex items-center justify-center shadow-2xl z-10">
-                                                <div className="w-3 h-3 bg-[#FF8ba7] rounded-full animate-pulse shadow-[0_0_10px_#FF8ba7]" />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="w-24 h-24 bg-[#18181b] rounded-full border border-white/10 flex items-center justify-center shadow-2xl grayscale opacity-50">
-                                            <span className="text-4xl">👋</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="text-center">
-                                    <h3 className="text-2xl font-bold text-white mb-2">
-                                        {isSearching ? (queuePosition ? `In Queue: #${queuePosition}` : 'Finding Partner...') : 'Ready to Talk?'}
-                                    </h3>
-                                    <p className="text-zinc-500">
-                                        {isSearching ? 'looking for someone...' : 'Click start to match with a stranger'}
-                                    </p>
-                                </div>
+                                <div className="absolute inset-0 -m-4 border border-[#FF8ba7]/30 rounded-full animate-ping duration-[1500ms]" />
+                                <div className="absolute inset-0 -m-12 border border-[#FF8ba7]/20 rounded-full animate-ping duration-[2000ms] delay-300" />
+                                <div className="absolute inset-0 -m-24 border border-[#FF8ba7]/10 rounded-full animate-ping duration-[3000ms] delay-700" />
+                                <div className="absolute inset-0 -m-32 border border-[#FF8ba7]/5 rounded-full animate-pulse duration-[4000ms]" />
                             </>
                         )}
+
+                        {/* Connected Glow (Moon Effect) */}
+                        {isConnected && (
+                            <div className="absolute inset-0 rounded-full bg-[#FF8ba7] blur-[60px] opacity-40 animate-pulse" />
+                        )}
+
+                        {/* Main Circle */}
+                        <div className={`w-80 h-80 rounded-full flex flex-col items-center justify-center shadow-[0_20px_60px_-15px_rgba(255,139,167,0.4)] transition-all duration-700 relative z-10 overflow-hidden ${isConnected
+                            ? 'bg-gradient-to-br from-[#FF8ba7] to-[#fe5f8f] border-4 border-white/20 shadow-[0_0_80px_-20px_rgba(255,139,167,0.6)] scale-105'
+                            : 'bg-gradient-to-br from-[#FF8ba7] to-[#FFA0B5] border-8 border-white shadow-[0_30px_60px_-10px_rgba(255,139,167,0.3)] hover:scale-105'
+                            }`}>
+
+                            {/* Inner Content */}
+                            {isConnected ? (
+                                <div className="flex flex-col items-center animate-in fade-in zoom-in duration-700 text-white">
+                                    {/* Visualizer */}
+                                    <div className="flex items-center gap-1.5 h-16 mb-6">
+                                        {[1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].map((h, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-2.5 bg-white/90 rounded-full animate-pulse"
+                                                style={{
+                                                    height: `${h * 8}px`,
+                                                    animationDelay: `${i * 0.15}s`
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="px-5 py-2 bg-black/20 backdrop-blur-md rounded-full text-white text-xs font-bold tracking-[0.2em] border border-white/10 uppercase mb-2">
+                                        88.45 MHZ • TUNED
+                                    </div>
+                                    <span className="text-[10px] font-medium text-white/80 tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-12">
+                                        Tap to Skip
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center text-white relative h-full w-full justify-center">
+                                    {isSearching ? (
+                                        <>
+                                            <div className="relative w-24 h-24 mb-6 flex items-center justify-center shrink-0">
+                                                <div className="absolute inset-0 border-4 border-white/30 rounded-full" />
+                                                <div className="absolute inset-0 border-4 border-t-white border-r-white border-b-transparent border-l-transparent rounded-full animate-spin" />
+                                                <div className="w-12 h-12 bg-white/20 rounded-full animate-ping" />
+                                            </div>
+                                            <span className="text-white font-bold tracking-widest uppercase text-xs animate-pulse mb-8 drop-shadow-md">Scanning...</span>
+
+                                            {/* Absolute positioned status elements */}
+                                            {queuePosition && (
+                                                <span className="text-[10px] text-white/90 font-mono absolute bottom-20 animate-in fade-in slide-in-from-bottom-2 drop-shadow-sm">
+                                                    POS: {queuePosition}
+                                                </span>
+                                            )}
+                                            <span className="absolute bottom-10 text-[10px] font-bold text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer drop-shadow-md">
+                                                Tap to Stop
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-24 h-24 mb-6 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 shadow-[0_10px_20px_rgba(0,0,0,0.1)] transition-all duration-300 flex items-center justify-center shrink-0 relative overflow-hidden group-hover:scale-110">
+                                                <svg className="w-12 h-12 text-white drop-shadow-md transform group-hover:-rotate-12 transition-transform duration-500" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+                                                </svg>
+                                            </div>
+                                            <span className="text-white font-bold tracking-widest uppercase text-sm drop-shadow-md group-hover:scale-105 transition-transform">Tap to Connect</span>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </button>
+
+                    {/* Partner Satellite Removed */}
+                </div>
+
+                {/* Profiles Area - Bottom Left with Label */}
+                <div className="absolute bottom-28 left-8 z-20 pointer-events-none flex flex-col gap-4">
+
+                    {/* Header Text */}
+                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                        <span className="text-[#FF8ba7] text-xs">|•|</span>
+                        <span className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase">
+                            Currently Connected
+                        </span>
                     </div>
 
-                    {/* Controls Overlay (Top Left) */}
-                    <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
-                        <button onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)} className="w-10 h-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition-all overflow-hidden bg-black/20 backdrop-blur-md border border-white/5">
-                            {selectedCountry && selectedCountry !== 'GLOBAL' ? (
-                                <ReactCountryFlag
-                                    countryCode={selectedCountry}
-                                    svg
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover'
-                                    }}
-                                />
-                            ) : (
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                </svg>
-                            )}
-                        </button>
+                    <div className="flex items-end gap-5">
 
-                        <button onClick={onToggleMute} className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all border border-white/5 ${isMuted ? 'bg-red-500 text-white' : 'bg-black/20 backdrop-blur-md hover:bg-white/10'}`}>
+                        {/* User Profile (Left) - Always visible */}
+                        <div className="pointer-events-auto flex items-center gap-3 bg-white p-3 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-100 min-w-[240px] max-w-[260px]">
+                            <div className="relative shrink-0">
+                                <div className="w-12 h-12 rounded-full bg-slate-50 overflow-hidden border border-slate-100 p-0.5">
+                                    {/* Placeholder Avatar */}
+                                    <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Av" className="w-full h-full object-cover rounded-full bg-orange-100" />
+                                </div>
+                                <div className="absolute top-0 right-0 w-3 h-3 rounded-full border-[2px] border-white bg-green-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-slate-800 text-sm">Alex (You)</h3>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">LOCAL</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium">London, UK</p>
+
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className="bg-slate-50 text-slate-500 text-[9px] font-bold px-2 py-1 rounded-md inline-block uppercase tracking-wider">
+                                        Primary
+                                    </div>
+                                    <div className={`p-1.5 rounded-lg transition-colors ${isMuted ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-500'}`} title={isMuted ? 'Your Mic is Off' : 'Your Mic is On'}>
+                                        {isMuted ? (
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3l18 18" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Partner Profile (Right) */}
+                        <div className={`pointer-events-auto flex items-center gap-3 bg-white p-3 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-100 min-w-[240px] max-w-[260px] transition-all duration-500 origin-bottom-left ${isConnected || isSearching ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                            <div className="relative shrink-0">
+                                <div className="w-12 h-12 rounded-full bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100">
+                                    {/* Partner Avatar / Placeholder */}
+                                    {isConnected && partnerCountryCode ? (
+                                        <ReactCountryFlag
+                                            countryCode={partnerCountryCode}
+                                            svg
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    ) : (
+                                        <svg className="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    )}
+                                </div>
+                                {/* Online Status Indicator */}
+                                <div className={`absolute top-0 right-0 w-3 h-3 rounded-full border-[2px] border-white ${isConnected ? (partnerSignalStrength === 'poor' ? 'bg-amber-500' : 'bg-green-500') : 'bg-slate-300'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <h3 className={`font-bold text-sm truncate pr-2 ${isConnected ? 'text-slate-800' : 'text-slate-400'}`}>
+                                        {isConnected ? (partnerCountry || 'Stranger') : 'Searching...'}
+                                    </h3>
+                                    {isConnected && (
+                                        <span className="text-[8px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                                            88.4 MHZ
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium truncate mb-2">
+                                    {isConnected
+                                        ? (partnerCountryCode ? `${partnerCountryCode} • Connected` : 'Unknown')
+                                        : 'Scanning frequencies...'}
+                                </p>
+
+                                {/* Actions Row - Only active when connected, or disabled style */}
+                                <div className={`flex items-center gap-2 transition-opacity duration-300 ${isConnected ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                                    <button className="bg-[#FF0055] hover:bg-[#D40047] text-white text-[10px] font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm shadow-red-200">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                        ADD
+                                    </button>
+                                    <div
+                                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${partnerIsMuted
+                                            ? 'bg-red-50 text-red-500'
+                                            : 'bg-slate-50 text-slate-300'
+                                            }`}
+                                        title={partnerIsMuted ? "Partner is Muted" : "Partner is Speaking"}
+                                    >
+                                        {partnerIsMuted ? (
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                    </div>
+                </div>
+
+            </div>
+
+            {/* Bottom Full-Width Toolbar - Moved outside flex container for stability */}
+            <div className="absolute bottom-0 left-0 w-full h-20 bg-white border-t border-slate-50 px-8 flex items-center justify-between z-50">
+
+                {/* Left Actions */}
+                <div className="flex items-center gap-8 md:gap-12 w-1/3 justify-start">
+                    <ToolbarIconBtn
+                        icon={
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        }
+                        label="History"
+                        onClick={onNavigateToHistory}
+                    />
+                    <ToolbarIconBtn
+                        icon={
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        }
+                        label="Friends"
+                        onClick={() => { }} // Placeholder
+                    />
+                </div>
+
+                {/* Center Main Action - FILTERS or AUDIO CONTROLS */}
+                <div className="flex items-center justify-center">
+                    {isConnected ? (
+                        /* Connected State: Audio Controls */
+                        <button
+                            onClick={onToggleMute}
+                            className={`h-14 w-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${isMuted
+                                ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-200'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105'
+                                }`}
+                            title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
+                        >
                             {isMuted ? (
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
                                 </svg>
                             ) : (
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                 </svg>
                             )}
                         </button>
-                    </div>
-
-                    {/* Signal Strength (Top Right) */}
-                    {isConnected && (
-                        <div className="absolute top-4 right-4 z-20">
-                            {getSignalIcon()}
-                        </div>
-                    )}
-
-                    {/* Chat Overlay */}
-                    <div className={`absolute bottom-4 right-4 z-20 w-80 max-w-[90%] max-h-[60%] flex flex-col transition-all duration-300 ${showChat ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                        <div className="bg-black/80 backdrop-blur-md rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex flex-col h-full ring-1 ring-white/5">
-                            <div className="flex-1 overflow-hidden">
-                                <ChatBox messages={messages} onSendMessage={onSendMessage} isConnected={isConnected} minimal={true} showScrollbar={true} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Chat Toggle Button */}
-                    <div className="absolute bottom-4 right-4 z-10">
-                        {!showChat && isConnected && (
-                            <button onClick={() => setShowChat(true)} className="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/10 shadow-lg transition-all">
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    ) : (
+                        /* Default/Searching State: Filters */
+                        <div className="relative group">
+                            <button
+                                onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
+                                className={`h-11 pl-5 pr-6 rounded-full flex items-center justify-center gap-3 transition-all duration-300 border ${filtersOpen || (selectedCountry && selectedCountry !== 'GLOBAL')
+                                    ? 'bg-[#FF8ba7]/10 border-[#FF8ba7] text-[#FF8ba7] shadow-inner'
+                                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-[#FF8ba7] hover:text-[#FF8ba7] hover:bg-white'
+                                    }`}
+                                title="Filter by Country"
+                            >
+                                {selectedCountry && selectedCountry !== 'GLOBAL' ? (
+                                    <>
+                                        <div className="w-5 h-5 rounded-full overflow-hidden border border-black/10 shadow-sm relative shrink-0">
+                                            <ReactCountryFlag
+                                                countryCode={selectedCountry}
+                                                svg
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover'
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="font-bold text-sm tracking-wide">{selectedCountry}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21c0-2.5 4-5 9-5s9 2.5 9 5" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11a5 5 0 100-10 5 5 0 000 10z" />
+                                        </svg>
+                                        <span className="font-bold text-sm tracking-wide">Global</span>
+                                    </>
+                                )}
+                                <svg className={`w-3 h-3 transition-transform duration-300 ${filtersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                                 </svg>
-                                {messages.length > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-black"></span>}
                             </button>
-                        )}
-                    </div>
 
-                    {showChat && (
-                        <button onClick={() => setShowChat(false)} className="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center backdrop-blur-md">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        </div>
                     )}
+                </div>
+
+                {/* Right Actions */}
+                <div className="flex items-center gap-4 md:gap-8 w-1/3 justify-end">
+                    <ToolbarIconBtn
+                        icon={
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        }
+                        label="Notifications"
+                        active={showChat}
+                        badge={messages.length > 0}
+                        onClick={() => setShowChat(!showChat)}
+                    />
                 </div>
             </div>
 
-            {/* Bottom Bar */}
-            <div className="h-24 shrink-0 flex items-center justify-between px-8 bg-[#0F0F0F] rounded-t-[2.5rem] mt-2 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
-                <button
-                    onClick={onStop}
-                    className="group flex items-center gap-4 text-left hover:opacity-80 transition-opacity"
-                >
-                    <div className="w-12 h-12 rounded-full bg-[#1e1e1e] flex items-center justify-center font-sans text-sm font-bold text-white group-hover:bg-[#2a2a2a] transition-colors">
-                        esc
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="font-bold text-white text-[15px]">End Voice Chat</span>
-                        <span className="text-xs text-zinc-400">Press esc key to end call</span>
-                    </div>
-                </button>
+            {/* Audio Element */}
+            <audio ref={remoteAudioRef} autoPlay />
 
-                {!isConnected && !isSearching && <span className="text-zinc-500 font-medium text-sm hidden md:block">Safe &amp; Secure • 100% Free</span>}
-
-                <button
-                    onClick={handleButtonClick}
-                    className="group flex items-center gap-4 text-right hover:opacity-80 transition-opacity"
-                >
-                    <div className="flex flex-col items-end">
-                        <span className="font-bold text-white text-[15px]">
-                            {isSearching ? 'Stop Search' : (isConnected ? 'Next Voice Chat' : 'Start Voice Chat')}
-                        </span>
-                        <span className="text-xs text-zinc-400">
-                            {isSearching ? 'Press right key to stop' : (isConnected ? 'Press right key to skip' : 'Press right key to start')}
-                        </span>
+            {/* Chat Popover - Positioned above the toolbar */}
+            <div className={`absolute bottom-28 right-8 z-40 w-80 transition-all duration-300 origin-bottom-right ${showChat ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4 pointer-events-none'}`}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] border border-white/50 overflow-hidden h-96 flex flex-col ring-1 ring-slate-100">
+                    <div className="px-5 py-3 border-b border-slate-100 bg-white/50 flex justify-between items-center">
+                        <span className="font-bold text-slate-800 text-sm">Messages</span>
+                        <button onClick={() => setShowChat(false)} className="text-slate-400 hover:text-slate-600">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                     </div>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all duration-300 bg-[#1e1e1e] group-hover:bg-[#2a2a2a]`}>
-                        {isSearching ? (
-                            <div className="w-4 h-4 bg-white rounded-sm" />
-                        ) : (
-                            <ArrowRightIcon className="w-5 h-5" />
-                        )}
+                    <div className="flex-1 overflow-hidden">
+                        <ChatBox
+                            messages={messages}
+                            onSendMessage={onSendMessage}
+                            isConnected={isConnected}
+                            minimal={true}
+                            showScrollbar={true}
+                            theme="light"
+                        />
                     </div>
-                </button>
+                </div>
             </div>
-        </div >
+
+
+
+        </div>
     );
 };
+
+// Simplified Toolbar Icon Button
+const ToolbarIconBtn = ({ icon, label, onClick, active = false, badge = false }: any) => (
+    <button
+        onClick={onClick}
+        className={`relative group flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${active
+            ? 'bg-slate-100 text-[#FF8ba7]'
+            : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+            }`}
+        title={label}
+    >
+        {icon}
+        {badge && (
+            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
+        )}
+        <span className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] py-1 px-2 rounded pointer-events-none whitespace-nowrap">
+            {label}
+        </span>
+    </button>
+);

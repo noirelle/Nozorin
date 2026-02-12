@@ -12,7 +12,7 @@ import AboutUs from '../sections/AboutUs';
 import OurStory from '../sections/OurStory';
 import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
-import { HistoryModal } from '../features/call-room/components/HistoryModal';
+import { HistoryDrawer } from '../features/call-room/components/HistoryDrawer';
 import { useHistory, useVisitorAuth, useDirectCall } from '../hooks';
 import { socket } from '../lib/socket';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
@@ -216,7 +216,7 @@ export default function Home() {
       )}
 
       {/* Global Overlays (Available in both Landing and Room views) */}
-      <HistoryModal
+      <HistoryDrawer
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
         history={history}
@@ -228,7 +228,7 @@ export default function Home() {
           fetchHistory();
           fetchStats();
         }}
-        onCall={(targetId) => initiateCall(targetId, 'voice')}
+        onCall={(targetId: string) => initiateCall(targetId, 'voice')}
         isConnected={isConnected}
       />
 
