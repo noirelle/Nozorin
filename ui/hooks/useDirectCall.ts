@@ -7,7 +7,7 @@ interface IncomingCall {
     fromSocketId: string;
     fromCountry: string;
     fromCountryCode: string;
-    mode: 'video';
+    mode: 'voice';
 }
 
 export const useDirectCall = (socket: Socket | null, onCallStarted?: () => void) => {
@@ -74,7 +74,7 @@ export const useDirectCall = (socket: Socket | null, onCallStarted?: () => void)
         };
     }, [socket]);
 
-    const initiateCall = useCallback((targetUserId: string, mode: 'video') => {
+    const initiateCall = useCallback((targetUserId: string, mode: 'voice') => {
         if (!socket) return;
         setError(null);
         setIsCalling(true);

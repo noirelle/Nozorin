@@ -9,13 +9,11 @@ export const DevicePermissionOverlay: React.FC<DevicePermissionOverlayProps> = (
         <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/95 text-white font-sans px-6 animate-in fade-in duration-300">
             <div className="max-w-4xl w-full flex flex-col items-center text-center">
                 <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight leading-tight">
-                    Allow Access to Your Camera
-                    <br />
-                    and Microphone
+                    Allow Access to Your Microphone
                 </h1>
 
                 <p className="text-zinc-400 text-lg md:text-2xl max-w-2xl mb-12 font-medium leading-relaxed">
-                    Click the icon next to the address bar, and allow access to the camera and microphone.
+                    Click the icon next to the address bar, and allow access to the microphone.
                 </p>
 
                 {/* Visual Guide for Address Bar (Generic) */}

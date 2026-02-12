@@ -16,7 +16,7 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "Nozorin - Meet Strangers Instantly",
-  description: "Connect globally through video or text chat. No registration required.",
+  description: "Connect globally through voice or text chat. No registration required.",
 };
 
 export default function RootLayout({

@@ -22,12 +22,13 @@ export default function AppFeatures() {
                             <span className="text-[#FF8ba7]">Connect.</span>
                         </h2>
                         <p className="text-lg text-gray-500 mb-10 max-w-md mx-auto md:mx-0 font-medium leading-relaxed">
-                            Experience the best random video matching platform. Jump in and start meeting people from around the world instantly.
+                            Experience the best random voice matching platform. Jump in and start meeting people from around the world instantly.
                         </p>
+
 
                         <div className="flex items-center gap-3">
                             <span className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-400"></span>
-                            <span className="font-bold text-gray-700">Crystal Clear Video</span>
+                            <span className="font-bold text-gray-700">Crystal Clear Audio</span>
                         </div>
                         <div className="flex items-center gap-3">
                             <span className="flex-shrink-0 w-2 h-2 rounded-full bg-pink-400"></span>
@@ -57,10 +58,10 @@ export default function AppFeatures() {
                                     <div className="text-5xl md:text-6xl mb-3 group-hover:scale-110 transition-transform bg-blue-50 w-20 h-20 flex items-center justify-center rounded-2xl">⚡</div>
                                     <span className="font-bold text-gray-800 text-sm md:text-base">Instant</span>
                                 </div>
-                                {/* Video */}
+                                {/* Voice */}
                                 <div className="bg-white p-6 md:p-8 rounded-[2rem] aspect-square flex flex-col items-center justify-center shadow-xl shadow-gray-100 hover:-rotate-2 transition-transform cursor-default border border-gray-50 group">
-                                    <div className="text-5xl md:text-6xl mb-3 group-hover:scale-110 transition-transform bg-pink-50 w-20 h-20 flex items-center justify-center rounded-2xl">📹</div>
-                                    <span className="font-bold text-gray-800 text-sm md:text-base">Video</span>
+                                    <div className="text-5xl md:text-6xl mb-3 group-hover:scale-110 transition-transform bg-pink-50 w-20 h-20 flex items-center justify-center rounded-2xl">🎙️</div>
+                                    <span className="font-bold text-gray-800 text-sm md:text-base">Voice</span>
                                 </div>
                             </div>
                             <div className="space-y-4 md:space-y-6">

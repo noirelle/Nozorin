@@ -6,19 +6,16 @@ import { RoomNavbar } from '../../../components/RoomNavbar';
 import ReactCountryFlag from "react-country-flag";
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
-    videoRoomState,
+    callRoomState,
     partnerIsMuted,
-    partnerIsCameraOff,
     showChat,
     messages,
     inputText,
-    localVideoRef,
-    remoteVideoRef,
+    remoteAudioRef,
     messagesEndRef,
     onStop,
     onNext,
     onToggleMute,
-    onToggleCamera,
     onSendMessage,
     setShowChat,
     setInputText,
@@ -31,7 +28,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     matchmakingStatus,
     queuePosition,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, isCameraOff, partnerSignalStrength } = videoRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted, partnerSignalStrength } = callRoomState;
 
     const getSignalIcon = () => {
         if (partnerSignalStrength === 'reconnecting') return (
@@ -142,25 +139,21 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                     </div>
                 )}
 
-                {/* Remote Video */}
-                <video
-                    id="mobile-remote-video"
-                    ref={remoteVideoRef}
-                    className={`w-full h-full object-cover transition-opacity duration-1000 ${isConnected && !partnerIsCameraOff && !showIntro ? 'opacity-100' : 'opacity-0'}`}
-                    autoPlay
-                    playsInline
-                />
+                {/* Audio Element */}
+                <audio ref={remoteAudioRef} autoPlay />
 
-                {/* Camera Off Overlay (Discord-style) */}
-                {isConnected && partnerIsCameraOff && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-5">
-                        <div className="flex flex-col items-center gap-4 opacity-60">
-                            <div className="w-20 h-20 rounded-full bg-zinc-700 flex items-center justify-center">
-                                <svg className="w-10 h-10 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3l18 18" />
-                                </svg>
-                            </div>
+                {/* Voice Call Visualization (Connected) */}
+                {isConnected && !showIntro && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center top-[-10%] animate-in fade-in duration-500">
+                        <div className="w-40 h-40 rounded-full bg-zinc-800 border-4 border-[#FF8ba7]/20 flex items-center justify-center shadow-2xl relative">
+                            <span className="text-5xl font-bold text-white">{partnerCountryCode}</span>
+                            {/* Pulse */}
+                            <div className="absolute inset-0 -m-2 rounded-full border border-[#FF8ba7]/20 animate-pulse" />
+                        </div>
+                        <h2 className="text-3xl font-bold text-white mt-6 drop-shadow-md">{partnerCountry || 'Stranger'}</h2>
+                        <div className="flex items-center gap-2 mt-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/5">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-white/80 text-sm font-medium">Voice Connected</span>
                         </div>
                     </div>
                 )}
@@ -255,23 +248,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 </div>
             </div>
 
-            <div className={`fixed z-10 transition-[top,left,right,bottom,width,height,border-radius,box-shadow,backdrop-filter] duration-200 ease-out overflow-hidden bg-black touch-none ${mobileLayout === 'split' ? 'top-[50%] left-0 right-0 bottom-0 w-full rounded-none border-t border-white/10' : 'top-16 right-4 w-[80px] aspect-[3/4] rounded-lg shadow-lg border border-white/10 backdrop-blur-sm bg-black/50'}`}>
-                <video
-                    id="mobile-local-video"
-                    ref={localVideoRef}
-                    className={`w-full h-full object-cover transform scale-x-[-1] ${isCameraOff ? 'hidden' : 'block'}`}
-                    autoPlay
-                    playsInline
-                    muted
-                />
-                {isCameraOff && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                        </svg>
-                    </div>
-                )}
-            </div>
+
 
             <div className="fixed bottom-0 left-0 right-0 z-30 flex flex-col justify-end pointer-events-none pb-safe-area">
                 <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 pointer-events-none z-0 ${showChat ? 'h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent' : 'h-48 bg-gradient-to-t from-black/80 via-black/40 to-transparent'}`} />
@@ -400,20 +377,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     )}
                                 </button>
 
-                                <button
-                                    onClick={onToggleCamera}
-                                    className={`${isCameraOff ? 'text-red-500' : 'text-white hover:text-white/80'} transition-colors`}
-                                >
-                                    {isCameraOff ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                            <path d="M3.53 2.47a.75.75 0 00-1.06 1.06l18 18a.75.75 0 101.06-1.06l-18-18zM20.57 16.476l-2.091-2.091c.148-.282.261-.573.336-.871.21-.828.32-1.702.321-2.601a.75.75 0 00-.063-.3.75.75 0 00-.687-.452h-.01L15.65 8.24l2.455-2.455c.61-.161 1.258.043 1.61.503l3.856 5.027a.75.75 0 01.002.902l-3.003 4.26zM7.222 7.828l1.637 1.637.733-.733a6.75 6.75 0 019.345 7.02l.745.746a8.257 8.257 0 00-11.532-6.643l-.928-2.027z" />
-                                        </svg>
-                                    ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 drop-shadow-md">
-                                            <path d="M4.5 4.5a3 3 0 00-3 3v9a3 3 0 003 3h8.25a3 3 0 003-3v-9a3 3 0 00-3-3H4.5zM19.94 18.75l-2.69-2.69V7.94l2.69-2.69c.944-.945 2.56-.276 2.56 1.06v11.38c0 1.336-1.616 2.005-2.56 1.06z" />
-                                        </svg>
-                                    )}
-                                </button>
+
                             </div>
 
                             {/* Right Actions: Stop & Next */}

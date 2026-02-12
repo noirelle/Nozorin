@@ -7,7 +7,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Initiate a call to a specific user by their userId
      */
-    socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'video' }) => {
+    socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'voice' }) => {
         const { targetUserId, mode } = data;
 
         // ROBUSTNESS: Ensure caller is identified and authoritative
@@ -61,7 +61,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Handle response to an incoming direct call
      */
-    socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'video' }) => {
+    socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'voice' }) => {
         const { callerSocketId, accepted, mode } = data;
 
         // ROBUSTNESS: Ensure responder is identified and authoritative
@@ -104,8 +104,8 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         callerSocket.join(roomId);
 
         // Get media states
-        const mediaA = userMediaState.get(socket.id) || { isMuted: false, isCameraOff: false };
-        const mediaB = userMediaState.get(callerSocketId) || { isMuted: false, isCameraOff: false };
+        const mediaA = userMediaState.get(socket.id) || { isMuted: false };
+        const mediaB = userMediaState.get(callerSocketId) || { isMuted: false };
 
         // Get geo info
         const infoA = connectedUsers.get(socket.id);
@@ -118,7 +118,6 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
             partnerCountry: infoB?.country,
             partnerCountryCode: infoB?.countryCode,
             partnerIsMuted: mediaB.isMuted,
-            partnerIsCameraOff: mediaB.isCameraOff,
             roomId,
             mode,
         });
@@ -129,7 +128,6 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
             partnerCountry: infoA?.country,
             partnerCountryCode: infoA?.countryCode,
             partnerIsMuted: mediaA.isMuted,
-            partnerIsCameraOff: mediaA.isCameraOff,
             roomId,
             mode,
         });

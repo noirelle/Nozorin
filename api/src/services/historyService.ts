@@ -14,7 +14,7 @@ export interface SessionRecord {
     disconnectionTime?: number;
     duration?: number; // in seconds
     disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
 }
 
 export interface SessionStart {
@@ -24,7 +24,7 @@ export interface SessionStart {
     countryCode: string;
     partnerCountry: string;
     partnerCountryCode: string;
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
 }
 
 // In-memory fallback storage

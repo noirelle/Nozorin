@@ -1,10 +1,10 @@
-export { useVideoRoom } from '../features/video-room/hooks/useVideoRoom';
-export { useChat } from '../features/video-room/hooks/useChat';
-export { useWebRTC } from '../features/video-room/hooks/useWebRTC';
-export { useMatching } from '../features/video-room/hooks/useMatching';
+export { useCallRoom } from '../features/call-room/hooks/useCallRoom';
+export { useChat } from '../features/call-room/hooks/useChat';
+export { useWebRTC } from '../features/call-room/hooks/useWebRTC';
+export { useMatching } from '../features/call-room/hooks/useMatching';
 export { useVisitorAuth } from './useVisitorAuth';
 export { useHistory } from './useHistory';
 export { useDirectCall } from './useDirectCall';
-export type { VideoRoomState } from '../features/video-room/hooks/useVideoRoom';
-export type { Message } from '../features/video-room/hooks/useChat';
+export type { CallRoomState } from '../features/call-room/hooks/useCallRoom';
+export type { Message } from '../features/call-room/hooks/useChat';
 export type { SessionRecord, HistoryStats } from './useHistory';

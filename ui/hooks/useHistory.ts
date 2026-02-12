@@ -14,7 +14,7 @@ export interface SessionRecord {
     disconnectionTime?: number;
     duration?: number; // in seconds
     disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
     partnerStatus?: {
         isOnline: boolean;
         lastSeen: number;
@@ -68,7 +68,7 @@ export const useHistory = (socket: Socket | null, visitorToken: string | null, o
     }, [socket, visitorToken]);
 
     // Track session start
-    const trackSessionStart = useCallback((partnerId: string, mode: 'chat' | 'video') => {
+    const trackSessionStart = useCallback((partnerId: string, mode: 'chat' | 'voice') => {
         if (!socket || !visitorToken) {
             console.warn('[HISTORY] Cannot track session start - missing socket or token');
             return;

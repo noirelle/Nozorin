@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { socket as getSocket } from '../../../lib/socket';
 import { useMatching } from '../hooks/useMatching';
 import { useWebRTC } from '../hooks/useWebRTC';
-import { useVideoRoom } from '../hooks/useVideoRoom';
+import { useCallRoom } from '../hooks/useCallRoom';
 import { useChat } from '../hooks/useChat';
 import { useHistory, useVisitorAuth } from '../../../hooks';
 import { Socket } from 'socket.io-client';
@@ -14,7 +14,7 @@ import { DevicePermissionOverlay } from './DevicePermissionOverlay';
 import { CountryFilterModal } from './CountryFilterModal';
 
 interface RoomProps {
-    mode: 'video';
+    mode: 'voice';
     onLeave: () => void;
     onNavigateToHistory: () => void;
     onConnectionChange: (connected: boolean) => void;
@@ -25,23 +25,22 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
-        state: videoRoomState,
+        state: callRoomState,
         mediaManager,
         initMediaManager,
         cleanupMedia,
         toggleMute: toggleLocalMute,
-        toggleCamera: toggleLocalCamera,
         setSearching,
         setConnected,
         setPartner,
         setPartnerSignalStrength,
         resetState,
-    } = useVideoRoom(mode);
+    } = useCallRoom(mode);
 
     // Notify parent about connection state changes
     useEffect(() => {
-        onConnectionChange(videoRoomState.isConnected);
-    }, [videoRoomState.isConnected, onConnectionChange]);
+        onConnectionChange(callRoomState.isConnected);
+    }, [callRoomState.isConnected, onConnectionChange]);
 
     // History tracking
     const { visitorToken } = useVisitorAuth();
@@ -49,16 +48,13 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
 
     // 2. Extra UI State (not in hooks)
     const [partnerIsMuted, setPartnerIsMuted] = useState(false);
-    const [partnerIsCameraOff, setPartnerIsCameraOff] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [inputText, setInputText] = useState("");
     const [mobileLayout, setMobileLayout] = useState<'overlay' | 'split'>('overlay');
     const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
 
-    const remoteVideoRef = useRef<HTMLVideoElement>(null);
-    const desktopLocalVideoRef = useRef<HTMLVideoElement>(null);
-    const mobileLocalVideoRef = useRef<HTMLVideoElement>(null);
+    const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
     // 3. Action Refs (to break circular dependencies between matching hook and its callbacks)
     const startSearchRef = useRef<(preferredCountry?: string) => void>(() => { });
@@ -73,7 +69,7 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
     } = useWebRTC({
         socket,
         mediaManager: mediaManager.current,
-        remoteVideoRef,
+        remoteAudioRef,
         onConnectionStateChange: (state) => {
             if (state === 'failed') {
                 handleStop();
@@ -82,9 +78,9 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         },
         onSignalQuality: (quality) => {
             // Send my signal quality to partner
-            if (socket && videoRoomState.partnerId) {
+            if (socket && callRoomState.partnerId) {
                 socket.emit('signal-strength', {
-                    target: videoRoomState.partnerId,
+                    target: callRoomState.partnerId,
                     strength: quality
                 });
             }
@@ -99,13 +95,13 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         messagesEndRef,
         sendMessage,
         clearMessages,
-    } = useChat(socket, videoRoomState.partnerId);
+    } = useChat(socket, callRoomState.partnerId);
 
-    const partnerIdRef = useRef(videoRoomState.partnerId);
+    const partnerIdRef = useRef(callRoomState.partnerId);
 
     useEffect(() => {
-        partnerIdRef.current = videoRoomState.partnerId;
-    }, [videoRoomState.partnerId]);
+        partnerIdRef.current = callRoomState.partnerId;
+    }, [callRoomState.partnerId]);
 
     const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -126,7 +122,6 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
-        setPartnerIsCameraOff(false);
     }, [closePeerConnection, resetState, clearMessages]);
 
     const findMatch = useCallback(() => {
@@ -142,11 +137,10 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
-        setPartnerIsCameraOff(false);
         closePeerConnection();
         setSearching(true);
         startSearchRef.current(selectedCountry === 'GLOBAL' ? undefined : selectedCountry);
-    }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, videoRoomState.isSearching, videoRoomState.partnerId]);
+    }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, callRoomState.isSearching, callRoomState.partnerId]);
 
     const handleNext = useCallback(() => {
         console.log('[Room] Skipping to next partner');
@@ -175,12 +169,11 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         setConnected(true);
         setPartner(data.partnerId, data.partnerCountry, data.partnerCountryCode);
         setPartnerIsMuted(!!data.partnerIsMuted);
-        setPartnerIsCameraOff(!!data.partnerIsCameraOff);
 
         // Track session start
         trackSessionStart(data.partnerId, mode);
 
-        if (mode === 'video' && data.role === 'offerer') {
+        if (mode === 'voice' && data.role === 'offerer') {
             await createOffer(data.partnerId);
         }
     }, [mode, createOffer, setSearching, setConnected, setPartner, trackSessionStart]);
@@ -248,74 +241,53 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
 
     // 7. Initialization & Cleanup
     useEffect(() => {
-        if (mode === 'video') {
-            initMediaManager();
-        }
+        // Always init media for voice
+        initMediaManager();
         socket?.connect();
 
         return () => {
             handleStop();
             cleanupMedia();
-            if (desktopLocalVideoRef.current) desktopLocalVideoRef.current.srcObject = null;
-            if (mobileLocalVideoRef.current) mobileLocalVideoRef.current.srcObject = null;
         };
     }, [mode, socket, initMediaManager, cleanupMedia, handleStop]);
 
     // Handle initial match data (for direct calls from landing page)
     useEffect(() => {
-        if (initialMatchData && !videoRoomState.isConnected) {
+        if (initialMatchData && !callRoomState.isConnected) {
             console.log('[Room] Initializing with direct match data:', initialMatchData);
             onMatchFound(initialMatchData);
         }
-    }, [initialMatchData, onMatchFound, videoRoomState.isConnected]);
+    }, [initialMatchData, onMatchFound, callRoomState.isConnected]);
 
-    // Initialize/Sync Local Video
-    useEffect(() => {
-        if (!mediaManager.current || !videoRoomState.isMediaReady) return;
-
-        const stream = mediaManager.current.getStream();
-        if (stream) {
-            // Attach to desktop video
-            if (desktopLocalVideoRef.current && desktopLocalVideoRef.current.srcObject !== stream) {
-                desktopLocalVideoRef.current.srcObject = stream;
-            }
-            // Attach to mobile video
-            if (mobileLocalVideoRef.current && mobileLocalVideoRef.current.srcObject !== stream) {
-                mobileLocalVideoRef.current.srcObject = stream;
-            }
-        }
-    }, [videoRoomState.isMediaReady, videoRoomState.isSearching, videoRoomState.isConnected, mediaManager]);
+    // Initialize/Sync Local Video - REMOVED (Voice Only)
+    // useEffect(() => { ... }, []);
 
     // 8. Additional Socket Listeners (for media state)
     useEffect(() => {
         if (!socket) return;
 
         const onPartnerMute = (data: { isMuted: boolean }) => setPartnerIsMuted(data.isMuted);
-        const onPartnerCamera = (data: { isCameraOff: boolean }) => setPartnerIsCameraOff(data.isCameraOff);
         const onPartnerSignal = (data: { strength: 'good' | 'fair' | 'poor' | 'reconnecting' }) => {
             setPartnerSignalStrength(data.strength);
         };
 
         socket.on('partner-mute-state', onPartnerMute);
-        socket.on('partner-camera-state', onPartnerCamera);
         socket.on('partner-signal-strength', onPartnerSignal);
 
         return () => {
             socket.off('partner-mute-state', onPartnerMute);
-            socket.off('partner-camera-state', onPartnerCamera);
             socket.off('partner-signal-strength', onPartnerSignal);
         };
     }, [socket, setPartnerSignalStrength]);
 
     // Sync Local Media State with Server (Initial + Updates)
     useEffect(() => {
-        if (!socket || !videoRoomState.isMediaReady) return;
+        if (!socket || !callRoomState.isMediaReady) return;
 
         socket.emit('update-media-state', {
-            isMuted: videoRoomState.isMuted,
-            isCameraOff: videoRoomState.isCameraOff
+            isMuted: callRoomState.isMuted,
         });
-    }, [socket, videoRoomState.isMediaReady, videoRoomState.isMuted, videoRoomState.isCameraOff]);
+    }, [socket, callRoomState.isMediaReady, callRoomState.isMuted]);
 
     // 9. Keyboard Shortcuts
     useEffect(() => {
@@ -323,7 +295,7 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
             if (e.key === 'Escape') {
                 handleUserStop();
             } else if (e.key === 'ArrowRight') {
-                if (videoRoomState.isConnected || videoRoomState.isSearching) {
+                if (callRoomState.isConnected || callRoomState.isSearching) {
                     handleNext();
                 } else {
                     findMatch();
@@ -333,7 +305,7 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleStop, handleNext, findMatch, videoRoomState.isConnected, videoRoomState.isSearching]);
+    }, [handleStop, handleNext, findMatch, callRoomState.isConnected, callRoomState.isSearching]);
 
     // 10. Utils
     const handleSendMessage = (text: string) => {
@@ -344,43 +316,31 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
     };
 
     const handleToggleMute = useCallback(() => {
-        const newMuted = !videoRoomState.isMuted;
+        const newMuted = !callRoomState.isMuted;
         toggleLocalMute();
         if (socket) {
-            if (videoRoomState.isConnected && videoRoomState.partnerId) {
-                socket.emit('toggle-mute', { target: videoRoomState.partnerId, isMuted: newMuted });
+            if (callRoomState.isConnected && callRoomState.partnerId) {
+                socket.emit('toggle-mute', { target: callRoomState.partnerId, isMuted: newMuted });
             }
             socket.emit('update-media-state', { isMuted: newMuted });
         }
-    }, [videoRoomState.isMuted, videoRoomState.isConnected, videoRoomState.partnerId, toggleLocalMute, socket]);
+    }, [callRoomState.isMuted, callRoomState.isConnected, callRoomState.partnerId, toggleLocalMute, socket]);
 
-    const handleToggleCamera = useCallback(() => {
-        const newCameraOff = !videoRoomState.isCameraOff;
-        toggleLocalCamera();
-        if (socket) {
-            if (videoRoomState.isConnected && videoRoomState.partnerId) {
-                socket.emit('toggle-camera', { target: videoRoomState.partnerId, isCameraOff: newCameraOff });
-            }
-            socket.emit('update-media-state', { isCameraOff: newCameraOff });
-        }
-    }, [videoRoomState.isCameraOff, videoRoomState.isConnected, videoRoomState.partnerId, toggleLocalCamera, socket]);
+
 
     return (
         <div className="flex flex-col h-[100dvh] bg-[#111] text-foreground font-sans overflow-hidden select-none relative touch-none">
             <MobileRoomLayout
-                videoRoomState={videoRoomState}
+                callRoomState={callRoomState}
                 partnerIsMuted={partnerIsMuted}
-                partnerIsCameraOff={partnerIsCameraOff}
                 showChat={showChat}
                 messages={messages}
                 inputText={inputText}
-                localVideoRef={mobileLocalVideoRef}
-                remoteVideoRef={remoteVideoRef}
+                remoteAudioRef={remoteAudioRef}
                 messagesEndRef={messagesEndRef}
                 onStop={handleUserStop}
                 onNext={handleNext}
                 onToggleMute={handleToggleMute}
-                onToggleCamera={handleToggleCamera}
                 onSendMessage={handleSendMessage}
                 setShowChat={setShowChat}
                 setInputText={setInputText}
@@ -395,19 +355,16 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
                 queuePosition={matching.position}
             />
             <DesktopRoomLayout
-                videoRoomState={videoRoomState}
+                callRoomState={callRoomState}
                 partnerIsMuted={partnerIsMuted}
-                partnerIsCameraOff={partnerIsCameraOff}
                 showChat={showChat}
                 messages={messages}
                 inputText={inputText}
-                localVideoRef={desktopLocalVideoRef}
-                remoteVideoRef={remoteVideoRef}
+                remoteAudioRef={remoteAudioRef}
                 messagesEndRef={messagesEndRef}
                 onStop={handleUserStop}
                 onNext={handleNext}
                 onToggleMute={handleToggleMute}
-                onToggleCamera={handleToggleCamera}
                 onSendMessage={handleSendMessage}
                 setShowChat={setShowChat}
                 setInputText={setInputText}
@@ -419,7 +376,7 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
                 matchmakingStatus={matching.status}
                 queuePosition={matching.position}
             />
-            {videoRoomState.permissionDenied && (
+            {callRoomState.permissionDenied && (
                 <DevicePermissionOverlay onRetry={initMediaManager} />
             )}
             <CountryFilterModal

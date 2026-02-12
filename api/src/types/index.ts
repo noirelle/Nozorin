@@ -5,7 +5,7 @@ export interface User {
     userId: string; // Persistent Visitor ID
     country: string; // Full name
     countryCode: string; // ISO Code
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
     preferredCountry?: string;
     joinedAt: number; // For strict FIFO ordering
     state: MatchState;

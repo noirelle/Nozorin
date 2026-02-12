@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { MessageIcon, VideoIcon } from '../components/icons';
+import { MessageIcon, MicIcon } from '../components/icons';
 import HeroVisual from './HeroVisual';
 import { useStats } from '../hooks/useStats';
 
-export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => void }) {
+export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
     const { stats } = useStats();
 
     // Format number for display (e.g., 12500 -> "12.5k+")
@@ -39,10 +39,10 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'video') => v
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center lg:justify-start">
                     <button
-                        onClick={() => onJoin('video')}
+                        onClick={() => onJoin('voice')}
                         className="flex items-center justify-center gap-2 px-8 py-4 bg-[#FF8ba7] hover:bg-[#ff7b9c] text-white rounded-full font-bold text-lg shadow-xl shadow-pink-200/50 hover:shadow-2xl hover:shadow-pink-300/50 transition-all transform hover:-translate-y-1 active:scale-95 w-full sm:w-auto min-w-[200px]"
                     >
-                        <VideoIcon className="w-5 h-5" />
+                        <MicIcon className="w-5 h-5" />
                         Start Matching
                     </button>
                 </div>

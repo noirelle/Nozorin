@@ -9,7 +9,7 @@ export const handleMediaEvents = (socket: Socket) => {
         // console.log(`[MEDIA] ${socket.id} toggled mute: ${isMuted}`);
 
         // Update stored state
-        const currentState = userMediaState.get(socket.id) || { isMuted: false, isCameraOff: false };
+        const currentState = userMediaState.get(socket.id) || { isMuted: false };
         userMediaState.set(socket.id, { ...currentState, isMuted });
 
         socket.to(target).emit('partner-mute-state', {
@@ -18,24 +18,9 @@ export const handleMediaEvents = (socket: Socket) => {
         });
     });
 
-    // Toggle Camera
-    socket.on('toggle-camera', (data: { target: string, isCameraOff: boolean }) => {
-        const { target, isCameraOff } = data;
-        // console.log(`[MEDIA] ${socket.id} toggled camera: ${isCameraOff}`);
-
-        // Update stored state
-        const currentState = userMediaState.get(socket.id) || { isMuted: false, isCameraOff: false };
-        userMediaState.set(socket.id, { ...currentState, isCameraOff });
-
-        socket.to(target).emit('partner-camera-state', {
-            partnerId: socket.id,
-            isCameraOff
-        });
-    });
-
     // Update Media State
-    socket.on('update-media-state', (data: { isMuted?: boolean, isCameraOff?: boolean }) => {
-        const currentState = userMediaState.get(socket.id) || { isMuted: false, isCameraOff: false };
+    socket.on('update-media-state', (data: { isMuted?: boolean }) => {
+        const currentState = userMediaState.get(socket.id) || { isMuted: false };
         userMediaState.set(socket.id, { ...currentState, ...data });
         // console.log(`[MEDIA] ${socket.id} updated state:`, data);
     });

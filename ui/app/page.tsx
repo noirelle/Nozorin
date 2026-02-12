@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import Room from '../features/video-room/components/Room';
+import Room from '../features/call-room/components/Room';
 import Navbar from '../components/Navbar';
 import Hero from '../sections/Hero';
 import AppFeatures from '../sections/AppFeatures';
@@ -12,7 +12,7 @@ import AboutUs from '../sections/AboutUs';
 import OurStory from '../sections/OurStory';
 import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
-import { HistoryModal } from '../features/video-room/components/HistoryModal';
+import { HistoryModal } from '../features/call-room/components/HistoryModal';
 import { useHistory, useVisitorAuth, useDirectCall } from '../hooks';
 import { socket } from '../lib/socket';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
@@ -196,7 +196,7 @@ export default function Home() {
     <main className="min-h-screen bg-white font-sans selection:bg-pink-100">
       {isInRoom ? (
         <Room
-          mode="video"
+          mode="voice"
           onLeave={handleLeave}
           onNavigateToHistory={handleNavigateToHistory}
           initialMatchData={directMatchData}
@@ -228,7 +228,7 @@ export default function Home() {
           fetchHistory();
           fetchStats();
         }}
-        onCall={(targetId) => initiateCall(targetId, 'video')}
+        onCall={(targetId) => initiateCall(targetId, 'voice')}
         isConnected={isConnected}
       />
 

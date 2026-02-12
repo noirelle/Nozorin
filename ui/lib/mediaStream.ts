@@ -4,7 +4,6 @@
  */
 export class MediaStreamManager {
     private stream: MediaStream | null = null;
-    private videoRef: HTMLVideoElement | null = null;
 
     /**
      * Initialize media stream with user media
@@ -12,7 +11,7 @@ export class MediaStreamManager {
     async init(): Promise<MediaStream | null> {
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
+                video: false,
                 audio: true,
             });
             return this.stream;
@@ -31,12 +30,13 @@ export class MediaStreamManager {
 
     /**
      * Attach stream to a video element
+     * Although this is audio-only, we might still attach to an audio element or dummy video element for WebRTC
      */
-    attachToVideo(videoElement: HTMLVideoElement | null) {
-        if (!videoElement) return;
-        this.videoRef = videoElement;
-        if (this.stream && videoElement) {
-            videoElement.srcObject = this.stream;
+    attachToElement(element: HTMLVideoElement | HTMLAudioElement | null) {
+        if (!element) return;
+        // logic remains similar, srcObject works for audio too
+        if (this.stream) {
+            element.srcObject = this.stream;
         }
     }
 
@@ -51,16 +51,6 @@ export class MediaStreamManager {
     }
 
     /**
-     * Enable or disable video track
-     */
-    setVideoEnabled(enabled: boolean) {
-        if (!this.stream) return;
-        this.stream.getVideoTracks().forEach((track) => {
-            track.enabled = enabled;
-        });
-    }
-
-    /**
      * Check if audio is enabled
      */
     isAudioEnabled(): boolean {
@@ -70,25 +60,12 @@ export class MediaStreamManager {
     }
 
     /**
-     * Check if video is enabled
-     */
-    isVideoEnabled(): boolean {
-        if (!this.stream) return false;
-        const videoTracks = this.stream.getVideoTracks();
-        return videoTracks.length > 0 && videoTracks[0].enabled;
-    }
-
-    /**
      * Clean up all tracks and references
      */
     cleanup() {
         if (this.stream) {
             this.stream.getTracks().forEach((track) => track.stop());
             this.stream = null;
-        }
-        if (this.videoRef) {
-            this.videoRef.srcObject = null;
-            this.videoRef = null;
         }
     }
 }

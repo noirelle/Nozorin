@@ -7,7 +7,7 @@ import {
     activeUsers,
     userMediaState,
     activeCalls,
-    videoQueue,
+    voiceQueue,
     removeUserFromQueues
 } from './users';
 import { handleMediaEvents } from './media';
@@ -45,8 +45,8 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Broadcast to all that others are online
     io.emit('stats-update', statsService.getStats());
 
-    // Initialize user media state (unmuted, camera on by default)
-    userMediaState.set(socket.id, { isMuted: false, isCameraOff: false });
+    // Initialize user media state (unmuted)
+    userMediaState.set(socket.id, { isMuted: false });
 
     // Global middleware for this socket: Block any activity if not identified or if superseded by another tab
     socket.use(([event, ...args], next) => {
@@ -121,6 +121,6 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
         statsService.setOnlineUsers(activeUsers.size);
         io.emit('stats-update', statsService.getStats());
 
-        console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue: ${videoQueue.length}`);
+        console.log(`[DISCONNECT] Cleanup complete. Active calls: ${activeCalls.size}, Queue: ${voiceQueue.length}`);
     });
 };

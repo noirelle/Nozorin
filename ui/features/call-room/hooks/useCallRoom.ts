@@ -1,28 +1,26 @@
 import { useState, useRef, useCallback } from 'react';
 import { MediaStreamManager } from '../../../lib/mediaStream';
 
-export interface VideoRoomState {
+export interface CallRoomState {
     isSearching: boolean;
     isConnected: boolean;
     partnerCountry: string;
     partnerCountryCode: string;
     partnerId: string | null;
     isMuted: boolean;
-    isCameraOff: boolean;
     isMediaReady: boolean;
     permissionDenied: boolean;
     partnerSignalStrength: 'good' | 'fair' | 'poor' | 'reconnecting';
 }
 
-export const useVideoRoom = (mode: 'video') => {
-    const [state, setState] = useState<VideoRoomState>({
+export const useCallRoom = (mode: 'voice') => {
+    const [state, setState] = useState<CallRoomState>({
         isSearching: false,
         isConnected: false,
         partnerCountry: '',
         partnerCountryCode: '',
         partnerId: null,
         isMuted: false,
-        isCameraOff: true,
         isMediaReady: false,
         permissionDenied: false,
         partnerSignalStrength: 'good',
@@ -42,8 +40,8 @@ export const useVideoRoom = (mode: 'video') => {
 
                 // Validate tracks exist
                 const stream = manager.getStream();
-                if (!stream || stream.getVideoTracks().length === 0 || stream.getAudioTracks().length === 0) {
-                    throw new Error("Missing video or audio tracks");
+                if (!stream || stream.getAudioTracks().length === 0) {
+                    throw new Error("Missing audio tracks");
                 }
 
                 // Monitor for external track stopping (e.g. permission revocation, device unplugged)
@@ -55,17 +53,15 @@ export const useVideoRoom = (mode: 'video') => {
                     }
                 };
 
-                stream.getVideoTracks().forEach(track => {
-                    track.onended = handleTrackEnded;
-                });
+
                 stream.getAudioTracks().forEach(track => {
                     track.onended = handleTrackEnded;
                 });
 
                 // Check if component is still mounted/same manager is active (StrictMode/Race condition fix)
                 if (mediaManager.current === manager) {
-                    // Respect initial state: Camera Off by default
-                    manager.setVideoEnabled(false);
+                    // Respect initial state
+                    // manager.setVideoEnabled(false); // No video
                     setState((prev) => ({ ...prev, isMediaReady: true, permissionDenied: false }));
                 }
             } catch (err) {
@@ -95,14 +91,7 @@ export const useVideoRoom = (mode: 'video') => {
         });
     }, []);
 
-    // Toggle camera
-    const toggleCamera = useCallback(() => {
-        setState((prev) => {
-            const newCameraOff = !prev.isCameraOff;
-            mediaManager.current?.setVideoEnabled(!newCameraOff);
-            return { ...prev, isCameraOff: newCameraOff };
-        });
-    }, []);
+
 
     // Update connection state
     const setSearching = useCallback((searching: boolean) => {
@@ -138,7 +127,6 @@ export const useVideoRoom = (mode: 'video') => {
             partnerCountryCode: '',
             partnerId: null,
             isMuted: prev.isMuted,
-            isCameraOff: prev.isCameraOff,
             isMediaReady: prev.isMediaReady,
             permissionDenied: prev.permissionDenied,
             partnerSignalStrength: 'good',
@@ -152,7 +140,6 @@ export const useVideoRoom = (mode: 'video') => {
         initMediaManager,
         cleanupMedia,
         toggleMute,
-        toggleCamera,
         setSearching,
         setConnected,
         setPartner,

@@ -1,26 +1,25 @@
-import { VideoRoomState } from './hooks/useVideoRoom';
+import { CallRoomState } from './hooks/useCallRoom';
 import { Message } from './hooks/useChat';
 import { RefObject } from 'react';
 import { MatchStatus } from './hooks/useMatching';
 
 export interface RoomLayoutProps {
-    videoRoomState: VideoRoomState;
+    callRoomState: CallRoomState;
     partnerIsMuted: boolean;
-    partnerIsCameraOff: boolean;
+
     showChat: boolean;
     messages: Message[];
     inputText: string;
     matchmakingStatus: MatchStatus;
     queuePosition: number | null;
 
-    localVideoRef: RefObject<HTMLVideoElement | null>;
-    remoteVideoRef: RefObject<HTMLVideoElement | null>;
+    remoteAudioRef: RefObject<HTMLAudioElement | null>;
     messagesEndRef: RefObject<HTMLDivElement | null>;
 
     onStop: () => void;
     onNext: () => void;
     onToggleMute: () => void;
-    onToggleCamera: () => void;
+
     onSendMessage: (text: string) => void;
     setShowChat: (show: boolean) => void;
     setInputText: (text: string) => void;

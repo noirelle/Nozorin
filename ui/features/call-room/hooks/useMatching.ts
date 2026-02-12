@@ -93,9 +93,9 @@ export const useMatching = ({
     // Start searching for a match
     const startSearch = useCallback((preferredCountry?: string) => {
         if (!socket) return;
-        console.log(`[Matching] Starting search for video with preference: ${preferredCountry || 'None'}`);
+        console.log(`[Matching] Starting search for voice with preference: ${preferredCountry || 'None'}`);
         setStatus('FINDING');
-        socket.emit('find-match', { mode: 'video', preferredCountry });
+        socket.emit('find-match', { mode: 'voice', preferredCountry });
     }, [socket]);
 
     // Stop searching (cancel)
@@ -133,7 +133,7 @@ export const useMatching = ({
         (partnerId: string | null, preferredCountry?: string) => {
             if (!socket || isSkipping) return;
 
-            console.log(`[Matching] Skipping to next for video...`);
+            console.log(`[Matching] Skipping to next for voice...`);
             setIsSkipping(true);
 
             if (skipTimerRef.current) clearTimeout(skipTimerRef.current);

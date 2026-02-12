@@ -12,7 +12,7 @@ const CONFIG = {
 interface UseWebRTCProps {
     socket: Socket | null;
     mediaManager: MediaStreamManager | null;
-    remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
+    remoteAudioRef: React.RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
     onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
 }
@@ -20,7 +20,7 @@ interface UseWebRTCProps {
 export const useWebRTC = ({
     socket,
     mediaManager,
-    remoteVideoRef,
+    remoteAudioRef,
     onConnectionStateChange,
     onSignalQuality,
 }: UseWebRTCProps) => {
@@ -42,15 +42,9 @@ export const useWebRTC = ({
             // Handle incoming remote track
             pc.ontrack = (event) => {
                 const remoteStream = event.streams[0];
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = remoteStream;
+                if (remoteAudioRef.current) {
+                    remoteAudioRef.current.srcObject = remoteStream;
                 }
-                // Sync with other video elements if present (for responsive layouts)
-                document
-                    .querySelectorAll('video#mobile-remote-video, video#desktop-remote-video')
-                    .forEach((v) => {
-                        (v as HTMLVideoElement).srcObject = remoteStream;
-                    });
             };
 
             // Handle ICE candidates
@@ -86,7 +80,7 @@ export const useWebRTC = ({
 
             return pc;
         },
-        [socket, mediaManager, remoteVideoRef, onConnectionStateChange, onSignalQuality]
+        [socket, mediaManager, remoteAudioRef, onConnectionStateChange, onSignalQuality]
     );
 
     const closePeerConnection = useCallback(() => {
@@ -94,10 +88,10 @@ export const useWebRTC = ({
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
+        if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = null;
         }
-    }, [remoteVideoRef]);
+    }, [remoteAudioRef]);
 
     const createOffer = useCallback(
         async (partnerId: string) => {

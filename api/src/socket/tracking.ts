@@ -9,7 +9,7 @@ const activeSessions = new Map<string, {
     userId: string;
     sessionId: string;
     partnerId: string;
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
 }>();
 
 import { userService } from '../services/userService';
@@ -86,7 +86,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
     socket.on('match-established', async (data: {
         token: string;
         partnerId: string; // partner socket id
-        mode: 'chat' | 'video';
+        mode: 'chat' | 'voice';
     }) => {
         const { token, partnerId, mode } = data;
 

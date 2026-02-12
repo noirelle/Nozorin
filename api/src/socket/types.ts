@@ -5,7 +5,6 @@ export type { User, Room };
 
 export interface MediaState {
     isMuted: boolean;
-    isCameraOff: boolean;
 }
 
 export interface UserConnectionInfo {
@@ -14,6 +13,6 @@ export interface UserConnectionInfo {
 }
 
 export interface MatchData {
-    mode: 'chat' | 'video';
+    mode: 'chat' | 'voice';
     preferredCountry?: string;
 }
