@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
-import Room from '../features/call-room/components/Room';
 import Navbar from '../components/Navbar';
 import Hero from '../sections/Hero';
 import AppFeatures from '../sections/AppFeatures';
@@ -13,37 +13,35 @@ import OurStory from '../sections/OurStory';
 import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
 import { HistoryDrawer } from '../features/call-room/components/HistoryDrawer';
-import { useHistory, useVisitorAuth, useDirectCall } from '../hooks';
+import { useHistory, useUser, useDirectCall } from '../hooks';
 import { socket } from '../lib/socket';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '../features/direct-call/components/OutgoingCallOverlay';
 import { MultiSessionOverlay } from '../features/auth/components/MultiSessionOverlay';
 
 export default function Home() {
-  const [isInRoom, setIsInRoom] = useState(false);
+  const router = useRouter();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [directMatchData, setDirectMatchData] = useState<any>(null);
   const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
-  const [isConnected, setIsConnected] = useState(false); // Track connection state from Room
 
   const handleCloseHistory = useCallback(() => {
     setIsHistoryOpen(false);
   }, []);
 
   // History hooks
-  const { visitorToken, ensureToken, regenerateToken } = useVisitorAuth();
+  const { token, ensureToken } = useUser();
 
   const handleForceReconnect = useCallback(() => {
     const s = socket();
-    if (s && visitorToken) {
+    if (s && token) {
       console.log('[Home] Forcing reconnect...');
 
-      // Ensure socket is connected. If let's say we were disconnected, connect() should be called.
+      // Ensure socket is connected.
       if (!s.connected) {
         s.connect();
       }
 
-      s.emit('force-reconnect', { token: visitorToken });
+      s.emit('force-reconnect', { token });
 
       // Fallback: If after 3 seconds we are still in an error state, just reload
       setTimeout(() => {
@@ -55,7 +53,7 @@ export default function Home() {
 
       setSessionError(null);
     }
-  }, [visitorToken, sessionError]);
+  }, [token, sessionError]);
 
   const {
     history,
@@ -65,7 +63,7 @@ export default function Home() {
     fetchHistory,
     fetchStats,
     clearHistory
-  } = useHistory(socket(), visitorToken, regenerateToken);
+  } = useHistory(socket(), token, async () => null);
 
   // Direct Call hook
   const {
@@ -90,19 +88,19 @@ export default function Home() {
       // 2. Clear any active "Calling..." overlays immediately
       clearCallState();
 
-      if (!isInRoom) {
-        console.log('[Home] Match found via direct call, entering room...');
-        // Store data to pass to Room component
-        setDirectMatchData(data);
-        // Transition to room
-        setIsInRoom(true);
+      console.log('[Home] Match found via direct call, redirecting to app...');
+
+      // Store match data to pass to the App route
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('pendingMatch', JSON.stringify(data));
       }
+
+      router.push('/app');
     };
 
     const handleMultiSession = () => {
       console.warn('[Home] Multi-session detected (kicked), blocking UI...');
       setSessionError('kicked');
-      setIsInRoom(false); // Force exit room if inside
     };
 
     const handleSessionConflict = () => {
@@ -126,7 +124,7 @@ export default function Home() {
       s.off('session-conflict', handleSessionConflict);
       s.off('identify-success', handleIdentifySuccess);
     };
-  }, [isInRoom]);
+  }, [router, clearCallState]);
 
   // Identify user to socket when token is available or socket reconnects
   useEffect(() => {
@@ -134,9 +132,9 @@ export default function Home() {
     if (!s) return;
 
     const identify = () => {
-      if (visitorToken) {
+      if (token) {
         console.log('[Home] Identifying socket...', s.id);
-        s.emit('user-identify', { token: visitorToken });
+        s.emit('user-identify', { token });
       }
     };
 
@@ -158,8 +156,8 @@ export default function Home() {
 
     // Watch for localStorage changes from other tabs
     const onStorageChange = (e: StorageEvent) => {
-      if (e.key === 'nozorin_visitor_token') {
-        console.log('[Home] Visitor token changed in another tab, re-identifying...');
+      if (e.key === 'nz_token') {
+        console.log('[Home] Token changed in another tab, re-identifying...');
         window.location.reload(); // Hard reset is safest if identity changes
       }
     };
@@ -174,18 +172,12 @@ export default function Home() {
       window.removeEventListener('storage', onStorageChange);
       clearInterval(interval);
     };
-  }, [visitorToken, sessionError]);
+  }, [token, sessionError]);
 
   const handleJoin = async () => {
     // Always ensure we have a token before joining
     await ensureToken();
-    setIsInRoom(true);
-  };
-
-  const handleLeave = () => {
-    setIsInRoom(false);
-    setIsConnected(false);
-    setDirectMatchData(null);
+    router.push('/app');
   };
 
   const handleNavigateToHistory = () => {
@@ -194,28 +186,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white font-sans selection:bg-pink-100">
-      {isInRoom ? (
-        <Room
-          mode="voice"
-          onLeave={handleLeave}
-          onNavigateToHistory={handleNavigateToHistory}
-          initialMatchData={directMatchData}
-          onConnectionChange={setIsConnected}
-        />
-      ) : (
-        <>
-          <Navbar />
-          <Hero onJoin={handleJoin} />
-          <AppFeatures />
-          <SocialProof />
-          <AboutUs />
-          <Dedications />
-          <OurStory />
-          <Footer />
-        </>
-      )}
+      <Navbar />
+      <Hero onJoin={handleJoin} />
+      <AppFeatures />
+      <SocialProof />
+      <AboutUs />
+      <Dedications />
+      <OurStory />
+      <Footer />
 
-      {/* Global Overlays (Available in both Landing and Room views) */}
+      {/* Global Overlays */}
       <HistoryDrawer
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -229,7 +209,7 @@ export default function Home() {
           fetchStats();
         }}
         onCall={(targetId: string) => initiateCall(targetId, 'voice')}
-        isConnected={isConnected}
+        isConnected={false} // Not in room on landing page
       />
 
       {incomingCall && (

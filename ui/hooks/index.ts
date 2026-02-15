@@ -2,7 +2,7 @@ export { useCallRoom } from '../features/call-room/hooks/useCallRoom';
 export { useChat } from '../features/call-room/hooks/useChat';
 export { useWebRTC } from '../features/call-room/hooks/useWebRTC';
 export { useMatching } from '../features/call-room/hooks/useMatching';
-export { useVisitorAuth } from './useVisitorAuth';
+export { useUser } from './useUser';
 export { useHistory } from './useHistory';
 export { useDirectCall } from './useDirectCall';
 export type { CallRoomState } from '../features/call-room/hooks/useCallRoom';

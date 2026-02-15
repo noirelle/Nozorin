@@ -6,7 +6,7 @@ import { useMatching } from '../hooks/useMatching';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useCallRoom } from '../hooks/useCallRoom';
 import { useChat } from '../hooks/useChat';
-import { useHistory, useVisitorAuth } from '../../../hooks';
+import { useHistory, useUser } from '../../../hooks';
 import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
@@ -43,8 +43,9 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
     }, [callRoomState.isConnected, onConnectionChange]);
 
     // History tracking
-    const { visitorToken } = useVisitorAuth();
-    const { trackSessionStart, trackSessionEnd } = useHistory(socket, visitorToken);
+    // History tracking
+    const { token } = useUser();
+    const { trackSessionStart, trackSessionEnd } = useHistory(socket, token);
 
     // 2. Extra UI State (not in hooks)
     const [partnerIsMuted, setPartnerIsMuted] = useState(false);

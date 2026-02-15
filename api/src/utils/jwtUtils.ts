@@ -26,6 +26,18 @@ export const generateVisitorToken = (userType: UserType = 'guest'): string => {
 };
 
 /**
+ * Generate a JWT token for an existing user
+ */
+export const generateUserToken = (userId: string, expiresIn: string = JWT_EXPIRY): string => {
+    const payload: VisitorPayload = {
+        userId,
+        userType: 'guest', // or 'authenticated' if we want to distinguish
+        createdAt: Date.now(),
+    };
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn as any });
+};
+
+/**
  * Verify and decode a visitor token
  */
 export const verifyVisitorToken = (token: string): VisitorPayload | null => {

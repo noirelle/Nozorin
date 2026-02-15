@@ -15,3 +15,5 @@ export interface Room {
     id: string;
     users: [string, string]; // partner IDs in the room or similar reference
 }
+
+export * from './user';
