@@ -3,6 +3,7 @@ import { RoomLayoutProps } from '../types';
 import { RoomNavbar } from '../../../components/RoomNavbar';
 import ChatBox from './ChatBox';
 import ReactCountryFlag from "react-country-flag";
+import { useUser } from '../../../hooks';
 
 export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     callRoomState,
@@ -21,7 +22,8 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     selectedCountry,
     queuePosition,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted } = callRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, isMuted } = callRoomState;
+    const { user: localUser } = useUser();
 
     return (
         <div className="lg:hidden flex flex-col w-full h-screen bg-white relative overflow-hidden font-sans text-[#7C6367]">
@@ -94,7 +96,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                             className="w-1.5 bg-white rounded-full transition-all duration-300"
                                             style={{
                                                 height: `${Math.max(10, Math.random() * 32)}px`,
-                                                animation: `bounce 1s ease-in-out infinite ${i * 0.1}s`
+                                                animation: `bounce 1.2s ease-in-out infinite ${i * 0.1}s`
                                             }}
                                         />
                                     ))}
@@ -122,12 +124,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                             <div className="flex items-center gap-3">
                                 <div className="relative">
                                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FFE4E9] p-0.5 border-2 border-white shadow-sm">
-                                        <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Me" className="w-full h-full object-cover" />
+                                        <img src={localUser?.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Me" className="w-full h-full object-cover" />
                                     </div>
                                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 border-2 border-white rounded-full shadow-sm" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-[#5C4E50]">Alex (You)</h4>
+                                    <h4 className="text-sm font-bold text-[#5C4E50]">{localUser?.username || 'Alex'} (You)</h4>
                                     <div className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${isMuted ? 'bg-rose-100 text-rose-500' : 'bg-[#E7F9F3] text-emerald-600'}`}>
                                         {isMuted ? 'Muted' : 'Mic On'}
                                     </div>
@@ -143,16 +145,17 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                             {isConnected ? (
                                 <div className="w-full p-3 flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-500">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white border-2 border-white shadow-sm flex items-center justify-center">
-                                            {partnerCountryCode ? (
-                                                <ReactCountryFlag countryCode={partnerCountryCode} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : (
-                                                <div className="text-[#FF8BA7] text-xl">✨</div>
-                                            )}
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FFE4E9] p-0.5 border-2 border-white shadow-sm">
+                                            <img src={partnerAvatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Partner&backgroundColor=transparent`} alt="Partner" className="w-full h-full object-cover" />
                                         </div>
                                         <div>
-                                            <h4 className="text-sm font-bold text-[#5C4E50]">{partnerCountry || 'New Friend'}</h4>
-                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">Status: Connected</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-sm font-bold text-[#5C4E50]">{partnerUsername || 'Stranger'}</h4>
+                                                {partnerCountryCode && (
+                                                    <ReactCountryFlag countryCode={partnerCountryCode} svg className="w-4 h-3 rounded-sm object-cover" />
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partnerCountry || 'Unknown Location'}</p>
                                         </div>
                                     </div>
                                     <button className="px-3 py-1.5 bg-[#FF8BA7] hover:bg-[#FF7597] text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm">

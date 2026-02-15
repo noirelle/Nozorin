@@ -6,6 +6,8 @@ export interface CallRoomState {
     isConnected: boolean;
     partnerCountry: string;
     partnerCountryCode: string;
+    partnerUsername: string;
+    partnerAvatar: string;
     partnerId: string | null;
     isMuted: boolean;
     isMediaReady: boolean;
@@ -19,6 +21,8 @@ export const useCallRoom = (mode: 'voice') => {
         isConnected: false,
         partnerCountry: '',
         partnerCountryCode: '',
+        partnerUsername: '',
+        partnerAvatar: '',
         partnerId: null,
         isMuted: false,
         isMediaReady: false,
@@ -105,13 +109,17 @@ export const useCallRoom = (mode: 'voice') => {
     const setPartner = useCallback((
         partnerId: string | null,
         country?: string,
-        countryCode?: string
+        countryCode?: string,
+        username?: string,
+        avatar?: string
     ) => {
         setState((prev) => ({
             ...prev,
             partnerId,
             partnerCountry: country || '',
             partnerCountryCode: countryCode || '',
+            partnerUsername: username || '',
+            partnerAvatar: avatar || '',
         }));
     }, []);
 
@@ -125,6 +133,8 @@ export const useCallRoom = (mode: 'voice') => {
             isConnected: false,
             partnerCountry: '',
             partnerCountryCode: '',
+            partnerUsername: '',
+            partnerAvatar: '',
             partnerId: null,
             isMuted: prev.isMuted,
             isMediaReady: prev.isMediaReady,

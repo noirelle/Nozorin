@@ -8,6 +8,9 @@ interface UseMatchingProps {
     onMatchFound?: (data: {
         role: 'offerer' | 'answerer';
         partnerId: string;
+        partnerUsername: string;
+        partnerAvatar: string;
+        partnerGender: string;
         partnerCountry: string;
         partnerCountryCode: string;
     }) => void;

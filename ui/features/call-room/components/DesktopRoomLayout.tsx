@@ -3,6 +3,7 @@ import { RoomLayoutProps } from '../types';
 import ChatBox from './ChatBox';
 import { RoomNavbar } from '../../../components/RoomNavbar';
 import ReactCountryFlag from "react-country-flag";
+import { useUser } from '../../../hooks';
 
 export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     callRoomState,
@@ -21,7 +22,8 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     selectedCountry,
     queuePosition,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, isMuted } = callRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, isMuted } = callRoomState;
+    const { user: localUser } = useUser();
 
     return (
         <div className="hidden lg:flex flex-col w-full h-screen bg-white relative overflow-hidden font-sans text-[#7C6367]">
@@ -58,12 +60,12 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                     <div className="flex flex-col items-center text-center animate-in fade-in slide-in-from-left-6 duration-700">
                         <div className="relative mb-4 group">
                             <div className="w-32 h-32 rounded-full overflow-hidden bg-[#FFE4E9] p-1 border-4 border-white shadow-[0_8px_20px_rgba(255,183,206,0.12)] transition-all duration-500 group-hover:shadow-[0_12px_30px_rgba(255,183,206,0.2)] group-hover:scale-[1.02]">
-                                <img src={`https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Me" className="w-full h-full object-cover" />
+                                <img src={localUser?.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Me" className="w-full h-full object-cover" />
                             </div>
                             <div className="absolute bottom-1 right-1 w-7 h-7 bg-green-400 border-4 border-white rounded-full shadow-sm" />
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-lg font-bold text-[#5C4E50]">Alex (You)</h4>
+                            <h4 className="text-lg font-bold text-[#5C4E50]">{localUser?.username || 'Alex'} (You)</h4>
                             <div className={`flex items-center justify-center gap-1.5 transition-colors ${isMuted ? 'text-rose-400' : 'text-emerald-500'}`}>
                                 <div className={`w-1.5 h-1.5 rounded-full bg-current ${!isMuted && 'animate-pulse'}`} />
                                 <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{isMuted ? 'Muted' : 'Speaking'}</span>
@@ -140,8 +142,8 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                             <div className="flex flex-col items-center text-center animate-in fade-in slide-in-from-right-6 duration-700">
                                 <div className="relative mb-4 group">
                                     <div className="w-32 h-32 rounded-full overflow-hidden bg-white p-1 border-4 border-white shadow-[0_8px_20px_rgba(255,183,206,0.12)] flex items-center justify-center transition-all duration-500 group-hover:shadow-[0_12px_30px_rgba(255,183,206,0.2)] group-hover:scale-[1.02]">
-                                        {isConnected && partnerCountryCode ? (
-                                            <ReactCountryFlag countryCode={partnerCountryCode} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        {isConnected ? (
+                                            <img src={partnerAvatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Partner&backgroundColor=transparent`} alt="Partner" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="flex items-center gap-1.5 opacity-60">
                                                 <div className="w-2 h-2 bg-[#FF8BA7] rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -155,14 +157,19 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                     )}
                                 </div>
                                 <div className="space-y-1">
-                                    <h4 className={`text-lg font-bold tracking-tight transition-colors ${isConnected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
-                                        {isConnected ? (partnerCountry || 'Stranger') : 'Scanning...'}
-                                    </h4>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <h4 className={`text-lg font-bold tracking-tight transition-colors ${isConnected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
+                                            {isConnected ? (partnerUsername || 'Stranger') : 'Scanning...'}
+                                        </h4>
+                                        {isConnected && partnerCountryCode && (
+                                            <ReactCountryFlag countryCode={partnerCountryCode} svg className="w-5 h-4 rounded-sm object-cover" />
+                                        )}
+                                    </div>
                                     <div className={`flex items-center justify-center gap-1.5 transition-all ${isConnected ? 'text-emerald-500' : 'text-[#A58E92] opacity-60 font-medium'}`}>
                                         {isConnected ? (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Connected</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{partnerCountry || 'Connected'}</span>
                                             </>
                                         ) : (
                                             <span className="text-[10px] font-bold uppercase tracking-[0.1em]">Frequency Search</span>

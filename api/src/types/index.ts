@@ -3,6 +3,9 @@ export type MatchState = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
 export interface User {
     id: string; // Socket ID
     userId: string; // Persistent Visitor ID
+    username: string;
+    avatar: string;
+    gender: string;
     country: string; // Full name
     countryCode: string; // ISO Code
     mode: 'chat' | 'voice';

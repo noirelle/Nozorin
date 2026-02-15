@@ -168,7 +168,7 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         console.log('[Room] Match found:', data);
         setSearching(false);
         setConnected(true);
-        setPartner(data.partnerId, data.partnerCountry, data.partnerCountryCode);
+        setPartner(data.partnerId, data.partnerCountry, data.partnerCountryCode, data.partnerUsername, data.partnerAvatar);
         setPartnerIsMuted(!!data.partnerIsMuted);
 
         // Track session start

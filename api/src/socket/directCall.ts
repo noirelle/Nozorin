@@ -46,10 +46,14 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
 
         // Get caller info to show on receiver's screen
         const callerInfo = connectedUsers.get(socket.id);
+        const callerProfile = await userService.getUserProfile(myUserId);
 
         targetSocket.emit('incoming-call', {
-            fromUserId: userService.getUserId(socket.id),
+            fromUserId: myUserId,
             fromSocketId: socket.id,
+            fromUsername: callerProfile?.username || 'Guest',
+            fromAvatar: callerProfile?.avatar || '/avatars/avatar1.webp',
+            fromGender: callerProfile?.gender || 'unknown',
             fromCountry: callerInfo?.country,
             fromCountryCode: callerInfo?.countryCode,
             mode
@@ -61,7 +65,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Handle response to an incoming direct call
      */
-    socket.on('respond-to-call', (data: { callerSocketId: string, accepted: boolean, mode: 'voice' }) => {
+    socket.on('respond-to-call', async (data: { callerSocketId: string, accepted: boolean, mode: 'voice' }) => {
         const { callerSocketId, accepted, mode } = data;
 
         // ROBUSTNESS: Ensure responder is identified and authoritative
@@ -111,10 +115,18 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         const infoA = connectedUsers.get(socket.id);
         const infoB = connectedUsers.get(callerSocketId);
 
+        // Get profiles
+        const callerUserId = userService.getUserId(callerSocketId);
+        const profileA = await userService.getUserProfile(myUserId);
+        const profileB = callerUserId ? await userService.getUserProfile(callerUserId) : null;
+
         // Finalize match for both
         socket.emit('match-found', {
             role: 'answerer',
             partnerId: callerSocketId,
+            partnerUsername: profileB?.username || 'Guest',
+            partnerAvatar: profileB?.avatar || '/avatars/avatar1.webp',
+            partnerGender: profileB?.gender || 'unknown',
             partnerCountry: infoB?.country,
             partnerCountryCode: infoB?.countryCode,
             partnerIsMuted: mediaB.isMuted,
@@ -125,6 +137,9 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         callerSocket.emit('match-found', {
             role: 'offerer',
             partnerId: socket.id,
+            partnerUsername: profileA?.username || 'Guest',
+            partnerAvatar: profileA?.avatar || '/avatars/avatar1.webp',
+            partnerGender: profileA?.gender || 'unknown',
             partnerCountry: infoA?.country,
             partnerCountryCode: infoA?.countryCode,
             partnerIsMuted: mediaA.isMuted,

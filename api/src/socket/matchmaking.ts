@@ -123,8 +123,18 @@ const initiateHandshake = (io: Server, userA: User, userB: User) => {
     userPendingMatch.set(userA.id, roomId);
     userPendingMatch.set(userB.id, roomId);
 
-    io.to(userB.id).emit('prepare-match', { partnerCountry: userA.country, partnerCountryCode: userA.countryCode });
-    io.to(userA.id).emit('prepare-match', { partnerCountry: userB.country, partnerCountryCode: userB.countryCode });
+    io.to(userB.id).emit('prepare-match', {
+        partnerCountry: userA.country,
+        partnerCountryCode: userA.countryCode,
+        partnerUsername: userA.username,
+        partnerAvatar: userA.avatar
+    });
+    io.to(userA.id).emit('prepare-match', {
+        partnerCountry: userB.country,
+        partnerCountryCode: userB.countryCode,
+        partnerUsername: userB.username,
+        partnerAvatar: userB.avatar
+    });
 };
 
 const handleMatchFailure = (io: Server, rid: string, reason: string) => {
@@ -311,9 +321,14 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             const userInfo = connectedUsers.get(socket.id);
             if (!userInfo) return;
 
+            const userProfile = await userService.getUserProfile(userId);
+
             const currentUser: User = {
                 id: socket.id,
                 userId,
+                username: userProfile?.username || 'Guest',
+                avatar: userProfile?.avatar || '/avatars/avatar1.webp',
+                gender: userProfile?.gender || 'unknown',
                 country: userInfo.country,
                 countryCode: userInfo.countryCode,
                 mode: 'voice',
@@ -372,10 +387,25 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
                 const emitMatch = (to: string, partner: User, role: string) => {
                     const media = userMediaState.get(partner.id) || { isMuted: false };
+
+                    // Cleanup timeouts when matched
+                    const timeout = fallbackTimeouts.get(to);
+                    if (timeout) {
+                        clearTimeout(timeout);
+                        fallbackTimeouts.delete(to);
+                    }
+
                     io.to(to).emit('match-found', {
-                        role, partnerId: partner.id, partnerCountry: partner.country,
-                        partnerCountryCode: partner.countryCode, partnerIsMuted: media.isMuted,
-                        roomId: pending.roomId, mode: pending.mode
+                        role,
+                        partnerId: partner.id,
+                        partnerUsername: partner.username,
+                        partnerAvatar: partner.avatar,
+                        partnerGender: partner.gender,
+                        partnerCountry: partner.country,
+                        partnerCountryCode: partner.countryCode,
+                        partnerIsMuted: media.isMuted,
+                        roomId: pending.roomId,
+                        mode: pending.mode
                     });
                 };
                 emitMatch(uB.id, uA, 'offerer');

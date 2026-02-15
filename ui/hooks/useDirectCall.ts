@@ -5,6 +5,9 @@ import { Socket } from 'socket.io-client';
 interface IncomingCall {
     fromUserId: string;
     fromSocketId: string;
+    fromUsername: string;
+    fromAvatar: string;
+    fromGender: string;
     fromCountry: string;
     fromCountryCode: string;
     mode: 'voice';

@@ -291,7 +291,7 @@ class UserService {
 
         // Generate random avatar
         const avatarIndex = Math.floor(Math.random() * 5) + 1;
-        const avatar = `/avatars/avatar${avatarIndex}.webp`;
+        const avatar = `/avatars/avatar-${avatarIndex}.webp`;
 
         // Generate random username
         const adjectives = ['Happy', 'Lucky', 'Sunny', 'Cool', 'Fast', 'Smart'];
