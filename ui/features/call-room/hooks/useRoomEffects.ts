@@ -67,17 +67,6 @@ export const useRoomEffects = ({
         };
     }, [mode, socket, initMediaManager, cleanupMedia, handleStop]);
 
-    // Handle initial match data (for direct calls from landing page)
-    const initialDataConsumed = useRef(false);
-
-    useEffect(() => {
-        if (initialMatchData && !callRoomState.isConnected && !initialDataConsumed.current) {
-            console.log('[Room] Initializing with direct match data:', initialMatchData);
-            initialDataConsumed.current = true;
-            onMatchFound(initialMatchData);
-        }
-    }, [initialMatchData, onMatchFound, callRoomState.isConnected]);
-
     // Socket Listeners (for media state)
     useEffect(() => {
         if (!socket) return;

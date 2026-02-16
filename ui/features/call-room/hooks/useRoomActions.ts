@@ -91,7 +91,7 @@ export const useRoomActions = ({
 
     const handleNext = useCallback(() => {
         console.log('[Room] Skipping to next partner (Atomic Skip)');
-        // Ensure we don't treat the partner-disconnect as an auto-reconnect event
+
         manualStopRef.current = true;
 
         try { localStorage.removeItem('nz_active_call'); } catch { }

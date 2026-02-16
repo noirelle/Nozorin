@@ -277,8 +277,6 @@ export const useMatching = ({
         if (status === 'MATCHED') {
             setIsSkipping(false);
         } else if (status === 'FINDING') {
-            // Add a small 500ms delay if we're re-entering 'FINDING' (e.g. after a skip or cancel)
-            // to prevent rapid button spamming
             const timer = setTimeout(() => setIsSkipping(false), 500);
             return () => clearTimeout(timer);
         }
