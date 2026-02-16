@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
 import { useHistory, useUser, useDirectCall } from '@/hooks';
@@ -13,7 +13,6 @@ import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 
 export default function AppPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
     const [isConnected, setIsConnected] = useState(false);
