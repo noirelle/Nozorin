@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore, AuthState } from '../stores/useAuthStore';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { api } from '../lib/api';
+import { UserProfile } from '../types/user';
 
 // Module-level promise to deduplicate requests across multiple hook instances
 let globalFetchPromise: Promise<string | null> | null = null;
@@ -19,7 +19,7 @@ export const useUser = () => {
 
         globalFetchPromise = (async () => {
             try {
-                const res = await fetch(`${API_URL}/api/me`, {
+                const { error: apiError, data: userData } = await api.get<UserProfile>('/api/me', {
                     headers: { 'Authorization': `Bearer ${currentToken}` },
                     credentials: 'include'
                 });
@@ -27,9 +27,8 @@ export const useUser = () => {
                 // Mark checked regardless of outcome to stop redundant calls
                 setChecked(true);
 
-                if (res.ok) {
-                    const userData = await res.json();
-                    login(currentToken, userData);
+                if (!apiError && userData) {
+                    login(currentToken, userData as UserProfile);
                     return currentToken;
                 } else {
                     logout();

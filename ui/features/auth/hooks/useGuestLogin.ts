@@ -1,8 +1,12 @@
 import { useState, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore, AuthState } from '../../../stores/useAuthStore';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { useSession } from '../../../hooks/useSession';
+import { api } from '../../../lib/api';
+import {
+    GuestRegistrationRequest,
+    GuestRegistrationResponse,
+    AnonymousLoginResponse
+} from '../../../types/api';
 
 interface UserGuestInput {
     username: string;
@@ -24,6 +28,7 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
     const [error, setError] = useState<string | null>(null);
     const login = useAuthStore((state: AuthState) => state.login);
     const setLocation = useAuthStore((state: AuthState) => state.setLocation);
+    const { getSessionId } = useSession();
 
     const registerGuest = useCallback(async (data: UserGuestInput) => {
         if (globalRegisterPromise) return globalRegisterPromise;
@@ -32,71 +37,61 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
             setIsRegistering(true);
             setError(null);
             try {
-                let sessionId = '';
-                try {
-                    const existingLocation = localStorage.getItem('nz_location');
-                    if (existingLocation) {
-                        const parsed = JSON.parse(existingLocation);
-                        if (parsed.sessionId) sessionId = parsed.sessionId;
-                    }
-                } catch (e) {
-                    console.error('Error parsing location data', e);
-                }
+                const sessionId = getSessionId();
 
-                if (!sessionId) sessionId = uuidv4();
-
-                const res = await fetch(`${API_URL}/api/guest`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...data, sessionId }),
-                });
-
-                if (res.ok) {
-                    const { user: newUser } = await res.json();
-
-                    // Second step: Get token using chatIdentityId
-                    const tokenRes = await fetch(`${API_URL}/api/token`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chatIdentityId: newUser.id }),
-                        credentials: 'include'
-                    });
-
-                    if (tokenRes.ok) {
-                        const { token: newToken } = await tokenRes.json();
-                        login(newToken, newUser);
-
-                        // Save footprint/location data
-                        const locationData = {
-                            location: {
-                                country: newUser.country,
-                                city: newUser.city,
-                                region: newUser.region,
-                                lat: newUser.lat,
-                                lon: newUser.lon,
-                                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                                detectionMethod: 'timezone',
-                                detectedAt: new Date().toISOString()
-                            },
-                            sessionId,
-                            timestamp: Date.now()
-                        };
-                        setLocation(locationData);
-                        return true;
-                    } else {
-                        const errorText = await tokenRes.text();
-                        console.error(`Token retrieval failed: ${tokenRes.status}`, errorText);
-                        setError(`Failed to retrieve authentication token: ${tokenRes.status}`);
-                        return false;
-                    }
-                } else {
-                    const errorText = await res.text();
-                    console.error(`Register guest failed: ${res.status} ${res.statusText}`, errorText);
-                    setError('Failed to register. Please try again.');
+                if (!sessionId) {
+                    setError('Session initialization failed. Please try again.');
                     return false;
                 }
-            } catch (error) {
-                console.error('Error registering guest:', error);
+
+                // Step 1: Register Guest
+                const { error: guestError, data: guestData } = await api.post<GuestRegistrationResponse, GuestRegistrationRequest>('/api/auth/guest', {
+                    ...data,
+                    sessionId
+                });
+
+                if (guestError || !guestData) {
+                    setError(guestError || 'Failed to register. Please try again.');
+                    return false;
+                }
+
+                const { user: newUser } = guestData;
+
+                // Step 2: Get Token (Anonymous Identity)
+                const { error: authError, data: authData } = await api.post<AnonymousLoginResponse>('/api/auth/anonymous', {
+                    chatIdentityId: newUser.id
+                });
+
+                if (authError || !authData) {
+                    setError(authError || 'Failed to retrieve auth token.');
+                    return false;
+                }
+
+                const { token: newToken } = authData;
+
+                // Update auth store
+                login(newToken, newUser);
+
+                // Save location/footprint data
+                const locationData = {
+                    location: {
+                        country: newUser.country,
+                        city: newUser.city,
+                        region: newUser.region,
+                        lat: newUser.lat,
+                        lon: newUser.lon,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        detectionMethod: 'timezone',
+                        detectedAt: new Date().toISOString()
+                    },
+                    sessionId,
+                    timestamp: Date.now()
+                };
+                setLocation(locationData);
+
+                return true;
+            } catch (err) {
+                console.error('Error in guest login flow:', err);
                 setError('An error occurred. Please try again.');
                 return false;
             } finally {
@@ -106,7 +101,7 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
         })();
 
         return globalRegisterPromise;
-    }, [login, setLocation]);
+    }, [login, setLocation, getSessionId]);
 
     return {
         registerGuest,

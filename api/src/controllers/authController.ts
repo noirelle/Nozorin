@@ -52,7 +52,7 @@ export const authController = {
         }
     },
 
-    async tokenLogin(req: Request, res: Response) {
+    async anonymousIdentityLogin(req: Request, res: Response) {
         try {
             const { chatIdentityId } = req.body;
 

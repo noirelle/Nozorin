@@ -1,0 +1,34 @@
+import { UserProfile } from './user';
+
+export interface GuestRegistrationRequest {
+    username: string;
+    gender: string;
+    agreed: boolean;
+    sessionId: string;
+    footprint?: any;
+}
+
+export interface GuestRegistrationResponse {
+    user: UserProfile;
+    is_new: boolean;
+}
+
+export interface AnonymousLoginRequest {
+    chatIdentityId: string;
+}
+
+export interface AnonymousLoginResponse {
+    userId: string;
+    token: string;
+    expiresIn: string;
+    chatIdentityLinked: boolean;
+    requestId: string;
+    profile: {
+        username: string;
+        displayName: string;
+        avatar: string;
+        country: string | null;
+        city: string | null;
+        timezone: string | null;
+    };
+}
