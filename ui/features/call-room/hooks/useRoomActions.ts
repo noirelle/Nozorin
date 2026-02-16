@@ -16,7 +16,7 @@ interface UseRoomActionsProps {
     clearMessages: () => void;
     sendMessage: (text: string) => void;
     trackSessionStart: (partnerId: string, mode: 'voice') => void;
-    trackSessionEnd: (reason: string) => void;
+    trackSessionEnd: (reason: "user-action" | "partner-disconnect" | "error" | "skip" | "network" | "answered-another") => void;
     selectedCountry: string;
     toggleLocalMute: () => void;
 }
@@ -73,13 +73,13 @@ export const useRoomActions = ({
         setPartnerIsMuted(false);
     }, [closePeerConnection, resetState, clearMessages]);
 
-    const findMatch = useCallback(() => {
-        if (partnerIdRef.current) {
+    const findMatch = useCallback((forceSkip: boolean = false) => {
+        if (partnerIdRef.current && !forceSkip) {
             console.log('[Room] Already in a call, skipping redundant findMatch');
             return;
         }
 
-        console.log('[Room] Initiating new match search');
+        console.log('[Room] Initiating new match search (Force Skip:', forceSkip, ')');
         manualStopRef.current = false;
         resetState();
         clearMessages();
@@ -90,23 +90,36 @@ export const useRoomActions = ({
     }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry]);
 
     const handleNext = useCallback(() => {
-        console.log('[Room] Skipping to next partner');
+        console.log('[Room] Skipping to next partner (Atomic Skip)');
+        // Ensure we don't treat the partner-disconnect as an auto-reconnect event
         manualStopRef.current = true;
 
         try { localStorage.removeItem('nz_active_call'); } catch { }
 
         trackSessionEnd('skip');
-        handleStop();
 
-        setSearching(true);
+        // We do NOT call handleStop() because it emits 'end-call'.
+        // Instead, we use the backend's atomic skip logic by sending 'find-match' directly.
+        // But we MUST clean up local media state immediately for UX.
 
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
 
-        nextTimeoutRef.current = setTimeout(() => {
-            manualStopRef.current = false;
-            findMatch();
-        }, 500);
-    }, [handleStop, findMatch, setSearching, trackSessionEnd]);
+        // Use a small delay for UX smoothness (prevent button spam) if needed, 
+        // but for atomic skip we can go faster. Let's keep a minimal delay or immediate.
+        // User complained about immediate reconnect, so let's rely on atomic skip which sets cooldown.
+
+        // Call findMatch with forceSkip=true
+        // We reset manualStopRef to false inside findMatch, BUT handleNext sets it to true.
+        // If we set it to true here, findMatch will set it to false.
+        // Logic check:
+        // If we skip, the backend disconnects the partner. The partner side gets 'call-ended'.
+        // Does THIS side get 'call-ended'? No, backend activeCalls.delete(socket.id).
+        // So onCallEnded won't fire for us. manualStopRef logic is irrelevant for OUR socket events from backend.
+        // But preventing local race conditions is good.
+
+        findMatch(true);
+
+    }, [findMatch, trackSessionEnd]);
 
     const handleUserStop = useCallback(() => {
         console.log('[Room] User manually stopped');

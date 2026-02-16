@@ -109,9 +109,6 @@ const initiateHandshake = (io: Server, userA: User, userB: User) => {
     lastPartnerMap.set(userA.userId, userB.userId);
     lastPartnerMap.set(userB.userId, userA.userId);
 
-    // Handshake Timeout
-
-    // Handshake Timeout
     const timeout = setTimeout(() => handleMatchFailure(io, roomId, 'timeout'), CONSTANTS.HANDSHAKE_TIMEOUT_MS);
 
     pendingMatches.set(roomId, {
@@ -444,19 +441,6 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 fallbackTimeouts.delete(socket.id);
             }
 
-            // 3. SENIORITY PRESERVATION VS RESET
-            // If they are skipping (activePartner exists or just requesting new), we generally WANT to reset seniority
-            // unless it's a pure reconnect.
-            // But here, 'find-match' implies a user action.
-            // If it was a reconnect, the client should probably use a different event or we'd handle it via authentication state.
-            // However, the prompt request specifically said "Reset user's joinedAt to ensure they lose seniority" on skip.
-            // We'll trust that 'find-match' usually means "I want a new partner".
-
-            // Check if we are "reconnecting" vs "skipping"
-            // If activePartner existed, it's definitely a skip -> Reset.
-            // If no activePartner, might be first join OR next after disconnect.
-            // Let's assume find-match = New Search = Reset Seniority (fairness).
-            // Only purely unintentional disconnects (handled elsewhere) should preserve.
 
             const resetSeniority = true;
             const joinTime = resetSeniority ? Date.now() : (voiceQueue.find(u => u.userId === userId)?.joinedAt || Date.now());

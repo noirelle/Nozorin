@@ -112,8 +112,6 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
         socket,
         mode,
         callRoomState,
-        partnerIsMuted: actions.partnerIsMuted, // Just for logging? actually useRoomEffects doesn't use it, but MobileRoomLayout does. 
-        // Wait, useRoomEffects takes setPartnerIsMuted for socket listener
         setPartnerIsMuted: actions.setPartnerIsMuted,
         setPartnerSignalStrength,
         initMediaManager,
