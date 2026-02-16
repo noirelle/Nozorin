@@ -21,6 +21,8 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     onNavigateToHistory,
     selectedCountry,
     queuePosition,
+    isReconnecting,
+    reconnectCountdown,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, isMuted } = callRoomState;
     const { user: localUser } = useUser();
@@ -142,7 +144,24 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
                         {/* Partner Section (Dynamic) */}
                         <div className="relative overflow-hidden min-h-[72px] flex items-center bg-pink-50/30 rounded-2xl border border-pink-100/20 transition-all duration-700">
-                            {isConnected ? (
+                            {isReconnecting ? (
+                                <div className="w-full p-3 flex items-center justify-between animate-in fade-in duration-500">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center shadow-sm">
+                                            <svg className="w-5 h-5 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-amber-700">Reconnecting...</h4>
+                                            <p className="text-[10px] text-amber-500 font-medium tracking-tight">
+                                                {reconnectCountdown ? `${reconnectCountdown}s remaining` : 'Restoring session'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="px-2 py-1 bg-amber-100 text-amber-600 text-[9px] font-bold rounded-lg uppercase tracking-wider">Wait</div>
+                                </div>
+                            ) : isConnected ? (
                                 <div className="w-full p-3 flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-500">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FFE4E9] p-0.5 border-2 border-white shadow-sm">

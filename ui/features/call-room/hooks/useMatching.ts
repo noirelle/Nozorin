@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 
-export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
+export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED' | 'RECONNECTING';
 
 interface UseMatchingProps {
     socket: Socket | null;
@@ -17,6 +17,10 @@ interface UseMatchingProps {
     onMatchCancelled?: (data: { reason: string }) => void;
     onCallEnded?: () => void;
     onMultiSession?: (message: string) => void;
+    onPartnerReconnecting?: (data: { timeoutMs: number }) => void;
+    onPartnerReconnected?: (data: { newSocketId: string }) => void;
+    onRejoinSuccess?: (data: { partnerId: string; partnerCountry: string; partnerCountryCode: string }) => void;
+    onRejoinFailed?: (data: { reason: string }) => void;
 }
 
 export const useMatching = ({
@@ -25,9 +29,46 @@ export const useMatching = ({
     onMatchCancelled,
     onCallEnded,
     onMultiSession,
+    onPartnerReconnecting,
+    onPartnerReconnected,
+    onRejoinSuccess,
+    onRejoinFailed,
 }: UseMatchingProps) => {
     const [status, setStatus] = useState<MatchStatus>('IDLE');
     const [position, setPosition] = useState<number | null>(null);
+    const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
+
+    // Refs for callbacks to ensure stable listeners
+    const onMatchFoundRef = useRef(onMatchFound);
+    const onMatchCancelledRef = useRef(onMatchCancelled);
+    const onCallEndedRef = useRef(onCallEnded);
+    const onMultiSessionRef = useRef(onMultiSession);
+    const onPartnerReconnectingRef = useRef(onPartnerReconnecting);
+    const onPartnerReconnectedRef = useRef(onPartnerReconnected);
+    const onRejoinSuccessRef = useRef(onRejoinSuccess);
+    const onRejoinFailedRef = useRef(onRejoinFailed);
+
+    const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        onMatchFoundRef.current = onMatchFound;
+        onMatchCancelledRef.current = onMatchCancelled;
+        onCallEndedRef.current = onCallEnded;
+        onMultiSessionRef.current = onMultiSession;
+        onPartnerReconnectingRef.current = onPartnerReconnecting;
+        onPartnerReconnectedRef.current = onPartnerReconnected;
+        onRejoinSuccessRef.current = onRejoinSuccess;
+        onRejoinFailedRef.current = onRejoinFailed;
+    }, [onMatchFound, onMatchCancelled, onCallEnded, onMultiSession, onPartnerReconnecting, onPartnerReconnected, onRejoinSuccess, onRejoinFailed]);
+
+    // Cleanup reconnect countdown timer
+    const clearReconnectTimer = useCallback(() => {
+        if (reconnectTimerRef.current) {
+            clearInterval(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+        setReconnectCountdown(null);
+    }, []);
 
     // Listen for matching events
     useEffect(() => {
@@ -49,26 +90,76 @@ export const useMatching = ({
             console.warn('[Matching] Match cancelled:', data.reason);
             setStatus('FINDING'); // Server auto-requeues at the front
             setPosition(null);
-            if (onMatchCancelled) onMatchCancelled(data);
+            if (onMatchCancelledRef.current) onMatchCancelledRef.current(data);
         };
 
         const handleMatchFound = (data: any) => {
+            clearReconnectTimer();
             setStatus('MATCHED');
             setPosition(null);
-            if (onMatchFound) onMatchFound(data);
+            if (onMatchFoundRef.current) onMatchFoundRef.current(data);
         };
 
         const handleCallEnded = () => {
             console.log('[Matching] Call ended. Resetting state to IDLE.');
+            clearReconnectTimer();
             setStatus('IDLE');
             setPosition(null);
-            if (onCallEnded) onCallEnded();
+            if (onCallEndedRef.current) onCallEndedRef.current();
         };
 
         const handleMultiSession = (data: { message: string }) => {
             console.error('[Matching] Multi-session detected:', data.message);
+            clearReconnectTimer();
             setStatus('IDLE');
-            if (onMultiSession) onMultiSession(data.message);
+            if (onMultiSessionRef.current) onMultiSessionRef.current(data.message);
+        };
+
+        // --- RECONNECT EVENT HANDLERS ---
+
+        const handlePartnerReconnecting = (data: { timeoutMs: number }) => {
+            console.log(`[Matching] Partner is reconnecting... timeout: ${data.timeoutMs}ms`);
+            setStatus('RECONNECTING');
+
+            // Start countdown
+            const totalSeconds = Math.ceil(data.timeoutMs / 1000);
+            setReconnectCountdown(totalSeconds);
+
+            if (reconnectTimerRef.current) clearInterval(reconnectTimerRef.current);
+            reconnectTimerRef.current = setInterval(() => {
+                setReconnectCountdown(prev => {
+                    if (prev === null || prev <= 1) {
+                        clearReconnectTimer();
+                        return null;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            if (onPartnerReconnectingRef.current) onPartnerReconnectingRef.current(data);
+        };
+
+        const handlePartnerReconnected = (data: { newSocketId: string }) => {
+            console.log('[Matching] Partner reconnected!');
+            clearReconnectTimer();
+            setStatus('MATCHED');
+            if (onPartnerReconnectedRef.current) onPartnerReconnectedRef.current(data);
+        };
+
+        const handleRejoinSuccess = (data: any) => {
+            console.log('[Matching] Rejoin successful!', data);
+            clearReconnectTimer();
+            setStatus('MATCHED');
+            if (onRejoinSuccessRef.current) onRejoinSuccessRef.current(data);
+        };
+
+        const handleRejoinFailed = (data: { reason: string }) => {
+            console.warn('[Matching] Rejoin failed:', data.reason);
+            clearReconnectTimer();
+            setStatus('IDLE');
+            // Clear stale active call from localStorage
+            try { localStorage.removeItem('nz_active_call'); } catch { }
+            if (onRejoinFailedRef.current) onRejoinFailedRef.current(data);
         };
 
         socket.on('waiting-for-match', handleWaitingForMatch);
@@ -77,6 +168,10 @@ export const useMatching = ({
         socket.on('match-found', handleMatchFound);
         socket.on('call-ended', handleCallEnded);
         socket.on('multi-session', handleMultiSession);
+        socket.on('partner-reconnecting', handlePartnerReconnecting);
+        socket.on('partner-reconnected', handlePartnerReconnected);
+        socket.on('rejoin-success', handleRejoinSuccess);
+        socket.on('rejoin-failed', handleRejoinFailed);
 
         return () => {
             console.log('[Matching] Cleaning up socket listeners...');
@@ -86,12 +181,18 @@ export const useMatching = ({
             socket.off('match-found', handleMatchFound);
             socket.off('call-ended', handleCallEnded);
             socket.off('multi-session', handleMultiSession);
+            socket.off('partner-reconnecting', handlePartnerReconnecting);
+            socket.off('partner-reconnected', handlePartnerReconnected);
+            socket.off('rejoin-success', handleRejoinSuccess);
+            socket.off('rejoin-failed', handleRejoinFailed);
+
+            clearReconnectTimer();
 
             // AUTHORITATIVE RESET on unmount
             setStatus('IDLE');
             setPosition(null);
         };
-    }, [socket, onMatchFound, onMatchCancelled, onCallEnded, onMultiSession]);
+    }, [socket, clearReconnectTimer]); // Only re-run if socket instance changes
 
     // Start searching for a match
     const startSearch = useCallback((preferredCountry?: string) => {
@@ -118,6 +219,25 @@ export const useMatching = ({
         },
         [socket]
     );
+
+    // Rejoin an active call after disconnect/refresh
+    const rejoinCall = useCallback((roomId?: string) => {
+        if (!socket) return;
+        console.log('[Matching] Attempting to rejoin call...');
+        setStatus('RECONNECTING');
+        socket.emit('rejoin-call', { roomId });
+    }, [socket]);
+
+    // Cancel a pending reconnect (either side)
+    const cancelReconnect = useCallback(() => {
+        if (!socket) return;
+        console.log('[Matching] Cancelling reconnect...');
+        clearReconnectTimer();
+        setStatus('IDLE');
+        socket.emit('cancel-reconnect');
+        // Clear stale active call from localStorage
+        try { localStorage.removeItem('nz_active_call'); } catch { }
+    }, [socket, clearReconnectTimer]);
 
     const [isSkipping, setIsSkipping] = useState(false);
     const skipTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,8 +289,11 @@ export const useMatching = ({
         stopSearch,
         endCall,
         skipToNext,
+        rejoinCall,
+        cancelReconnect,
         status,
         position,
         isSkipping,
+        reconnectCountdown,
     };
 };

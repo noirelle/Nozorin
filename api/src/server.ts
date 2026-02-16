@@ -11,7 +11,9 @@ const io = new Server(server, {
         origin: process.env.CLIENT_URL || "http://localhost:3000",
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
+    pingInterval: 10000,
+    pingTimeout: 5000,
 });
 
 // Setup socket handlers

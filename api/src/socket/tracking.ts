@@ -46,6 +46,9 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 
         // Broadcast that this user is now online
         await broadcastUserStatus(io, userId);
+
+        // Notify the socket that identification succeeded (used by reconnect flow)
+        socket.emit('identify-success', { userId });
     });
 
     /**

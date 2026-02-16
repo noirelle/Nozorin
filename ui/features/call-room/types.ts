@@ -36,4 +36,8 @@ export interface RoomLayoutProps {
     // Country Filter
     selectedCountry: string;
     onSelectCountry: (code: string) => void;
+
+    // Reconnect state
+    isReconnecting?: boolean;
+    reconnectCountdown?: number | null;
 }

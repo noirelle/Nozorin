@@ -12,7 +12,7 @@ import {
 } from './users';
 import { handleMediaEvents } from './media';
 import { handleSignalingEvents } from './signaling';
-import { handleMatchmaking, setupMatchmaking } from './matchmaking';
+import { handleMatchmaking, setupMatchmaking, handleMatchmakingDisconnect } from './matchmaking';
 import { handleDirectCall } from './directCall';
 import { handleHistoryEvents } from './history';
 import { handleUserTracking, cleanupUserSession } from './tracking';
@@ -96,13 +96,11 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
         // Clean up any active session
         await cleanupUserSession(socket.id);
 
-        const partnerId = activeCalls.get(socket.id);
-        if (partnerId) {
-            console.log(`[DISCONNECT] Notifying partner ${partnerId}`);
-            socket.to(partnerId).emit('call-ended', { by: 'disconnect' });
-            activeCalls.delete(partnerId);
-        }
-        activeCalls.delete(socket.id);
+        // Centralized disconnect logic for matchmaking
+        handleMatchmakingDisconnect(io, socket.id, userId);
+
+        // Match/Call cleanup is handled in matchmaking.ts to ensure proper event emission
+        // and avoid race conditions or double-handling.
 
         removeUserFromQueues(socket.id);
 
