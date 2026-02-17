@@ -38,6 +38,9 @@ export const userController = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
+            // Cache in Redis now that user is active
+            await userService.cacheUserProfile(userProfile);
+
             return res.json(userProfile);
 
         } catch (error) {

@@ -244,6 +244,37 @@ class UserService {
      * Get user profile by ID
      */
     async getUserProfile(userId: string): Promise<UserProfile | null> {
+        if (checkRedisAvailability()) {
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    const data = await redis.hgetall(`user:${userId}`);
+                    if (data && Object.keys(data).length > 0) {
+                        return {
+                            id: userId,
+                            username: data.username,
+                            avatar: data.avatar,
+                            gender: data.gender,
+                            profile_completed: data.profile_completed === 'true',
+                            is_claimed: data.is_claimed === 'true',
+                            created_at: parseInt(data.created_at || '0'),
+                            country: data.country,
+                            city: data.city,
+                            region: data.region,
+                            lat: data.lat ? parseFloat(data.lat) : undefined,
+                            lon: data.lon ? parseFloat(data.lon) : undefined,
+                            timezone: data.timezone,
+                            last_ip: data.last_ip,
+                            device_id: data.device_id,
+                            last_active_at: parseInt(data.last_active_at || '0')
+                        } as UserProfile;
+                    }
+                } catch (error) {
+                    console.error('[USER] Redis error getting profile:', error);
+                }
+            }
+        }
+
         try {
             const user = await this.userRepository.findOneBy({ id: userId });
             if (user) return user as UserProfile;
@@ -251,37 +282,6 @@ class UserService {
             console.error('[USER] DB error getting profile:', error);
         }
 
-        if (checkRedisAvailability()) {
-            const redis = getRedisClient();
-            if (redis) {
-                try {
-                    const data = await redis.hgetall(`user:${userId}`);
-                    if (Object.keys(data).length === 0) return null;
-
-                    // Parse boolean and number fields
-                    return {
-                        id: userId,
-                        username: data.username,
-                        avatar: data.avatar,
-                        gender: data.gender,
-                        profile_completed: data.profile_completed === 'true',
-                        is_claimed: data.is_claimed === 'true',
-                        created_at: parseInt(data.created_at || '0'),
-                        country: data.country,
-                        city: data.city,
-                        region: data.region,
-                        lat: data.lat ? parseFloat(data.lat) : undefined,
-                        lon: data.lon ? parseFloat(data.lon) : undefined,
-                        timezone: data.timezone,
-                        last_ip: data.last_ip,
-                        device_id: data.device_id,
-                        last_active_at: parseInt(data.last_active_at || '0')
-                    } as UserProfile;
-                } catch (error) {
-                    console.error('[USER] Redis error getting profile:', error);
-                }
-            }
-        }
         return userProfilesMemory.get(userId) || null;
     }
 
@@ -370,36 +370,43 @@ class UserService {
             console.error('[USER] DB error saving profile:', error);
         }
 
-        if (checkRedisAvailability()) {
-            const redis = getRedisClient();
-            if (redis) {
-                try {
-                    await redis.hmset(`user:${userProfile.id}`, {
-                        username: userProfile.username,
-                        avatar: userProfile.avatar,
-                        gender: userProfile.gender,
-                        profile_completed: userProfile.profile_completed.toString(),
-                        is_claimed: userProfile.is_claimed.toString(),
-                        created_at: userProfile.created_at.toString(),
-                        ...(userProfile.country && { country: userProfile.country }),
-                        ...(userProfile.city && { city: userProfile.city }),
-                        ...(userProfile.region && { region: userProfile.region }),
-                        ...(userProfile.lat && { lat: userProfile.lat.toString() }),
-                        ...(userProfile.lon && { lon: userProfile.lon.toString() }),
-                        ...(userProfile.timezone && { timezone: userProfile.timezone }),
-                        ...(userProfile.last_ip && { last_ip: userProfile.last_ip }),
-                        ...(userProfile.device_id && { device_id: userProfile.device_id }),
-                        last_active_at: (userProfile.last_active_at || Date.now()).toString()
-                    });
-
-                    // Register existence
-                    await this.registerUser(userProfile.id);
-                } catch (error) {
-                    console.error('[USER] Redis error saving profile:', error);
-                }
-            }
-        }
         userProfilesMemory.set(userProfile.id, userProfile);
+    }
+
+    /**
+     * Specifically cache user profile to Redis (used on /me request)
+     */
+    async cacheUserProfile(userProfile: UserProfile) {
+        if (!checkRedisAvailability()) return;
+
+        const redis = getRedisClient();
+        if (!redis) return;
+
+        try {
+            await redis.hmset(`user:${userProfile.id}`, {
+                username: userProfile.username,
+                avatar: userProfile.avatar,
+                gender: userProfile.gender,
+                profile_completed: userProfile.profile_completed.toString(),
+                is_claimed: userProfile.is_claimed.toString(),
+                created_at: userProfile.created_at.toString(),
+                ...(userProfile.country && { country: userProfile.country }),
+                ...(userProfile.city && { city: userProfile.city }),
+                ...(userProfile.region && { region: userProfile.region }),
+                ...(userProfile.lat && { lat: userProfile.lat.toString() }),
+                ...(userProfile.lon && { lon: userProfile.lon.toString() }),
+                ...(userProfile.timezone && { timezone: userProfile.timezone }),
+                ...(userProfile.last_ip && { last_ip: userProfile.last_ip }),
+                ...(userProfile.device_id && { device_id: userProfile.device_id }),
+                last_active_at: (userProfile.last_active_at || Date.now()).toString()
+            });
+
+            // Ensure user is registered in the set of users if needed
+            await this.registerUser(userProfile.id);
+            console.log(`[USER] Profile cached in Redis: ${userProfile.id}`);
+        } catch (error) {
+            console.error('[USER] Redis error caching profile:', error);
+        }
     }
 
     /**
