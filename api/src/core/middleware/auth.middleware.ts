@@ -22,8 +22,11 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         }
     }
 
-    if (jwtUser) {
-        (req as AuthRequest).user = jwtUser;
+    if (jwtUser && typeof jwtUser !== 'string') {
+        (req as AuthRequest).user = {
+            ...(jwtUser as any),
+            id: (jwtUser as any).userId || (jwtUser as any).id
+        };
         return next();
     }
 
