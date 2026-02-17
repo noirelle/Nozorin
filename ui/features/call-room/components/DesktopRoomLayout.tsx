@@ -19,6 +19,9 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     filtersOpen,
     setFiltersOpen,
     onNavigateToHistory,
+    onNavigateToFriends,
+    onAddFriend,
+    friends = [],
     selectedCountry,
     queuePosition,
     isReconnecting,
@@ -197,6 +200,16 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                             <span className="text-[10px] font-bold uppercase tracking-[0.1em]">Frequency Search</span>
                                         )}
                                     </div>
+
+                                    {isConnected && (
+                                        <button
+                                            onClick={() => callRoomState.partnerId && onAddFriend && onAddFriend(callRoomState.partnerId)}
+                                            disabled={friends.some(f => f.id === callRoomState.partnerId)}
+                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === callRoomState.partnerId) ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'}`}
+                                        >
+                                            {friends.some(f => f.id === callRoomState.partnerId) ? 'FRIENDS' : 'ADD FRIEND'}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -226,6 +239,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                             <ToolbarBtn
                                 icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
                                 label="Circle"
+                                onClick={onNavigateToFriends}
                             />
                         </div>
 

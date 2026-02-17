@@ -75,6 +75,8 @@ interface HistoryDrawerProps {
     onClearHistory: () => void;
     onRefresh: () => void;
     onCall: (targetUserId: string) => void;
+    onAddFriend: (targetUserId: string) => void;
+    friends: any[];
     isConnected: boolean;
 }
 
@@ -88,6 +90,8 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onClearHistory,
     onRefresh,
     onCall,
+    onAddFriend,
+    friends,
     isConnected,
 }) => {
     const hasLoadedRef = useRef(false);
@@ -199,19 +203,33 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => session.partnerId && onCall(session.partnerId)}
-                                        disabled={isConnected || !session.partnerStatus?.isOnline}
-                                        title={isConnected ? 'Already in a call' : !session.partnerStatus?.isOnline ? 'User is offline' : 'Call user'}
-                                        className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all shrink-0 ${(isConnected || !session.partnerStatus?.isOnline)
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {session.partnerId && !friends.some(f => f.id === session.partnerId) && (
+                                            <button
+                                                onClick={() => session.partnerId && onAddFriend(session.partnerId)}
+                                                title="Add Friend"
+                                                className="w-9 h-9 rounded-full border border-slate-100 bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-[#FF0055] hover:border-pink-100 flex items-center justify-center transition-all"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={() => session.partnerId && onCall(session.partnerId)}
+                                            disabled={isConnected || !session.partnerStatus?.isOnline}
+                                            title={isConnected ? 'Already in a call' : !session.partnerStatus?.isOnline ? 'User is offline' : 'Call user'}
+                                            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all shrink-0 ${(isConnected || !session.partnerStatus?.isOnline)
                                                 ? 'bg-slate-50 text-slate-200 border-slate-100 cursor-not-allowed'
                                                 : 'bg-[#FF0055]/10 text-[#FF0055] border-[#FF0055]/10 hover:bg-[#FF0055] hover:text-white shadow-sm'
-                                            }`}
-                                    >
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                        </svg>
-                                    </button>
+                                                }`}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

@@ -24,6 +24,9 @@ export interface RoomLayoutProps {
     setShowChat: (show: boolean) => void;
     setInputText: (text: string) => void;
     onNavigateToHistory?: () => void;
+    onNavigateToFriends?: () => void;
+    onAddFriend?: (targetId: string) => void;
+    friends?: any[];
 
     // Mobile specific
     mobileLayout?: 'overlay' | 'split';

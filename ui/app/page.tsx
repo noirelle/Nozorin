@@ -209,6 +209,8 @@ export default function Home() {
           fetchStats();
         }}
         onCall={(targetId: string) => initiateCall(targetId, 'voice')}
+        onAddFriend={() => { }}
+        friends={[]}
         isConnected={false} // Not in room on landing page
       />
 

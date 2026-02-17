@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
+import friendRoutes from './modules/friend/friend.routes';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Basic health check
 app.get('/', (req, res) => {

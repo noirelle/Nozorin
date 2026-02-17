@@ -19,6 +19,9 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     filtersOpen,
     setFiltersOpen,
     onNavigateToHistory,
+    onNavigateToFriends,
+    onAddFriend,
+    friends = [],
     selectedCountry,
     queuePosition,
     isReconnecting,
@@ -177,8 +180,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                             <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partnerCountry || 'Unknown Location'}</p>
                                         </div>
                                     </div>
-                                    <button className="px-3 py-1.5 bg-[#FF8BA7] hover:bg-[#FF7597] text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm">
-                                        ADD FRIEND
+                                    <button
+                                        onClick={() => callRoomState.partnerId && onAddFriend && onAddFriend(callRoomState.partnerId)}
+                                        disabled={friends.some(f => f.id === callRoomState.partnerId)}
+                                        className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${friends.some(f => f.id === callRoomState.partnerId) ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-[#FF8BA7] hover:bg-[#FF7597]'}`}
+                                    >
+                                        {friends.some(f => f.id === callRoomState.partnerId) ? 'FRIENDS' : 'ADD FRIEND'}
                                     </button>
                                 </div>
                             ) : (
@@ -209,7 +216,10 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </button>
-                        <button className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#7C6367] hover:bg-pink-50 transition-colors">
+                        <button
+                            onClick={onNavigateToFriends}
+                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#7C6367] hover:bg-pink-50 transition-colors"
+                        >
                             <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>

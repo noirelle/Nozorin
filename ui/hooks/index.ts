@@ -5,6 +5,7 @@ export { useMatching } from '../features/call-room/hooks/useMatching';
 export { useUser } from './useUser';
 export { useHistory } from './useHistory';
 export { useDirectCall } from './useDirectCall';
+export { useFriends } from './useFriends';
 export type { CallRoomState } from '../features/call-room/hooks/useCallRoom';
 export type { Message } from '../features/call-room/hooks/useChat';
 export type { SessionRecord, HistoryStats } from './useHistory';

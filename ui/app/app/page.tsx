@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
-import { useHistory, useUser, useDirectCall } from '@/hooks';
+import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
+import { useHistory, useUser, useDirectCall, useFriends } from '@/hooks';
 import { socket } from '@/lib/socket';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
@@ -14,6 +15,7 @@ import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 export default function AppPage() {
     const router = useRouter();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isFriendsOpen, setIsFriendsOpen] = useState(false);
     const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
@@ -86,6 +88,26 @@ export default function AppPage() {
         cancelCall,
         clearCallState
     } = useDirectCall(socket(), handleCloseHistory);
+
+    // Friend System hook
+    const {
+        friends,
+        pendingRequests,
+        sendRequest,
+        acceptRequest,
+        declineRequest,
+        removeFriend,
+        isLoading: isLoadingFriendsData
+    } = useFriends(socket(), token);
+
+    const handleAddFriend = useCallback(async (targetId: string) => {
+        const result = await sendRequest(targetId);
+        if (result.success) {
+            alert('Friend request sent!');
+        } else {
+            alert(`Failed to send request: ${result.error}`);
+        }
+    }, [sendRequest]);
 
     // Handle successful match-found for direct calls
     useEffect(() => {
@@ -210,8 +232,11 @@ export default function AppPage() {
                 mode="voice"
                 onLeave={handleLeave}
                 onNavigateToHistory={handleNavigateToHistory}
+                onNavigateToFriends={() => setIsFriendsOpen(true)}
                 initialMatchData={directMatchData}
                 onConnectionChange={setIsConnected}
+                onAddFriend={handleAddFriend}
+                friends={friends}
             />
 
             {/* Global Overlays */}
@@ -228,7 +253,25 @@ export default function AppPage() {
                     fetchStats();
                 }}
                 onCall={(targetId: string) => initiateCall(targetId, 'voice')}
+                onAddFriend={handleAddFriend}
+                friends={friends}
                 isConnected={isConnected}
+            />
+
+            <FriendsDrawer
+                isOpen={isFriendsOpen}
+                onClose={() => setIsFriendsOpen(false)}
+                friends={friends}
+                pendingRequests={pendingRequests}
+                onAcceptRequest={acceptRequest}
+                onDeclineRequest={declineRequest}
+                onRemoveFriend={removeFriend}
+                onCall={(targetId: string) => {
+                    setIsFriendsOpen(false);
+                    initiateCall(targetId, 'voice');
+                }}
+                isConnected={isConnected}
+                isLoading={isLoadingFriendsData}
             />
 
             {incomingCall && (

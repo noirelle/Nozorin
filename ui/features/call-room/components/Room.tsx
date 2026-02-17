@@ -19,11 +19,23 @@ interface RoomProps {
     mode: 'voice';
     onLeave: () => void;
     onNavigateToHistory: () => void;
+    onNavigateToFriends: () => void;
     onConnectionChange: (connected: boolean) => void;
     initialMatchData?: any;
+    onAddFriend: (targetId: string) => void;
+    friends: any[];
 }
 
-export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionChange, initialMatchData }: RoomProps) {
+export default function Room({
+    mode,
+    onLeave,
+    onNavigateToHistory,
+    onNavigateToFriends,
+    onConnectionChange,
+    initialMatchData,
+    onAddFriend,
+    friends
+}: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
     const {
@@ -163,6 +175,9 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
                 onNavigateToHistory={onNavigateToHistory}
+                onNavigateToFriends={onNavigateToFriends}
+                onAddFriend={onAddFriend}
+                friends={friends}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
                 matchmakingStatus={actions.matching.status}
@@ -187,6 +202,9 @@ export default function Room({ mode, onLeave, onNavigateToHistory, onConnectionC
                 filtersOpen={filtersOpen}
                 setFiltersOpen={setFiltersOpen}
                 onNavigateToHistory={onNavigateToHistory}
+                onNavigateToFriends={onNavigateToFriends}
+                onAddFriend={onAddFriend}
+                friends={friends}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
                 matchmakingStatus={actions.matching.status}
