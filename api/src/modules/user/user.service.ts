@@ -3,6 +3,8 @@ import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.
 import { CreateUserDto, UserProfile } from '../../shared/types/user.types';
 import geoip from 'geoip-lite';
 import { v4 as uuidv4 } from 'uuid';
+import { AppDataSource } from '../../core/config/database.config';
+import { User } from './user.entity';
 
 const STATUS_TTL = 3600; // 1 hour for status if not updated
 
@@ -27,6 +29,7 @@ const tempUserCache = new Map<string, UserProfile>();
 const sessionMemory = new Map<string, string>();
 
 class UserService {
+    private userRepository = AppDataSource.getRepository(User);
 
     /**
      * Save user footprint
@@ -241,6 +244,13 @@ class UserService {
      * Get user profile by ID
      */
     async getUserProfile(userId: string): Promise<UserProfile | null> {
+        try {
+            const user = await this.userRepository.findOneBy({ id: userId });
+            if (user) return user as UserProfile;
+        } catch (error) {
+            console.error('[USER] DB error getting profile:', error);
+        }
+
         if (checkRedisAvailability()) {
             const redis = getRedisClient();
             if (redis) {
@@ -262,7 +272,10 @@ class UserService {
                         region: data.region,
                         lat: data.lat ? parseFloat(data.lat) : undefined,
                         lon: data.lon ? parseFloat(data.lon) : undefined,
-                        timezone: data.timezone
+                        timezone: data.timezone,
+                        last_ip: data.last_ip,
+                        device_id: data.device_id,
+                        last_active_at: parseInt(data.last_active_at || '0')
                     } as UserProfile;
                 } catch (error) {
                     console.error('[USER] Redis error getting profile:', error);
@@ -277,6 +290,33 @@ class UserService {
      */
     getTempUser(userId: string): UserProfile | undefined {
         return tempUserCache.get(userId);
+    }
+
+    /**
+     * Find an existing guest profile that hasn't been claimed yet
+     */
+    async findExistingGuest(ip: string, deviceId?: string): Promise<UserProfile | null> {
+        try {
+            // Priority 1: Device ID match
+            if (deviceId) {
+                const user = await this.userRepository.findOne({
+                    where: { device_id: deviceId, is_claimed: false },
+                    order: { last_active_at: 'DESC' }
+                });
+                if (user) return user as UserProfile;
+            }
+
+            // Priority 2: IP match (fall back if deviceId not provided or not found)
+            const user = await this.userRepository.findOne({
+                where: { last_ip: ip, is_claimed: false },
+                order: { last_active_at: 'DESC' }
+            });
+            if (user) return user as UserProfile;
+
+        } catch (error) {
+            console.error('[USER] DB error finding existing guest:', error);
+        }
+        return null;
     }
 
     /**
@@ -307,43 +347,59 @@ class UserService {
             profile_completed: true,
             is_claimed: false,
             created_at: Date.now(),
+            last_active_at: Date.now(),
+            last_ip: ip,
+            device_id: data.deviceId,
             ...location
         };
 
         // Cache temporarily so token endpoint can find it
         tempUserCache.set(userId, newUser);
 
-        // Don't save to Redis/Main Memory yet
+        // Don't save to DB/Redis yet
         return newUser;
     }
-    async saveUserProfile(user: UserProfile) {
+
+    async saveUserProfile(userProfile: UserProfile) {
+        userProfile.last_active_at = Date.now();
+        try {
+            const user = this.userRepository.create(userProfile);
+            await this.userRepository.save(user);
+            console.log(`[USER] Profile saved/updated in DB: ${user.id}`);
+        } catch (error) {
+            console.error('[USER] DB error saving profile:', error);
+        }
+
         if (checkRedisAvailability()) {
             const redis = getRedisClient();
             if (redis) {
                 try {
-                    await redis.hmset(`user:${user.id}`, {
-                        username: user.username,
-                        avatar: user.avatar,
-                        gender: user.gender,
-                        profile_completed: user.profile_completed.toString(),
-                        is_claimed: user.is_claimed.toString(),
-                        created_at: user.created_at.toString(),
-                        ...(user.country && { country: user.country }),
-                        ...(user.city && { city: user.city }),
-                        ...(user.region && { region: user.region }),
-                        ...(user.lat && { lat: user.lat.toString() }),
-                        ...(user.lon && { lon: user.lon.toString() }),
-                        ...(user.timezone && { timezone: user.timezone })
+                    await redis.hmset(`user:${userProfile.id}`, {
+                        username: userProfile.username,
+                        avatar: userProfile.avatar,
+                        gender: userProfile.gender,
+                        profile_completed: userProfile.profile_completed.toString(),
+                        is_claimed: userProfile.is_claimed.toString(),
+                        created_at: userProfile.created_at.toString(),
+                        ...(userProfile.country && { country: userProfile.country }),
+                        ...(userProfile.city && { city: userProfile.city }),
+                        ...(userProfile.region && { region: userProfile.region }),
+                        ...(userProfile.lat && { lat: userProfile.lat.toString() }),
+                        ...(userProfile.lon && { lon: userProfile.lon.toString() }),
+                        ...(userProfile.timezone && { timezone: userProfile.timezone }),
+                        ...(userProfile.last_ip && { last_ip: userProfile.last_ip }),
+                        ...(userProfile.device_id && { device_id: userProfile.device_id }),
+                        last_active_at: (userProfile.last_active_at || Date.now()).toString()
                     });
 
                     // Register existence
-                    await this.registerUser(user.id);
+                    await this.registerUser(userProfile.id);
                 } catch (error) {
                     console.error('[USER] Redis error saving profile:', error);
                 }
             }
         }
-        userProfilesMemory.set(user.id, user);
+        userProfilesMemory.set(userProfile.id, userProfile);
     }
 
     /**
@@ -385,6 +441,28 @@ class UserService {
             }
         }
         return sessionMemory.get(sid) || null;
+    }
+
+    /**
+     * Clean up ghost users (unclaimed profiles inactive for X days)
+     */
+    async cleanupGhostUsers(olderThanDays: number = 7) {
+        const threshold = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
+        try {
+            const result = await this.userRepository
+                .createQueryBuilder()
+                .delete()
+                .from(User)
+                .where('is_claimed = :isClaimed', { isClaimed: false })
+                .andWhere('last_active_at < :threshold', { threshold })
+                .execute();
+
+            if (result.affected && result.affected > 0) {
+                console.log(`[USER] 🧹 Cleaned up ${result.affected} ghost users older than ${olderThanDays} days`);
+            }
+        } catch (error) {
+            console.error('[USER] ❌ Error cleaning up ghost users:', error);
+        }
     }
 }
 

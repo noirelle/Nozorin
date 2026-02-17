@@ -10,7 +10,7 @@ export const authController = {
     async guestLogin(req: Request, res: Response) {
         console.log('[AUTH] guestLogin request received');
         try {
-            const { gender, agreed, sessionId, footprint } = req.body;
+            const { gender, agreed, sessionId, footprint, deviceId } = req.body;
 
             // robust IP extraction
             const xForwardedFor = req.headers['x-forwarded-for'];
@@ -30,17 +30,29 @@ export const authController = {
                 return res.status(400).json({ error: 'Cannot determine IP address' });
             }
 
-            // Create or retrieve guest user
-            const createUserDto: CreateUserDto = {
-                gender,
-                agreed,
-                ip: cleanIp,
-                sessionId,
-                footprint
-            };
+            // 1. Check for existing unclaimed guest profile to prevent ghosting/spam
+            let user = await userService.findExistingGuest(cleanIp, deviceId);
 
-            const user = await userService.createGuestUser(createUserDto);
-            console.log(`[AUTH] Guest user created: ${user?.id}`);
+            if (user) {
+                console.log(`[AUTH] Reusing existing guest profile: ${user.id}`);
+                // Refresh activity on reuse
+                user.last_active_at = Date.now();
+                // Optionally update device_id if it was null before
+                if (deviceId && !user.device_id) user.device_id = deviceId;
+                await userService.saveUserProfile(user); // Persist the updated last_active_at and device_id
+            } else {
+                // 2. Create new guest user if none found
+                const createUserDto: CreateUserDto = {
+                    gender,
+                    agreed,
+                    ip: cleanIp,
+                    deviceId,
+                    sessionId,
+                    footprint
+                };
+                user = await userService.createGuestUser(createUserDto);
+                console.log(`[AUTH] New guest user created: ${user.id}`);
+            }
 
             return res.status(200).json({
                 user,
@@ -66,15 +78,12 @@ export const authController = {
             // If not found in main storage, check temp cache
             if (!user) {
                 user = userService.getTempUser(chatIdentityId) || null;
-                if (user) {
-                    // It's a new guest user confirming their session. Now save them for real.
-                    await userService.saveUserProfile(user);
+            }
 
-                    // Also save IP mapping and footprint if needed?
-                    // Ideally we should have passed IP/footprint to saveUserProfile or stored it in tempUser
-                    // For now, saveUserProfile saves basic profile.
-                    // We might need to handle IP mapping separately or add it to saveUserProfile logic if critical.
-                }
+            if (user) {
+                // Ensure profile is marked as unclaimed and persisted to MySQL
+                user.is_claimed = false;
+                await userService.saveUserProfile(user);
             }
 
             if (!user) {

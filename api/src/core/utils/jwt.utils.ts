@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'a3f9c1e2b47d8e9f0a1b2c3d4e5f67890123456789abcdef0123456789abcd';
-const JWT_EXPIRY = '30d'; // 30 days for visitor tokens
+const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_EXPIRY = process.env.JWT_EXPIRY!;
 
 export type UserType = 'guest' | 'authenticated';
 
@@ -22,7 +22,7 @@ export const generateVisitorToken = (userType: UserType = 'guest'): string => {
         createdAt: Date.now(),
     };
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY as any });
 };
 
 /**

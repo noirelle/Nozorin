@@ -10,9 +10,27 @@ services:
     volumes:
       - ./api:/app
     command: npm run dev
+    env_file:
+      - ./api/.env.local
     environment:
-      - PORT=3001
-    container_name: api
+      - DB_HOST=db
+    container_name: nozorin_api
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: nozorin_db
+      MYSQL_USER: nozorin
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    container_name: nozorin_db
 
   ui:
     build:
@@ -23,6 +41,11 @@ services:
     volumes:
       - ./ui:/app
     command: npm run dev
+    env_file:
+      - ./ui/.env.local
     environment:
       - PORT=3000
-    container_name: ui
+    container_name: nozorin_ui
+
+volumes:
+  mysql_data:

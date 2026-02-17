@@ -1,9 +1,24 @@
-
+import 'reflect-metadata';
 import 'dotenv/config';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
 import app from './app';
 import { handleSocketConnection } from './socket/connection';
+import { initDatabase } from './core/config/database.config';
+
+// Initialize Database
+initDatabase()
+    .then(() => {
+        // Run initial cleanup on startup
+        import('./modules/user/user.service').then(({ userService }) => {
+            userService.cleanupGhostUsers(7); // Clean up users older than 7 days
+            // Run cleanup every 24 hours
+            setInterval(() => userService.cleanupGhostUsers(7), 24 * 60 * 60 * 1000);
+        });
+    })
+    .catch(err => {
+        console.error('Failed to initialize database:', err);
+    });
 
 const server = http.createServer(app);
 const io = new Server(server, {
