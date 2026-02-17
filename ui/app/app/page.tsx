@@ -237,6 +237,7 @@ export default function AppPage() {
                 onConnectionChange={setIsConnected}
                 onAddFriend={handleAddFriend}
                 friends={friends}
+                pendingRequests={pendingRequests}
             />
 
             {/* Global Overlays */}
@@ -255,6 +256,7 @@ export default function AppPage() {
                 onCall={(targetId: string) => initiateCall(targetId, 'voice')}
                 onAddFriend={handleAddFriend}
                 friends={friends}
+                pendingRequests={pendingRequests}
                 isConnected={isConnected}
             />
 

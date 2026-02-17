@@ -77,6 +77,7 @@ interface HistoryDrawerProps {
     onCall: (targetUserId: string) => void;
     onAddFriend: (targetUserId: string) => void;
     friends: any[];
+    pendingRequests: any[];
     isConnected: boolean;
 }
 
@@ -92,6 +93,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onCall,
     onAddFriend,
     friends,
+    pendingRequests,
     isConnected,
 }) => {
     const hasLoadedRef = useRef(false);
@@ -204,17 +206,19 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0">
-                                        {session.partnerId && !friends.some(f => f.id === session.partnerId) && (
-                                            <button
-                                                onClick={() => session.partnerId && onAddFriend(session.partnerId)}
-                                                title="Add Friend"
-                                                className="w-9 h-9 rounded-full border border-slate-100 bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-[#FF0055] hover:border-pink-100 flex items-center justify-center transition-all"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                                                </svg>
-                                            </button>
-                                        )}
+                                        {session.partnerId &&
+                                            !friends.some(f => f.id === session.partnerId) &&
+                                            !pendingRequests.some(r => r.senderId === session.partnerId || r.receiverId === session.partnerId) && (
+                                                <button
+                                                    onClick={() => session.partnerId && onAddFriend(session.partnerId)}
+                                                    title="Add Friend"
+                                                    className="w-9 h-9 rounded-full border border-slate-100 bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-[#FF0055] hover:border-pink-100 flex items-center justify-center transition-all"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                                    </svg>
+                                                </button>
+                                            )}
 
                                         <button
                                             onClick={() => session.partnerId && onCall(session.partnerId)}

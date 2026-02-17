@@ -37,8 +37,12 @@ export const useFriends = (socket: any, token: string | null) => {
         const response = await api.post<any>('/api/friends/request', { receiverId }, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return { success: !response.error, error: response.error };
-    }, [token]);
+        if (!response.error) {
+            fetchPendingRequests(); // Refresh so it shows in 'sent'
+            return { success: true };
+        }
+        return { success: false, error: response.error };
+    }, [token, fetchPendingRequests]);
 
     const acceptRequest = useCallback(async (requestId: string) => {
         if (!token) return { success: false, error: 'Not authenticated' };
@@ -90,12 +94,19 @@ export const useFriends = (socket: any, token: string | null) => {
 
         const handleRequestReceived = (data: any) => {
             console.log('[FRIENDS] Friend request received:', data);
-            setPendingRequests(prev => [data, ...prev]);
+            setPendingRequests(prev => {
+                if (prev.find(r => r.id === data.id)) return prev;
+                return [data, ...prev];
+            });
         };
 
         const handleRequestAccepted = (data: any) => {
             console.log('[FRIENDS] Friend request accepted:', data);
-            setFriends(prev => [data.friend, ...prev]);
+            setFriends(prev => {
+                if (prev.find(f => f.id === data.friend.id)) return prev;
+                return [data.friend, ...prev];
+            });
+            setPendingRequests(prev => prev.filter(r => r.id !== data.requestId));
         };
 
         socket.on('friend-request-received', handleRequestReceived);

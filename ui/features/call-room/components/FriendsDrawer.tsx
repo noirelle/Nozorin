@@ -160,33 +160,37 @@ export const FriendsDrawer: React.FC<FriendsDrawerProps> = ({
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                                                <img src={request.sender?.avatar} alt={request.sender?.username} className="w-full h-full object-cover" />
+                                                <img src={request.profile?.avatar} alt={request.profile?.username} className="w-full h-full object-cover" />
                                             </div>
                                             <div className="flex flex-col min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-bold text-slate-800 truncate">{request.sender?.username}</span>
-                                                    {request.sender?.countryCode && (
-                                                        <ReactCountryFlag countryCode={request.sender.countryCode} svg className="w-3 h-2" />
+                                                    <span className="text-sm font-bold text-slate-800 truncate">{request.profile?.username}</span>
+                                                    {request.profile?.countryCode && (
+                                                        <ReactCountryFlag countryCode={request.profile.countryCode} svg className="w-3 h-2" />
                                                     )}
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 font-medium">Wants to be your friend</span>
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {request.type === 'sent' ? 'Friend request sent' : 'Wants to be your friend'}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => onDeclineRequest(request.id)}
-                                                className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-bold hover:bg-slate-100 transition-colors"
-                                            >
-                                                Decline
-                                            </button>
-                                            <button
-                                                onClick={() => onAcceptRequest(request.id)}
-                                                className="px-3 py-1.5 rounded-xl bg-[#FF0055] text-white text-[10px] font-bold hover:bg-[#E6004D] transition-colors shadow-sm"
-                                            >
-                                                Accept
-                                            </button>
-                                        </div>
+                                        {request.type === 'received' && (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => onDeclineRequest(request.id)}
+                                                    className="px-3 py-1.5 rounded-xl bg-slate-50 text-slate-500 text-[10px] font-bold hover:bg-slate-100 transition-colors"
+                                                >
+                                                    Decline
+                                                </button>
+                                                <button
+                                                    onClick={() => onAcceptRequest(request.id)}
+                                                    className="px-3 py-1.5 rounded-xl bg-[#FF0055] text-white text-[10px] font-bold hover:bg-[#E6004D] transition-colors shadow-sm"
+                                                >
+                                                    Accept
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>

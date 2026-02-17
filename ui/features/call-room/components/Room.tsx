@@ -24,6 +24,7 @@ interface RoomProps {
     initialMatchData?: any;
     onAddFriend: (targetId: string) => void;
     friends: any[];
+    pendingRequests: any[];
 }
 
 export default function Room({
@@ -34,7 +35,8 @@ export default function Room({
     onConnectionChange,
     initialMatchData,
     onAddFriend,
-    friends
+    friends,
+    pendingRequests
 }: RoomProps) {
     // 1. Core State & Framework Hooks
     const socket = getSocket() as Socket | null;
@@ -178,6 +180,7 @@ export default function Room({
                 onNavigateToFriends={onNavigateToFriends}
                 onAddFriend={onAddFriend}
                 friends={friends}
+                pendingRequests={pendingRequests}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
                 matchmakingStatus={actions.matching.status}
@@ -205,6 +208,7 @@ export default function Room({
                 onNavigateToFriends={onNavigateToFriends}
                 onAddFriend={onAddFriend}
                 friends={friends}
+                pendingRequests={pendingRequests}
                 selectedCountry={selectedCountry}
                 onSelectCountry={setSelectedCountry}
                 matchmakingStatus={actions.matching.status}

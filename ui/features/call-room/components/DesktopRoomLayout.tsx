@@ -22,6 +22,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     onNavigateToFriends,
     onAddFriend,
     friends = [],
+    pendingRequests = [],
     selectedCountry,
     queuePosition,
     isReconnecting,
@@ -204,10 +205,22 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                     {isConnected && (
                                         <button
                                             onClick={() => callRoomState.partnerId && onAddFriend && onAddFriend(callRoomState.partnerId)}
-                                            disabled={friends.some(f => f.id === callRoomState.partnerId)}
-                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === callRoomState.partnerId) ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'}`}
+                                            disabled={
+                                                friends.some(f => f.id === callRoomState.partnerId) ||
+                                                pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                            }
+                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === callRoomState.partnerId)
+                                                ? 'bg-emerald-500 hover:bg-emerald-600'
+                                                : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                    ? 'bg-slate-400 cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'
+                                                }`}
                                         >
-                                            {friends.some(f => f.id === callRoomState.partnerId) ? 'FRIENDS' : 'ADD FRIEND'}
+                                            {friends.some(f => f.id === callRoomState.partnerId)
+                                                ? 'FRIENDS'
+                                                : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                    ? 'PENDING'
+                                                    : 'ADD FRIEND'}
                                         </button>
                                     )}
                                 </div>

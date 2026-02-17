@@ -17,16 +17,19 @@ export const friendController = {
 
         try {
             const request = await friendService.sendRequest(userId, receiverId);
+            const senderProfile = await userService.getUserProfile(userId);
 
             // Notify receiver if online
             const receiverSocketId = userService.getSocketId(receiverId);
             if (receiverSocketId) {
-                const senderProfile = await userService.getUserProfile(userId);
                 io.to(receiverSocketId).emit('friend-request-received', {
-                    requestId: request.id,
-                    sender: senderProfile
+                    ...request,
+                    profile: senderProfile,
+                    type: 'received'
                 });
-                console.log(`[FRIEND] Notified user ${receiverId} of friend request from ${userId}`);
+                console.log(`[FRIEND] Notified user ${receiverId} of friend request from ${userId} (Socket: ${receiverSocketId})`);
+            } else {
+                console.log(`[FRIEND] Receiver ${receiverId} is offline, no socket notification sent`);
             }
 
             return res.status(201).json(request);

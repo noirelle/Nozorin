@@ -150,20 +150,26 @@ class FriendService {
      */
     async getPendingRequests(userId: string) {
         const requests = await this.requestRepository.find({
-            where: { receiverId: userId, status: 'pending' },
+            where: [
+                { receiverId: userId, status: 'pending' },
+                { senderId: userId, status: 'pending' }
+            ],
             order: { created_at: 'DESC' }
         });
 
         if (requests.length === 0) return [];
 
-        const senderIds = requests.map(r => r.senderId);
         const profiles = await Promise.all(
-            senderIds.map(id => userService.getUserProfile(id))
+            requests.map(r => {
+                const targetId = r.senderId === userId ? r.receiverId : r.senderId;
+                return userService.getUserProfile(targetId);
+            })
         );
 
         return requests.map((req, index) => ({
             ...req,
-            sender: profiles[index]
+            profile: profiles[index], // Use generic 'profile' field
+            type: req.senderId === userId ? 'sent' : 'received'
         }));
     }
 }
