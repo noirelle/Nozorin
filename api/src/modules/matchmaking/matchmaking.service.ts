@@ -1,6 +1,6 @@
 
 import { Socket, Server } from 'socket.io';
-import { User } from '../types';
+import { User } from '../../shared/types/socket.types';
 import {
     voiceQueue,
     voiceBuckets,
@@ -9,9 +9,9 @@ import {
     connectedUsers,
     userMediaState,
     removeUserFromQueues
-} from './users';
-import { statsService } from '../services/statsService';
-import { userService } from '../services/userService';
+} from '../../socket/users';
+import { statsService } from '../stats/stats.service';
+import { userService } from '../user/user.service';
 
 // --- CONFIGURATION ---
 

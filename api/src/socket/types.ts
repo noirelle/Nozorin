@@ -1,5 +1,5 @@
 
-import { User, Room } from '../types';
+import { User, Room } from '../shared/types/socket.types';
 
 export type { User, Room };
 

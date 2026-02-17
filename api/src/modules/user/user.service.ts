@@ -1,6 +1,6 @@
 
-import { getRedisClient, checkRedisAvailability } from '../config/redis';
-import { CreateUserDto, UserProfile } from '../types';
+import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
+import { CreateUserDto, UserProfile } from '../../shared/types/user.types';
 import geoip from 'geoip-lite';
 import { v4 as uuidv4 } from 'uuid';
 

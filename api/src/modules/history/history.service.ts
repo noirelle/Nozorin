@@ -1,4 +1,4 @@
-import { getRedisClient, checkRedisAvailability } from '../config/redis';
+import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
 
 const REDIS_TTL = process.env.REDIS_TTL ? parseInt(process.env.REDIS_TTL) : 604800; // 7 days in seconds
 
@@ -199,7 +199,7 @@ class HistoryService {
                 try {
                     // Get from Redis list
                     const sessions = await redis.lrange(key, 0, limit - 1);
-                    const parsed = sessions.map(s => JSON.parse(s) as SessionRecord);
+                    const parsed = sessions.map((s: string) => JSON.parse(s) as SessionRecord);
                     console.log(`[HISTORY] Retrieved ${parsed.length} sessions from Redis for user ${userId}`);
                     return parsed;
                 } catch (error) {

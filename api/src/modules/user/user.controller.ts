@@ -1,7 +1,7 @@
 
 import { Request, Response } from 'express';
-import { userService } from '../services/userService';
-import { getRedisClient } from '../config/redis';
+import { userService } from './user.service';
+import { getRedisClient } from '../../core/config/redis.config';
 
 // Add userId to Request type definition (no longer used, but kept for reference if needed elsewhere or remove completely)
 

@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
-import { historyService, SessionStart } from '../services/historyService';
-import { getUserIdFromToken } from '../utils/jwtUtils';
+import { historyService, SessionStart } from '../modules/history/history.service';
+import { getUserIdFromToken } from '../core/utils/jwt.utils';
 import { connectedUsers, activeCalls } from './users';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,7 +12,7 @@ const activeSessions = new Map<string, {
     mode: 'chat' | 'voice';
 }>();
 
-import { userService } from '../services/userService';
+import { userService } from '../modules/user/user.service';
 import { broadcastUserStatus } from './status';
 
 /**

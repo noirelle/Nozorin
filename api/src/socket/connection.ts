@@ -1,7 +1,6 @@
-
 import { Server, Socket } from 'socket.io';
-import { getGeoInfo } from '../utils/geo';
-import { statsService } from '../services/statsService';
+import { getGeoInfo } from '../core/utils/geo.utils';
+import { statsService } from '../modules/stats/stats.service';
 import {
     connectedUsers,
     activeUsers,
@@ -12,13 +11,13 @@ import {
 } from './users';
 import { handleMediaEvents } from './media';
 import { handleSignalingEvents } from './signaling';
-import { handleMatchmaking, setupMatchmaking, handleMatchmakingDisconnect } from './matchmaking';
+import { handleMatchmaking, setupMatchmaking, handleMatchmakingDisconnect } from '../modules/matchmaking/matchmaking.service';
 import { handleDirectCall } from './directCall';
 import { handleHistoryEvents } from './history';
 import { handleUserTracking, cleanupUserSession } from './tracking';
 import { handleStatusEvents, broadcastUserStatus } from './status';
 
-import { userService } from '../services/userService';
+import { userService } from '../modules/user/user.service';
 
 export const handleSocketConnection = (io: Server, socket: Socket) => {
     setupMatchmaking(io);

@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
 import { api } from '../../../../lib/api';
-import { AnonymousLoginRequest } from '../../../../types/api';
+import { AnonymousLoginRequest, AnonymousLoginResponse } from '../../../../types/api';
 
 export async function POST(req: Request) {
     try {
         const body: AnonymousLoginRequest = await req.json();
         const { chatIdentityId } = body;
 
-        const { error, data, status, headers } = await api.post('/api/anonymous', {
+        const { error, data, status, headers } = await api.post<AnonymousLoginResponse>('/api/anonymous', {
             chatIdentityId
         });
 
-        if (error) {
-            return NextResponse.json({ error }, { status: status || 500 });
+        if (error || !data) {
+            return NextResponse.json({ error: error || 'Failed to authenticate' }, { status: status || 500 });
         }
 
         const response = NextResponse.json(data);

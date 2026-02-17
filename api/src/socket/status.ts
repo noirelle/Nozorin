@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { userService, UserStatus } from '../services/userService';
+import { userService, UserStatus } from '../modules/user/user.service';
 
 /**
  * Handle user status-related events (watching, broadcasting)

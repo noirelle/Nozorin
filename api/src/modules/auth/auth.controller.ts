@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { userService } from '../services/userService';
-import { generateUserToken } from '../utils/jwtUtils';
-import { CreateUserDto } from '../types';
+import { userService } from '../user/user.service';
+import { generateUserToken } from '../../core/utils/jwt.utils';
+import { CreateUserDto } from '../../shared/types/user.types';
 import { v4 as uuidv4 } from 'uuid';
-import { getRedisClient } from '../config/redis';
+import { getRedisClient } from '../../core/config/redis.config';
+
 
 export const authController = {
     async guestLogin(req: Request, res: Response) {
@@ -80,14 +81,25 @@ export const authController = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
+            // Sync with Supabase asynchronously
+            // supabaseService.syncProfile({
+            //     id: user.id,
+            //     username: user.username,
+            //     display_name: user.username || 'Guest',
+            //     avatar_url: user.avatar,
+            //     country: user.country || null,
+            //     city: user.city || null,
+            //     timezone: user.timezone || null,
+            //     is_claimed: false,
+            //     is_anonymous: true
+            // }).catch(err => console.error('[AUTH] Supabase sync failure:', err));
+
             // Generate JWT with 24h expiry
             const token = generateUserToken(user.id, '24h');
 
             // Generate session ID
             const sid = uuidv4();
 
-            // Store session in Redis
-            // Store session (Redis with fallback)
             await userService.saveSession(sid, user.id, 24 * 60 * 60);
 
             // Set cookie
@@ -98,11 +110,11 @@ export const authController = {
                 maxAge: 24 * 60 * 60 * 1000 // 24h
             });
 
-            // Generate a short request ID
+
             const requestId = Math.random().toString(36).substring(2, 10);
 
             return res.status(201).json({
-                userId: user.id,
+                id: user.id,
                 token,
                 expiresIn: '24h',
                 chatIdentityLinked: true,

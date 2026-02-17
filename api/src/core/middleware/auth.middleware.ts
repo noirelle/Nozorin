@@ -1,7 +1,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getRedisClient } from '../config/redis';
+import { getRedisClient } from '../config/redis.config';
 
 const JWT_SECRET = process.env.JWT_SECRET || "";
 

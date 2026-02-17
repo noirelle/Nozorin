@@ -18,7 +18,7 @@ export interface AnonymousLoginRequest {
 }
 
 export interface AnonymousLoginResponse {
-    userId: string;
+    id: string;
     token: string;
     expiresIn: string;
     chatIdentityLinked: boolean;

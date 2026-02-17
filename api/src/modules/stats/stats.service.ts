@@ -1,5 +1,5 @@
 
-import { getRedisClient, checkRedisAvailability } from '../config/redis';
+import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
 
 interface Stats {
     peopleOnline: number;

@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
-import { historyService } from '../services/historyService';
-import { getUserIdFromToken } from '../utils/jwtUtils';
-import { userService } from '../services/userService';
+import { historyService } from '../modules/history/history.service';
+import { getUserIdFromToken } from '../core/utils/jwt.utils';
+import { userService } from '../modules/user/user.service';
 
 /**
  * Handle history-related socket events

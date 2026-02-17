@@ -1,6 +1,6 @@
 
 import { Server, Socket } from 'socket.io';
-import { userService } from '../services/userService';
+import { userService } from '../modules/user/user.service';
 import { activeCalls, removeUserFromQueues, connectedUsers, userMediaState } from './users';
 
 export const handleDirectCall = (io: Server, socket: Socket) => {
