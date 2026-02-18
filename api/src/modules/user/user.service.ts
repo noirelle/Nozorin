@@ -311,7 +311,26 @@ class UserService {
                 where: { last_ip: ip, is_claimed: false },
                 order: { last_active_at: 'DESC' }
             });
-            if (user) return user as UserProfile;
+
+            if (user) {
+                // Smart Fallback with Online Status Check:
+                // 1. If user is found by IP and has a DIFFERENT device_id:
+                if (deviceId && user.device_id && user.device_id !== deviceId) {
+
+                    // Check if the existing user is currently ONLINE.
+                    // If ONLINE -> It's a different device active right now (e.g. sibling).
+                    // We should NOT hijack. -> Create NEW user.
+                    const status = await this.getUserStatus(user.id);
+                    if (status.isOnline) {
+                        return null;
+                    }
+
+                    // If OFFLINE -> It's likely the same user after clearing storage/cookies.
+                    // We ALLOW recovery/fallback.
+                }
+
+                return user as UserProfile;
+            }
 
         } catch (error) {
             console.error('[USER] DB error finding existing guest:', error);
