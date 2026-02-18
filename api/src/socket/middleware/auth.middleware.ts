@@ -16,6 +16,8 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: Error) => void
 
     if (!token) {
         // Allow unauthenticated connection (guest/home page)
+        // Mark as guest in socket data for later reference if needed
+        socket.data.isGuest = true;
         return next();
     }
 
