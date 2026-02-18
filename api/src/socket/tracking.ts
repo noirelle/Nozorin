@@ -30,15 +30,6 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         const userId = getUserIdFromToken(token);
         if (!userId) return;
 
-        const existingSocketId = userService.getSocketId(userId);
-
-        // Check for conflict: user already connected on ANOTHER socket
-        if (existingSocketId && existingSocketId !== socket.id) {
-            console.log(`[TRACKING] Conflict detected for user ${userId.substring(0, 8)}... (New: ${socket.id}, Old: ${existingSocketId})`);
-            socket.emit('session-conflict', { message: 'Existing session detected.' });
-            return;
-        }
-
         // No conflict, proceed with identification
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);

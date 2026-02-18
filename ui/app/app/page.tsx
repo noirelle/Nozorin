@@ -9,14 +9,12 @@ import { useHistory, useUser, useDirectCall, useFriends } from '@/hooks';
 import { socket } from '@/lib/socket';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
-import { MultiSessionOverlay } from '@/features/auth/components/MultiSessionOverlay';
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 
 export default function AppPage() {
     const router = useRouter();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isFriendsOpen, setIsFriendsOpen] = useState(false);
-    const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
 
@@ -26,28 +24,6 @@ export default function AppPage() {
 
     // History hooks
     const { token, ensureToken, user, isChecking, refreshUser } = useUser();
-
-    const handleForceReconnect = useCallback(() => {
-        const s = socket();
-        if (s && token) {
-            console.log('[App] Forcing reconnect...');
-
-            if (!s.connected) {
-                s.connect();
-            }
-
-            s.emit('force-reconnect', { token });
-
-            setTimeout(() => {
-                if (sessionError) {
-                    console.log('[App] Reconnect timeout, reloading page...');
-                    window.location.reload();
-                }
-            }, 3000);
-
-            setSessionError(null);
-        }
-    }, [token, sessionError]);
 
     const {
         history,
@@ -125,55 +101,84 @@ export default function AppPage() {
             setDirectMatchData(data);
         };
 
-        const handleMultiSession = () => {
-            console.warn('[App] Multi-session detected (kicked), blocking UI...');
-            setSessionError('kicked');
-        };
-
-        const handleSessionConflict = () => {
-            console.warn('[App] Session conflict detected (new tab), blocking UI...');
-            setSessionError('conflict');
-        };
-
         const handleIdentifySuccess = () => {
             console.log('[App] Identification successful');
-            setSessionError(null);
+        };
+
+        const handleAuthError = (error: any) => {
+            console.error('[App] Socket authentication error:', error);
+            // Handle auth error, e.g., clear token, redirect to login
+            // For now, just log it.
         };
 
         s.on('match-found', handleMatchFound);
-        s.on('multi-session', handleMultiSession);
-        s.on('session-conflict', handleSessionConflict);
         s.on('identify-success', handleIdentifySuccess);
+        s.on('auth-error', handleAuthError);
 
         return () => {
             s.off('match-found', handleMatchFound);
-            s.off('multi-session', handleMultiSession);
-            s.off('session-conflict', handleSessionConflict);
             s.off('identify-success', handleIdentifySuccess);
+            s.off('auth-error', handleAuthError);
         };
     }, []); // Run once on mount
 
     // Identify user to socket
     useEffect(() => {
-        const s = socket();
+        // Ensure socket is initialized with token
+        const s = socket(token);
         if (!s) return;
+
+        // If we have a token but socket is disconnected, connect now
+        if (token && !s.connected) {
+            console.log('[App] Connecting socket with token...');
+            s.connect();
+        }
 
         const identify = () => {
             if (token) {
                 console.log('[App] Identifying socket...', s.id);
+                // We still keep this for backward compatibility or explicit identification if needed,
+                // but the middleware handles the main auth now.
                 s.emit('user-identify', { token });
             }
         };
 
-        identify();
+        const handleAuthError = async (err: any) => {
+            console.error('[App] Socket authentication error:', err);
+            // If error is related to expiration, try to refresh
+            if (err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired') {
+                console.log('[App] Token invalid/expired, attempting refresh...');
+                const newToken = await refreshUser();
+                if (newToken) {
+                    console.log('[App] Refresh successful, updating socket token...');
+                    // Update socket auth for future reconnections
+                    socket(newToken);
+                    // Emit update-token to keep current connection alive if possible
+                    s.emit('update-token', { token: newToken });
+                } else {
+                    console.warn('[App] Refresh failed, disconnecting socket.');
+                    s.disconnect();
+                }
+            }
+        };
+
+        const handleTokenUpdated = (data: { success: boolean }) => {
+            if (data.success) {
+                console.log('[App] Socket token updated successfully (Graceful Refresh)');
+            }
+        };
+
+        if (s.connected && token) {
+            identify();
+        }
 
         const onFocus = () => {
             console.log('[App] Re-verifying session on focus...');
-            identify();
+            if (s.connected && token) identify();
         };
 
         const interval = setInterval(() => {
-            if (s.connected && !sessionError) {
+            if (s.connected && token) {
                 identify();
             }
         }, 10000);
@@ -186,16 +191,22 @@ export default function AppPage() {
         };
 
         s.on('connect', identify);
+        s.on('auth-error', handleAuthError);
+        s.on('token-updated', handleTokenUpdated);
+
         window.addEventListener('focus', onFocus);
         window.addEventListener('storage', onStorageChange);
 
         return () => {
             s.off('connect', identify);
+            s.off('auth-error', handleAuthError);
+            s.off('token-updated', handleTokenUpdated);
+
             window.removeEventListener('focus', onFocus);
             window.removeEventListener('storage', onStorageChange);
             clearInterval(interval);
         };
-    }, [token, sessionError]);
+    }, [token, refreshUser]);
 
     // Also ensure token on mount so we can join room logic
     useEffect(() => {
@@ -294,12 +305,7 @@ export default function AppPage() {
                 />
             )}
 
-            {sessionError && (
-                <MultiSessionOverlay
-                    onReconnect={handleForceReconnect}
-                    reason={sessionError}
-                />
-            )}
+
         </main>
     );
 }

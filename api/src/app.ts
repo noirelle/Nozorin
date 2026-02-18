@@ -5,12 +5,17 @@ import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
 import friendRoutes from './modules/friend/friend.routes';
 
+import cookieParser from 'cookie-parser';
+
+// ... other imports
+
 const app = express();
 
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json());
 
 app.use('/api', authRoutes);

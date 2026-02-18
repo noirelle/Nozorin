@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../lib/api';
 
 export const useFriends = (socket: any, token: string | null) => {
@@ -7,28 +7,48 @@ export const useFriends = (socket: any, token: string | null) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Refs to track in-flight requests and prevent duplicate calls (e.g. during token refresh)
+    const isFetchingFriends = useRef(false);
+    const isFetchingPending = useRef(false);
+
     const fetchFriends = useCallback(async () => {
         if (!token) return;
+        // Prevent duplicate calls if already fetching
+        if (isFetchingFriends.current) return;
+
+        isFetchingFriends.current = true;
         setIsLoading(true);
-        const response = await api.get<any[]>('/api/friends/list', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data) {
-            setFriends(response.data);
-            setError(null);
-        } else {
-            setError(response.error);
+
+        try {
+            const response = await api.get<any[]>('/api/friends/list', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data) {
+                setFriends(response.data);
+                setError(null);
+            } else {
+                setError(response.error);
+            }
+        } finally {
+            setIsLoading(false);
+            isFetchingFriends.current = false;
         }
-        setIsLoading(false);
     }, [token]);
 
     const fetchPendingRequests = useCallback(async () => {
         if (!token) return;
-        const response = await api.get<any[]>('/api/friends/pending', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (response.data) {
-            setPendingRequests(response.data);
+        if (isFetchingPending.current) return;
+
+        isFetchingPending.current = true;
+        try {
+            const response = await api.get<any[]>('/api/friends/pending', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data) {
+                setPendingRequests(response.data);
+            }
+        } finally {
+            isFetchingPending.current = false;
         }
     }, [token]);
 

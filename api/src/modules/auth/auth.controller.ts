@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { userService } from '../user/user.service';
-import { generateUserToken } from '../../core/utils/jwt.utils';
+import { generateUserToken, generateRefreshToken, verifyRefreshToken } from '../../core/utils/jwt.utils';
 import { CreateUserDto } from '../../shared/types/user.types';
 import { v4 as uuidv4 } from 'uuid';
 import { getRedisClient } from '../../core/config/redis.config';
@@ -47,7 +47,6 @@ export const authController = {
                     agreed,
                     ip: cleanIp,
                     deviceId,
-                    sessionId,
                     footprint
                 };
                 user = await userService.createGuestUser(createUserDto);
@@ -90,28 +89,18 @@ export const authController = {
                 return res.status(404).json({ error: 'User not found' });
             }
 
-            // Sync with Supabase asynchronously
-            // supabaseService.syncProfile({
-            //     id: user.id,
-            //     username: user.username,
-            //     display_name: user.username || 'Guest',
-            //     avatar_url: user.avatar,
-            //     country: user.country || null,
-            //     city: user.city || null,
-            //     timezone: user.timezone || null,
-            //     is_claimed: false,
-            //     is_anonymous: true
-            // }).catch(err => console.error('[AUTH] Supabase sync failure:', err));
+            // Generate Access Token (15m)
+            const token = generateUserToken(user.id);
 
-            // Generate JWT with 24h expiry
-            const token = generateUserToken(user.id, '24h');
+            // Generate Refresh Token (7d)
+            const refreshToken = generateRefreshToken(user.id);
 
             // Generate session ID
             const sid = uuidv4();
 
             await userService.saveSession(sid, user.id, 24 * 60 * 60);
 
-            // Set cookie
+            // Set session cookie
             res.cookie('nz_sid', sid, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
@@ -119,13 +108,20 @@ export const authController = {
                 maxAge: 24 * 60 * 60 * 1000 // 24h
             });
 
+            // Set refresh token cookie
+            res.cookie('nz_refresh_token', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7d
+            });
 
             const requestId = Math.random().toString(36).substring(2, 10);
 
             return res.status(201).json({
                 id: user.id,
                 token,
-                expiresIn: '24h',
+                expiresIn: '15m',
                 chatIdentityLinked: true,
                 requestId,
                 profile: {
@@ -139,6 +135,39 @@ export const authController = {
             });
         } catch (error) {
             console.error('[AUTH] Token login error:', error);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+    },
+
+    async refreshToken(req: Request, res: Response) {
+        try {
+            const refreshToken = req.cookies['nz_refresh_token'];
+
+            if (!refreshToken) {
+                return res.status(401).json({ error: 'Refresh token missing' });
+            }
+
+            const payload = verifyRefreshToken(refreshToken);
+            if (!payload || !payload.userId) {
+                return res.status(403).json({ error: 'Invalid refresh token' });
+            }
+
+            // Verify user exists
+            const user = await userService.getUserProfile(payload.userId);
+            if (!user) {
+                return res.status(403).json({ error: 'User not found' });
+            }
+
+            // Generate new access token
+            const newToken = generateUserToken(user.id);
+
+            return res.status(200).json({
+                token: newToken,
+                expiresIn: '15m'
+            });
+
+        } catch (error) {
+            console.error('[AUTH] Refresh token error:', error);
             return res.status(500).json({ error: 'Internal server error' });
         }
     }

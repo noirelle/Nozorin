@@ -16,7 +16,6 @@ interface UseMatchingProps {
     }) => void;
     onMatchCancelled?: (data: { reason: string }) => void;
     onCallEnded?: () => void;
-    onMultiSession?: (message: string) => void;
     onPartnerReconnecting?: (data: { timeoutMs: number }) => void;
     onPartnerReconnected?: (data: { newSocketId: string }) => void;
     onRejoinSuccess?: (data: { partnerId: string; partnerCountry: string; partnerCountryCode: string }) => void;
@@ -28,7 +27,6 @@ export const useMatching = ({
     onMatchFound,
     onMatchCancelled,
     onCallEnded,
-    onMultiSession,
     onPartnerReconnecting,
     onPartnerReconnected,
     onRejoinSuccess,
@@ -42,7 +40,6 @@ export const useMatching = ({
     const onMatchFoundRef = useRef(onMatchFound);
     const onMatchCancelledRef = useRef(onMatchCancelled);
     const onCallEndedRef = useRef(onCallEnded);
-    const onMultiSessionRef = useRef(onMultiSession);
     const onPartnerReconnectingRef = useRef(onPartnerReconnecting);
     const onPartnerReconnectedRef = useRef(onPartnerReconnected);
     const onRejoinSuccessRef = useRef(onRejoinSuccess);
@@ -54,12 +51,11 @@ export const useMatching = ({
         onMatchFoundRef.current = onMatchFound;
         onMatchCancelledRef.current = onMatchCancelled;
         onCallEndedRef.current = onCallEnded;
-        onMultiSessionRef.current = onMultiSession;
         onPartnerReconnectingRef.current = onPartnerReconnecting;
         onPartnerReconnectedRef.current = onPartnerReconnected;
         onRejoinSuccessRef.current = onRejoinSuccess;
         onRejoinFailedRef.current = onRejoinFailed;
-    }, [onMatchFound, onMatchCancelled, onCallEnded, onMultiSession, onPartnerReconnecting, onPartnerReconnected, onRejoinSuccess, onRejoinFailed]);
+    }, [onMatchFound, onMatchCancelled, onCallEnded, onPartnerReconnecting, onPartnerReconnected, onRejoinSuccess, onRejoinFailed]);
 
     // Cleanup reconnect countdown timer
     const clearReconnectTimer = useCallback(() => {
@@ -106,13 +102,6 @@ export const useMatching = ({
             setStatus('IDLE');
             setPosition(null);
             if (onCallEndedRef.current) onCallEndedRef.current();
-        };
-
-        const handleMultiSession = (data: { message: string }) => {
-            console.error('[Matching] Multi-session detected:', data.message);
-            clearReconnectTimer();
-            setStatus('IDLE');
-            if (onMultiSessionRef.current) onMultiSessionRef.current(data.message);
         };
 
         // --- RECONNECT EVENT HANDLERS ---
@@ -167,7 +156,6 @@ export const useMatching = ({
         socket.on('match-cancelled', handleMatchCancelled);
         socket.on('match-found', handleMatchFound);
         socket.on('call-ended', handleCallEnded);
-        socket.on('multi-session', handleMultiSession);
         socket.on('partner-reconnecting', handlePartnerReconnecting);
         socket.on('partner-reconnected', handlePartnerReconnected);
         socket.on('rejoin-success', handleRejoinSuccess);
@@ -180,7 +168,6 @@ export const useMatching = ({
             socket.off('match-cancelled', handleMatchCancelled);
             socket.off('match-found', handleMatchFound);
             socket.off('call-ended', handleCallEnded);
-            socket.off('multi-session', handleMultiSession);
             socket.off('partner-reconnecting', handlePartnerReconnecting);
             socket.off('partner-reconnected', handlePartnerReconnected);
             socket.off('rejoin-success', handleRejoinSuccess);

@@ -30,6 +30,9 @@ export const getBaseApiUrl = (): string => {
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 };
 
+// Module-level promise to deduplicate refresh requests
+let refreshPromise: Promise<string | null> | null = null;
+
 export async function apiRequest<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -71,6 +74,80 @@ export async function apiRequest<T>(
         }
 
         if (!response.ok) {
+            // Interceptor for 401 Unauthorized - Attempt Refresh
+            if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
+                try {
+                    console.log('[API] 401 detected, attempting token refresh...');
+
+                    let newToken: string | null = null;
+
+                    // Deduplicate refresh requests
+                    if (!refreshPromise) {
+                        refreshPromise = (async () => {
+                            try {
+                                const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+                                if (refreshRes.ok) {
+                                    const refreshData = await refreshRes.json();
+                                    return refreshData.token || null;
+                                }
+                                return null;
+                            } catch (e) {
+                                console.error('[API] Refresh request failed:', e);
+                                return null;
+                            } finally {
+                                // Keep promise briefly to allow parallel requests to share it, but clear it eventually? 
+                                // Actually better to clear it immediately after resolution so subsequent 401s (e.g. 1 hour later) can refresh again.
+                                refreshPromise = null;
+                            }
+                        })();
+                    }
+
+                    newToken = await refreshPromise;
+
+                    if (newToken) {
+                        console.log('[API] Token refresh successful, retrying request...');
+                        // Update store
+                        const { useAuthStore } = await import('../stores/useAuthStore');
+                        useAuthStore.getState().setToken(newToken);
+
+                        // Retry original request with new token
+                        const retryHeaders = {
+                            ...headers,
+                            'Authorization': `Bearer ${newToken}`
+                        };
+
+                        const retryResponse = await fetch(url, {
+                            credentials: 'include',
+                            ...options,
+                            headers: retryHeaders
+                        });
+
+                        // Handle retry response
+                        let retryData: any = null;
+                        const retryContentType = retryResponse.headers.get('content-type');
+                        if (retryContentType && retryContentType.includes('application/json')) {
+                            retryData = await retryResponse.json();
+                        }
+
+                        if (retryResponse.ok) {
+                            return {
+                                error: null,
+                                data: retryData as T,
+                                status: retryResponse.status,
+                                headers: retryResponse.headers
+                            };
+                        }
+                    } else {
+                        console.warn('[API] Refresh failed, redirecting to login');
+                        // Optional: trigger logout
+                        const { useAuthStore } = await import('../stores/useAuthStore');
+                        useAuthStore.getState().logout();
+                    }
+                } catch (refreshErr) {
+                    console.error('[API] Error during refresh:', refreshErr);
+                }
+            }
+
             return {
                 error: (data && data.error) || `Request failed with status ${response.status}`,
                 data: null,

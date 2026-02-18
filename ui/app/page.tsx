@@ -1,6 +1,8 @@
 
 'use client';
 
+// Force update
+
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -17,43 +19,18 @@ import { useHistory, useUser, useDirectCall } from '../hooks';
 import { socket } from '../lib/socket';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '../features/direct-call/components/OutgoingCallOverlay';
-import { MultiSessionOverlay } from '../features/auth/components/MultiSessionOverlay';
+
 
 export default function Home() {
   const router = useRouter();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [sessionError, setSessionError] = useState<'conflict' | 'kicked' | null>(null);
 
   const handleCloseHistory = useCallback(() => {
     setIsHistoryOpen(false);
   }, []);
 
   // History hooks
-  const { token, ensureToken } = useUser();
-
-  const handleForceReconnect = useCallback(() => {
-    const s = socket();
-    if (s && token) {
-      console.log('[Home] Forcing reconnect...');
-
-      // Ensure socket is connected.
-      if (!s.connected) {
-        s.connect();
-      }
-
-      s.emit('force-reconnect', { token });
-
-      // Fallback: If after 3 seconds we are still in an error state, just reload
-      setTimeout(() => {
-        if (sessionError) {
-          console.log('[Home] Reconnect timeout, reloading page...');
-          window.location.reload();
-        }
-      }, 3000);
-
-      setSessionError(null);
-    }
-  }, [token, sessionError]);
+  const { token, ensureToken, refreshUser } = useUser();
 
   const {
     history,
@@ -98,81 +75,83 @@ export default function Home() {
       router.push('/app');
     };
 
-    const handleMultiSession = () => {
-      console.warn('[Home] Multi-session detected (kicked), blocking UI...');
-      setSessionError('kicked');
-    };
-
-    const handleSessionConflict = () => {
-      console.warn('[Home] Session conflict detected (new tab), blocking UI...');
-      setSessionError('conflict');
-    };
-
     const handleIdentifySuccess = () => {
       console.log('[Home] Identification successful');
-      setSessionError(null);
     };
 
     s.on('match-found', handleMatchFound);
-    s.on('multi-session', handleMultiSession);
-    s.on('session-conflict', handleSessionConflict);
     s.on('identify-success', handleIdentifySuccess);
 
     return () => {
       s.off('match-found', handleMatchFound);
-      s.off('multi-session', handleMultiSession);
-      s.off('session-conflict', handleSessionConflict);
       s.off('identify-success', handleIdentifySuccess);
     };
   }, [router, clearCallState]);
 
-  // Identify user to socket when token is available or socket reconnects
+  // Identify user to socket
   useEffect(() => {
-    const s = socket();
+    const s = socket(token);
     if (!s) return;
+
+    // Ensure we connect (auth is optional for home page stats)
+    if (!s.connected) {
+      s.connect();
+    }
 
     const identify = () => {
       if (token) {
-        console.log('[Home] Identifying socket...', s.id);
         s.emit('user-identify', { token });
       }
     };
 
-    // Run once on load/token change
-    identify();
-
-    // Re-verify on focus (robustness against background tab throttling)
-    const onFocus = () => {
-      console.log('[Home] Re-verifying session on focus...');
-      identify();
+    const handleAuthError = async (err: any) => {
+      if (err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired') {
+        console.log('[Home] Token invalid/expired, attempting refresh...');
+        const newToken = await refreshUser();
+        if (newToken) {
+          socket(newToken);
+          s.emit('update-token', { token: newToken });
+        } else {
+          s.disconnect();
+        }
+      }
     };
 
-    // Periodic check (every 10s) to catch overlaps missed by events
+    if (s.connected && token) {
+      identify();
+    }
+
     const interval = setInterval(() => {
-      if (s.connected && !sessionError) {
+      if (s.connected && token) {
         identify();
       }
     }, 10000);
 
-    // Watch for localStorage changes from other tabs
     const onStorageChange = (e: StorageEvent) => {
       if (e.key === 'nz_token') {
         console.log('[Home] Token changed in another tab, re-identifying...');
-        window.location.reload(); // Hard reset is safest if identity changes
+        window.location.reload();
       }
     };
 
+    const onFocus = () => {
+      console.log('[Home] Re-verifying session on focus...');
+      if (s.connected && token) identify();
+    };
+
     s.on('connect', identify);
+    s.on('auth-error', handleAuthError);
     window.addEventListener('focus', onFocus);
     window.addEventListener('storage', onStorageChange);
 
     return () => {
       s.off('connect', identify);
+      s.off('auth-error', handleAuthError);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('storage', onStorageChange);
       clearInterval(interval);
     };
-  }, [token, sessionError]);
+  }, [token, refreshUser]);
 
   const handleJoin = async () => {
     // Always ensure we have a token before joining
@@ -230,13 +209,6 @@ export default function Home() {
         <OutgoingCallOverlay
           onCancel={cancelCall}
           error={callError}
-        />
-      )}
-
-      {sessionError && (
-        <MultiSessionOverlay
-          onReconnect={handleForceReconnect}
-          reason={sessionError}
         />
       )}
     </main>

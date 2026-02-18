@@ -31,7 +31,13 @@ export const io = new Server(server, {
     pingTimeout: 5000,
 });
 
+import { socketAuthMiddleware } from './socket/middleware/auth.middleware';
+
 // Setup socket handlers
+io.use((socket, next) => {
+    socketAuthMiddleware(socket as any, next);
+});
+
 io.on('connection', (socket) => {
     handleSocketConnection(io, socket);
 });

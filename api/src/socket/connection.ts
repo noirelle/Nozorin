@@ -19,6 +19,8 @@ import { handleStatusEvents, broadcastUserStatus } from './status';
 
 import { userService } from '../modules/user/user.service';
 
+import { verifyVisitorToken } from '../core/utils/jwt.utils';
+
 export const handleSocketConnection = (io: Server, socket: Socket) => {
     setupMatchmaking(io);
     console.log(`[CONNECT] User connected: ${socket.id}`);
@@ -47,25 +49,13 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     // Initialize user media state (unmuted)
     userMediaState.set(socket.id, { isMuted: false });
 
-    // Global middleware for this socket: Block any activity if not identified or if superseded by another tab
-    socket.use(([event, ...args], next) => {
-        // Always allow identification and system events
-        if (event === 'user-identify' || event === 'force-reconnect' || event === 'disconnect' || event === 'stats-update') {
-            return next();
-        }
-
-        const userId = userService.getUserId(socket.id);
-        const masterSocketId = userId ? userService.getSocketId(userId) : null;
-
-        // If not identifying AND (no userId OR another socket is master), block and notify
-        if (!userId || masterSocketId !== socket.id) {
-            console.warn(`[AUTH] Blocked '${event}' from non-authoritative session: ${socket.id}`);
-            socket.emit('multi-session', { message: 'Your session has been superseded or expired.' });
-            return; // Stop processing this event
-        }
-
-        next();
-    });
+    // Auto-register if middleware authenticated the user
+    if (socket.data.user && socket.data.user.userId) {
+        const { userId } = socket.data.user;
+        userService.setUserForSocket(socket.id, userId);
+        userService.registerUser(userId);
+        console.log(`[CONNECT] Auto-registered authenticated user: ${userId}`);
+    }
 
     // Module Handlers
     handleStatusEvents(io, socket);
@@ -75,6 +65,29 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     handleMediaEvents(socket);
     handleHistoryEvents(socket);
     handleUserTracking(io, socket);
+
+    // Handle token update (graceful refresh)
+    socket.on('update-token', (data: { token: string }) => {
+        const payload = verifyVisitorToken(data.token);
+        if (payload) {
+            socket.data.user = {
+                userId: payload.userId,
+                userType: payload.userType
+            };
+
+            // Update mapping in user service
+            userService.setUserForSocket(socket.id, payload.userId);
+            userService.registerUser(payload.userId);
+
+            console.log(`[AUTH] Socket ${socket.id} token updated successfully for user ${payload.userId}`);
+            socket.emit('token-updated', { success: true });
+        } else {
+            console.warn(`[AUTH] Socket ${socket.id} failed to update token: invalid token`);
+            socket.emit('auth-error', { message: 'Invalid token during update' });
+            // Should we disconnect? Maybe give them a chance to retry? Or disconnect after short delay?
+            // For now, let client handle 'auth-error' which triggers refresh flow again.
+        }
+    });
 
     // Text Chat Message
     socket.on('send-message', (data) => {
