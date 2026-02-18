@@ -7,15 +7,15 @@ let redisClient: Redis | null = null;
 let isRedisAvailable = false;
 
 const REDISHOST = process.env.REDISHOST!;
-const REDIS_PORT = parseInt(process.env.REDIS_PORT!, 10);
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD!;
+const REDISPORT = parseInt(process.env.REDISPORT!, 10);
+const REDISPASSWORD = process.env.REDISPASSWORD!;
 
 export const initRedis = (): void => {
     try {
         redisClient = new Redis({
             host: REDISHOST,
-            port: REDIS_PORT,
-            password: REDIS_PASSWORD,
+            port: REDISPORT,
+            password: REDISPASSWORD,
             retryStrategy: (times) => {
                 if (times > 3) {
                     console.error('[REDIS] Max retry attempts reached, falling back to in-memory storage');
