@@ -22,12 +22,12 @@ import { userService } from '../modules/user/user.service';
 
 import { verifyVisitorToken } from '../core/utils/jwt.utils';
 
-export const handleSocketConnection = (io: Server, socket: Socket) => {
+export const handleSocketConnection = async (io: Server, socket: Socket) => {
     setupMatchmaking(io);
     console.log(`[CONNECT] User connected: ${socket.id}`);
 
     const clientIp = getClientIp(socket.request);
-    const geo = getGeoInfo(clientIp);
+    const geo = await getGeoInfo(clientIp);
     const country = geo.name;
     const countryCode = geo.code;
 
