@@ -7,6 +7,7 @@ import {
     GuestRegistrationResponse,
     AnonymousLoginResponse
 } from '../../../types/api';
+import { getBrowserFingerprint } from '../../../utils/fingerprint';
 
 interface UserGuestInput {
     username: string;
@@ -56,10 +57,13 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
 
                 // Step 1: Register Guest
                 const deviceId = getDeviceId();
+                const fingerprint = getBrowserFingerprint();
+
                 const { error: guestError, data: guestData } = await api.post<GuestRegistrationResponse, GuestRegistrationRequest>('/api/auth/guest', {
                     ...data,
                     sessionId,
-                    deviceId
+                    deviceId,
+                    footprint: fingerprint // Map fingerprint to the existing footprint field or new field
                 });
 
                 if (guestError || !guestData) {

@@ -47,6 +47,9 @@ export class User {
     @Column({ nullable: true })
     device_id?: string;
 
+    @Column({ nullable: true })
+    fingerprint?: string;
+
     @Column({ type: 'bigint', default: 0 })
     last_active_at!: number;
 }

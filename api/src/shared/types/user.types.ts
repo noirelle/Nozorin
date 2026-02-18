@@ -1,10 +1,11 @@
 export interface CreateUserDto {
-    gender: string;
+    gender: 'male' | 'female' | 'other';
     agreed: boolean;
     ip: string;
-    deviceId?: string;
+    deviceId: string;
     sessionId?: string;
-    footprint?: any;
+    footprint?: any; // The raw footprint data from client (if stored separately)
+    fingerprint?: string; // The specific fingerprint hash
 }
 
 export interface UserProfile {
@@ -23,5 +24,6 @@ export interface UserProfile {
     timezone?: string;
     last_ip?: string;
     device_id?: string;
+    fingerprint?: string;
     last_active_at?: number;
 }

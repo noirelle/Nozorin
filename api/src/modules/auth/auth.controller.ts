@@ -31,7 +31,7 @@ export const authController = {
             }
 
             // 1. Check for existing unclaimed guest profile to prevent ghosting/spam
-            let user = await userService.findExistingGuest(cleanIp, deviceId);
+            let user = await userService.findExistingGuest(cleanIp, deviceId, footprint);
 
             if (user) {
                 console.log(`[AUTH] Reusing existing guest profile: ${user.id}`);
@@ -47,7 +47,8 @@ export const authController = {
                     agreed,
                     ip: cleanIp,
                     deviceId,
-                    footprint
+                    footprint,
+                    fingerprint: footprint // Map footprint from request to fingerprint field
                 };
                 user = await userService.createGuestUser(createUserDto);
                 console.log(`[AUTH] New guest user created: ${user.id}`);

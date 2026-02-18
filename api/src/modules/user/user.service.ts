@@ -295,9 +295,9 @@ class UserService {
     /**
      * Find an existing guest profile that hasn't been claimed yet
      */
-    async findExistingGuest(ip: string, deviceId?: string): Promise<UserProfile | null> {
+    async findExistingGuest(ip: string, deviceId?: string, fingerprint?: string): Promise<UserProfile | null> {
         try {
-            // Priority 1: Device ID match
+            // Priority 1: Device ID match (Strongest, survives IP change)
             if (deviceId) {
                 const user = await this.userRepository.findOne({
                     where: { device_id: deviceId, is_claimed: false },
@@ -306,31 +306,32 @@ class UserService {
                 if (user) return user as UserProfile;
             }
 
-            // Priority 2: IP match (fall back if deviceId not provided or not found)
-            const user = await this.userRepository.findOne({
-                where: { last_ip: ip, is_claimed: false },
-                order: { last_active_at: 'DESC' }
-            });
+            // Priority 2: IP + Fingerprint match (Fallback for cleared storage)
+            // survives Local Storage clear, but prevents Same-Network collision
+            if (fingerprint && fingerprint.length > 5) {
+                console.log(`[USER] Attempting recovery via Fingerprint: ${fingerprint.substring(0, 8)}... IP: ${ip}`);
+                const user = await this.userRepository.findOne({
+                    where: { last_ip: ip, fingerprint: fingerprint, is_claimed: false },
+                    order: { last_active_at: 'DESC' }
+                });
 
-            if (user) {
-                // Smart Fallback with Online Status Check:
-                // 1. If user is found by IP and has a DIFFERENT device_id:
-                if (deviceId && user.device_id && user.device_id !== deviceId) {
-
-                    // Check if the existing user is currently ONLINE.
-                    // If ONLINE -> It's a different device active right now (e.g. sibling).
-                    // We should NOT hijack. -> Create NEW user.
+                if (user) {
+                    console.log(`[USER] Found potential match by fingerprint: ${user.id}`);
+                    // Safety: Ensure we aren't hijacking an ACTIVE session from another device
+                    // (e.g. if fingerprint collision occurred, which is rare but possible)
                     const status = await this.getUserStatus(user.id);
-                    if (status.isOnline) {
-                        return null;
+                    if (!status.isOnline) {
+                        console.log(`[USER] Recovery successful for ${user.id}`);
+                        return user as UserProfile;
+                    } else {
+                        console.log(`[USER] Match found but user is ONLINE. Denying recovery.`);
                     }
-
-                    // If OFFLINE -> It's likely the same user after clearing storage/cookies.
-                    // We ALLOW recovery/fallback.
+                } else {
+                    console.log(`[USER] No match found for Fingerprint + IP.`);
                 }
-
-                return user as UserProfile;
             }
+
+            // If neither matches, return null -> New User.
 
         } catch (error) {
             console.error('[USER] DB error finding existing guest:', error);
@@ -369,7 +370,8 @@ class UserService {
             last_active_at: Date.now(),
             last_ip: ip,
             device_id: data.deviceId,
-            ...location
+            ...location,
+            fingerprint: data.fingerprint
         };
 
         // Cache temporarily so token endpoint can find it
@@ -384,7 +386,7 @@ class UserService {
         try {
             const user = this.userRepository.create(userProfile);
             await this.userRepository.save(user);
-            console.log(`[USER] Profile saved/updated in DB: ${user.id}`);
+            console.log(`[USER] Profile saved/updated in DB: ${user.id} | FP: ${user.fingerprint ? 'Yes' : 'No'}`);
         } catch (error) {
             console.error('[USER] DB error saving profile:', error);
         }
@@ -417,6 +419,7 @@ class UserService {
                 ...(userProfile.timezone && { timezone: userProfile.timezone }),
                 ...(userProfile.last_ip && { last_ip: userProfile.last_ip }),
                 ...(userProfile.device_id && { device_id: userProfile.device_id }),
+                ...(userProfile.fingerprint && { fingerprint: userProfile.fingerprint }),
                 last_active_at: (userProfile.last_active_at || Date.now()).toString()
             });
 
