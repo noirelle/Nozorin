@@ -41,5 +41,9 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: Error) => void
         return next();
     }
 
-    return next(new Error('Authentication error: Invalid token'));
+    // If token validation fails, we log it but allow connection as guest
+    // This effectively "downgrades" the connection instead of blocking it
+    console.warn(`[AUTH] Invalid token from ${socket.id}, proceeding as guest.`);
+    socket.data.isGuest = true;
+    return next();
 };

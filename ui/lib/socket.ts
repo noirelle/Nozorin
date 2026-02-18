@@ -13,9 +13,10 @@ export function socket(token?: string | null) {
             secure: SOCKET_URL.startsWith("https"),
             auth: token ? { token } : {}, // Initial auth
         });
-    } else if (token) {
+    } else if (token !== undefined) {
         // Update auth for existing socket (reconnection will use this)
-        getSocket.auth = { token };
+        // If token is null, we send empty object or null
+        getSocket.auth = token ? { token } : {};
     }
 
     return getSocket;
