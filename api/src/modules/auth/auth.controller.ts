@@ -70,7 +70,7 @@ export const authController = {
 
             // If not found in main storage, check temp cache
             if (!user) {
-                user = userService.getTempUser(chatIdentityId) || null;
+                user = (await userService.getTempUser(chatIdentityId)) || null;
             }
 
             if (user) {
