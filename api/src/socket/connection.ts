@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { getClientIp } from '../core/utils/ip.utils';
 import { getGeoInfo } from '../core/utils/geo.utils';
 import { statsService } from '../modules/stats/stats.service';
 import {
@@ -25,11 +26,8 @@ export const handleSocketConnection = (io: Server, socket: Socket) => {
     setupMatchmaking(io);
     console.log(`[CONNECT] User connected: ${socket.id}`);
 
-    const clientIp =
-        socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-    const geo = getGeoInfo(
-        Array.isArray(clientIp) ? clientIp[0] : clientIp
-    );
+    const clientIp = getClientIp(socket.request);
+    const geo = getGeoInfo(clientIp);
     const country = geo.name;
     const countryCode = geo.code;
 

@@ -4,6 +4,7 @@ import { generateUserToken, generateRefreshToken, verifyRefreshToken } from '../
 import { CreateUserDto } from '../../shared/types/user.types';
 import { v4 as uuidv4 } from 'uuid';
 import { getRedisClient } from '../../core/config/redis.config';
+import { getClientIp } from '../../core/utils/ip.utils';
 
 
 export const authController = {
@@ -13,15 +14,7 @@ export const authController = {
             const { gender, agreed, sessionId, footprint, deviceId } = req.body;
 
             // robust IP extraction
-            const xForwardedFor = req.headers['x-forwarded-for'];
-            let ip = '';
-            if (Array.isArray(xForwardedFor)) {
-                ip = xForwardedFor[0];
-            } else {
-                ip = (xForwardedFor as string) || req.socket.remoteAddress || '';
-            }
-            // clean up if comma separated
-            const cleanIp = (ip.split(',')[0] || '').trim();
+            const cleanIp = getClientIp(req);
 
             console.log(`[AUTH] Extracted IP: ${cleanIp}`);
 

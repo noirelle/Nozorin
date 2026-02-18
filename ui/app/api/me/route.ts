@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
 import { api } from '../../../lib/api';
 
+import { getProxyHeaders } from '../../../lib/api';
+
 export async function GET(req: Request) {
     try {
-        const authHeader = req.headers.get('Authorization');
-        const cookieHeader = req.headers.get('cookie');
-
-        if (!authHeader) {
-            return NextResponse.json(
-                { error: 'No authorization header provided' },
-                { status: 401 }
-            );
-        }
-
-        const headers: HeadersInit = {
-            'Authorization': authHeader,
-        };
-
-        if (cookieHeader) {
-            headers['Cookie'] = cookieHeader;
-        }
+        const headers = getProxyHeaders(req);
 
         const { error, data, status } = await api.get('/api/me', { headers });
 
