@@ -28,8 +28,8 @@ export const handleSocketConnection = async (io: Server, socket: Socket) => {
 
     const clientIp = getClientIp(socket.request);
     const geo = await getGeoInfo(clientIp);
-    const country = geo.name;
-    const countryCode = geo.code;
+    const country = geo ? geo.country : 'Unknown';
+    const countryCode = geo ? geo.country_code : 'UN';
 
     // Store user info
     connectedUsers.set(socket.id, { country, countryCode });

@@ -1,4 +1,4 @@
-interface IpWhoIsResponse {
+export interface IpWhoIsResponse {
     ip: string;
     success: boolean;
     type: string;
@@ -37,7 +37,7 @@ interface IpWhoIsResponse {
     };
 }
 
-export const getGeoInfo = async (ip: string): Promise<{ code: string; name: string }> => {
+export const getGeoInfo = async (ip: string): Promise<IpWhoIsResponse | null> => {
     // Check for local/private IPs
     if (
         ip === '::1' ||
@@ -47,7 +47,7 @@ export const getGeoInfo = async (ip: string): Promise<{ code: string; name: stri
         ip.startsWith('10.') ||
         ip.startsWith('172.')
     ) {
-        return { code: 'UN', name: 'Unknown (Local)' };
+        return null; // Local IP has no geo info
     }
 
     const cleanIp = ip.replace('::ffff:', '');
@@ -57,20 +57,20 @@ export const getGeoInfo = async (ip: string): Promise<{ code: string; name: stri
 
         if (!response.ok) {
             console.warn(`[GEO] Failed to fetch geo info for ${cleanIp}: ${response.statusText}`);
-            return { code: 'UN', name: 'Unknown' };
+            return null;
         }
 
         const data = (await response.json()) as IpWhoIsResponse;
 
         if (data.success) {
-            return { code: data.country_code, name: data.country };
+            return data;
         } else {
             console.warn(`[GEO] ipwho.is returned success:false for ${cleanIp}`);
-            return { code: 'UN', name: 'Unknown' };
+            return null;
         }
 
     } catch (e) {
         console.error(`[GEO] Error fetching geo info regarding ${cleanIp}:`, e);
-        return { code: 'UN', name: 'Unknown' };
+        return null;
     }
 };

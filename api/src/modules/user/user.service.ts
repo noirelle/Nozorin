@@ -1,7 +1,7 @@
 
 import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
 import { CreateUserDto, UserProfile } from '../../shared/types/user.types';
-import geoip from 'geoip-lite';
+import { getGeoInfo } from '../../core/utils/geo.utils';
 import { v4 as uuidv4 } from 'uuid';
 import { AppDataSource } from '../../core/config/database.config';
 import { User } from './user.entity';
@@ -208,16 +208,16 @@ class UserService {
     /**
      * Resolve location from IP
      */
-    resolveLocation(ip: string): { country?: string; city?: string; region?: string; lat?: number; lon?: number; timezone?: string } {
-        const geo = geoip.lookup(ip);
+    async resolveLocation(ip: string): Promise<{ country?: string; city?: string; region?: string; lat?: number; lon?: number; timezone?: string }> {
+        const geo = await getGeoInfo(ip);
         if (geo) {
             return {
-                country: geo.country,
+                country: geo.country_code,
                 city: geo.city,
                 region: geo.region,
-                lat: geo.ll ? geo.ll[0] : undefined,
-                lon: geo.ll ? geo.ll[1] : undefined,
-                timezone: geo.timezone
+                lat: geo.latitude,
+                lon: geo.longitude,
+                timezone: geo.timezone.id
             };
         }
         return {};
@@ -347,7 +347,7 @@ class UserService {
         const { gender, agreed, ip } = data;
 
         // Resolve location
-        const location = this.resolveLocation(ip);
+        const location = await this.resolveLocation(ip);
 
         // Generate random avatar
         const avatarIndex = Math.floor(Math.random() * 5) + 1;
