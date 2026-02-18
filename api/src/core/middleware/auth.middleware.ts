@@ -50,7 +50,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
                         // Found session, treating as authenticated guest
                         (req as AuthRequest).user = {
                             userId,
-                            id: userId, // Add id for consistency
+                            id: userId,
                             userType: 'guest',
                             createdAt: Date.now()
                         };

@@ -23,6 +23,16 @@ interface UseGuestLoginReturn {
 // Module-level promise to deduplicate simultaneous guest registration requests
 let globalRegisterPromise: Promise<boolean> | null = null;
 
+const getDeviceId = (): string => {
+    if (typeof window === 'undefined') return '';
+    let deviceId = localStorage.getItem('nz_device_id');
+    if (!deviceId) {
+        deviceId = crypto.randomUUID();
+        localStorage.setItem('nz_device_id', deviceId);
+    }
+    return deviceId;
+};
+
 export const useGuestLogin = (): UseGuestLoginReturn => {
     const [isRegistering, setIsRegistering] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -45,9 +55,11 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
                 }
 
                 // Step 1: Register Guest
+                const deviceId = getDeviceId();
                 const { error: guestError, data: guestData } = await api.post<GuestRegistrationResponse, GuestRegistrationRequest>('/api/auth/guest', {
                     ...data,
-                    sessionId
+                    sessionId,
+                    deviceId
                 });
 
                 if (guestError || !guestData) {

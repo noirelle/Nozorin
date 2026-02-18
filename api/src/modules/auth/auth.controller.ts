@@ -37,8 +37,8 @@ export const authController = {
                 console.log(`[AUTH] Reusing existing guest profile: ${user.id}`);
                 // Refresh activity on reuse
                 user.last_active_at = Date.now();
-                // Optionally update device_id if it was null before
-                if (deviceId && !user.device_id) user.device_id = deviceId;
+                // Always update device_id to current one (even if changed) to ensure account retention
+                if (deviceId) user.device_id = deviceId;
                 await userService.saveUserProfile(user); // Persist the updated last_active_at and device_id
             } else {
                 // 2. Create new guest user if none found

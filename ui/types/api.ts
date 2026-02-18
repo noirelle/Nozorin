@@ -5,6 +5,7 @@ export interface GuestRegistrationRequest {
     gender: string;
     agreed: boolean;
     sessionId: string;
+    deviceId: string;
     footprint?: any;
 }
 

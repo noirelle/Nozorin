@@ -5,10 +5,24 @@ import { GuestRegistrationRequest } from '../../../../types/api';
 export async function POST(req: Request) {
     try {
         const body: GuestRegistrationRequest = await req.json();
-        const { username, gender, agreed, sessionId, footprint } = body;
+        const { username, gender, agreed, sessionId, footprint, deviceId } = body;
 
-        const { error, data, status, headers } = await api.post('/api/guest', {
-            username, gender, agreed, sessionId, footprint
+        // Extract client IP
+        const forwardedFor = req.headers.get('x-forwarded-for');
+        let ip = '';
+        if (forwardedFor) {
+            ip = forwardedFor.split(',')[0].trim();
+        }
+
+        const headers = new Headers();
+        if (ip) {
+            headers.set('x-forwarded-for', ip);
+        }
+
+        const { error, data, status, headers: responseHeaders } = await api.post('/api/guest', {
+            username, gender, agreed, sessionId, footprint, deviceId
+        }, {
+            headers: Object.fromEntries(headers.entries())
         });
 
         if (error) {
@@ -18,7 +32,7 @@ export async function POST(req: Request) {
         const response = NextResponse.json(data);
 
         // Forward cookies from backend to client
-        const cookies = headers?.get('set-cookie');
+        const cookies = responseHeaders?.get('set-cookie');
         if (cookies) {
             response.headers.set('set-cookie', cookies);
         }
