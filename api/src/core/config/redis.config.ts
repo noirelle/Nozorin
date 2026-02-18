@@ -6,20 +6,14 @@ dotenv.config();
 let redisClient: Redis | null = null;
 let isRedisAvailable = false;
 
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PORT = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
+const REDISHOST = process.env.REDISHOST!;
+const REDIS_PORT = process.env.REDIS_PORT!;
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD!;
 
 export const initRedis = (): void => {
-    if (!REDIS_HOST || !REDIS_PORT) {
-        console.warn('[REDIS] Redis configuration not found, using in-memory fallback');
-        isRedisAvailable = false;
-        return;
-    }
-
     try {
         redisClient = new Redis({
-            host: REDIS_HOST,
+            host: REDISHOST,
             port: REDIS_PORT,
             password: REDIS_PASSWORD || undefined,
             retryStrategy: (times) => {

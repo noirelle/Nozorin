@@ -6,11 +6,11 @@ dotenv.config();
 
 export const AppDataSource = new DataSource({
     type: 'mysql',
-    host: process.env.DB_HOST!,
-    port: parseInt(process.env.DB_PORT!),
-    username: process.env.DB_USERNAME!,
-    password: process.env.DB_PASSWORD!,
-    database: process.env.DB_DATABASE!,
+    host: process.env.MYSQLHOST!,
+    port: parseInt(process.env.MYSQLPORT!),
+    username: process.env.MYSQLUSER!,
+    password: process.env.MYSQL_ROOT_PASSWORD!,
+    database: process.env.MYSQL_DATABASE!,
     synchronize: true,
     logging: false,
     entities: [path.join(__dirname, '../../modules/**/*.entity.{ts,js}')],
