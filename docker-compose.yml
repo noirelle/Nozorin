@@ -1,10 +1,11 @@
-version: '3.8'
+version: "3.9"
 
 services:
   api:
     build:
       context: .
       dockerfile: api/Dockerfile
+    container_name: nozorin_api
     ports:
       - "3001:3001"
     volumes:
@@ -14,12 +15,14 @@ services:
       - ./api/.env.local
     environment:
       - DB_HOST=db
-    container_name: nozorin_api
+      - REDISHOST=redis
     depends_on:
       - db
+      - redis
 
   db:
     image: mysql:8.0
+    container_name: nozorin_db
     restart: always
     environment:
       MYSQL_DATABASE: nozorin_db
@@ -30,12 +33,22 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    container_name: nozorin_db
+
+  redis:
+    image: redis:7
+    container_name: nozorin_redis
+    restart: unless-stopped
+    env_file:
+      - ./api/.env.local
+    command: sh -c "redis-server --requirepass $${REDISPASSWORD}"
+    ports:
+      - "6380:6379"
 
   ui:
     build:
       context: .
       dockerfile: ui/Dockerfile
+    container_name: nozorin_ui
     ports:
       - "3000:3000"
     volumes:
@@ -45,7 +58,6 @@ services:
       - ./ui/.env.local
     environment:
       - PORT=3000
-    container_name: nozorin_ui
 
 volumes:
   mysql_data:
