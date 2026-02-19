@@ -1,14 +1,12 @@
-
 import { Socket, Server } from 'socket.io';
 import { User } from '../../shared/types/socket.types';
 import {
     voiceQueue,
     voiceBuckets,
     activeCalls,
-    activeUsers,
-    connectedUsers,
     userMediaState,
-    removeUserFromQueues
+    removeUserFromQueues,
+    getConnectedUser
 } from '../../socket/users';
 import { statsService } from '../stats/stats.service';
 import { userService } from '../user/user.service';
@@ -27,12 +25,12 @@ const CONSTANTS = {
 
 // --- STATE MANAGEMENT ---
 
-const lastPartnerMap = new Map<string, string>(); // userId -> partnerUserId
-const lastPartnerTimeouts = new Map<string, NodeJS.Timeout>(); // userId -> timeout
-const pendingMatches = new Map<string, PendingMatch>(); // roomId -> PendingMatch
-const userPendingMatch = new Map<string, string>(); // socketId -> roomId
-const fallbackTimeouts = new Map<string, NodeJS.Timeout>(); // socketId -> timeout
-const skipLocks = new Set<string>(); // socketId -> boolean (Prevents rapid skip spam)
+const lastPartnerMap = new Map<string, string>();
+const lastPartnerTimeouts = new Map<string, NodeJS.Timeout>();
+const pendingMatches = new Map<string, PendingMatch>();
+const userPendingMatch = new Map<string, string>();
+const fallbackTimeouts = new Map<string, NodeJS.Timeout>();
+const skipLocks = new Set<string>();
 
 // --- RECONNECT STATE ---
 
@@ -279,7 +277,7 @@ const QueueManager = {
     },
     remove: (socketId: string) => {
         skipLocks.delete(socketId);
-        const userInfo = connectedUsers.get(socketId);
+        const userInfo = getConnectedUser(socketId);
         removeUserFromQueues(socketId, userInfo?.countryCode);
     }
 };
@@ -445,7 +443,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             const resetSeniority = true;
             const joinTime = resetSeniority ? Date.now() : (voiceQueue.find(u => u.userId === userId)?.joinedAt || Date.now());
 
-            const userInfo = connectedUsers.get(socket.id);
+            const userInfo = getConnectedUser(socket.id);
             if (!userInfo) return;
 
             const userProfile = await userService.getUserProfile(userId);
@@ -625,7 +623,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         activeCalls.set(pending.partnerSocketId, socket.id);
 
         // Get partner profile info for the rejoining user
-        const partnerInfo = connectedUsers.get(pending.partnerSocketId);
+        const partnerInfo = getConnectedUser(pending.partnerSocketId);
         const partnerProfile = {
             partnerId: pending.partnerSocketId,
             partnerUserId: pending.partnerUserId,

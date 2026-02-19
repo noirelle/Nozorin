@@ -90,68 +90,52 @@ export default function Home() {
 
   // Identify user to socket
   useEffect(() => {
-    const s = socket(token);
+    // Force specific public socket initialization
+    const s = socket(null);
     if (!s) return;
 
-    // Ensure we connect (auth is optional for home page stats)
+    // If we were previously authenticated (connected with a token), we should reconnect cleanly as public
+    // We can check s.auth or just force a reconnect if we want to be safe
+    // For now, let's ensure we update the auth object (done by socket(null)) and if connected, 
+    // we might want to stay connected if public stats are allowed, OR strictly disconnect.
+    // User said: "switch to the public connection". This implies a state change.
+
+    // We do NOT want to identify.
+    // We definitely want to stop media if it was active (handled by Room unmount, but let's be safe?)
+    // Mic permission is stopped by Room unmount.
+
     if (!s.connected) {
+      s.connect();
+    } else {
+      // If connected, we might have old auth? 
+      // socket.io doesn't auto-update session on .auth change without reconnect.
+      // So we should probably disconnect and reconnect to be truly "public" / anonymous.
+      s.disconnect();
       s.connect();
     }
 
-    const identify = () => {
-      if (token) {
-        s.emit('user-identify', { token });
-      }
-    };
-
-    const handleAuthError = async (err: any) => {
-      if (err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired') {
-        console.log('[Home] Token invalid/expired, attempting refresh...');
-        const newToken = await refreshUser();
-        if (newToken) {
-          socket(newToken);
-          s.emit('update-token', { token: newToken });
-        } else {
-          s.disconnect();
-        }
-      }
-    };
-
-    if (s.connected && token) {
-      identify();
-    }
-
-    const interval = setInterval(() => {
-      if (s.connected && token) {
-        identify();
-      }
-    }, 10000);
+    // No identification logic here.
 
     const onStorageChange = (e: StorageEvent) => {
-      if (e.key === 'nz_token') {
-        console.log('[Home] Token changed in another tab, re-identifying...');
-        window.location.reload();
-      }
+      // Just listen for changes, but don't auto-login on Home
     };
 
     const onFocus = () => {
-      console.log('[Home] Re-verifying session on focus...');
-      if (s.connected && token) identify();
+      // No identification on focus for Home
     };
 
-    s.on('connect', identify);
-    s.on('auth-error', handleAuthError);
+    // s.on('connect', identify); // Removed
+    // s.on('auth-error', handleAuthError); // Removed, we don't expect auth errors on public
     window.addEventListener('focus', onFocus);
     window.addEventListener('storage', onStorageChange);
 
     return () => {
-      s.off('connect', identify);
-      s.off('auth-error', handleAuthError);
+      // s.off(...);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('storage', onStorageChange);
-      clearInterval(interval);
     };
-  }, [token, refreshUser]);
+  }, []); // Run once on mount
+
 
   const handleJoin = async () => {
     // Always ensure we have a token before joining

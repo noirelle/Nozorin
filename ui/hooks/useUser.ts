@@ -91,10 +91,23 @@ export const useUser = () => {
         token,
         isChecking,
         isRegistering,
-        refreshUser: () => {
-            const currentToken = token || localStorage.getItem('nz_token');
-            if (currentToken) return fetchMe(currentToken);
-            return Promise.resolve(null);
+        refreshUser: async () => {
+            try {
+                // Try to refresh token via API (cookies are automatically sent)
+                const res = await api.post<{ token: string }>('/api/auth/refresh', {});
+                if (res.data && res.data.token) {
+                    // Update token in store, keep existing user
+                    if (user) {
+                        login(res.data.token, user);
+                    } else {
+                        setToken(res.data.token);
+                    }
+                    return res.data.token;
+                }
+            } catch (e) {
+                console.error('[useUser] Failed to refresh token:', e);
+            }
+            return null;
         },
         clearToken: logout,
         ensureToken,

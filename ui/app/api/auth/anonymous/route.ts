@@ -7,7 +7,7 @@ export async function POST(req: Request) {
         const body: AnonymousLoginRequest = await req.json();
         const { chatIdentityId } = body;
 
-        const { error, data, status, headers } = await api.post<AnonymousLoginResponse>('/api/anonymous', {
+        const { error, data, status, headers } = await api.post<AnonymousLoginResponse>('/api/auth/anonymous', {
             chatIdentityId
         });
 

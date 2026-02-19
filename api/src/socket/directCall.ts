@@ -1,7 +1,7 @@
 
 import { Server, Socket } from 'socket.io';
 import { userService } from '../modules/user/user.service';
-import { activeCalls, removeUserFromQueues, connectedUsers, userMediaState } from './users';
+import { activeCalls, removeUserFromQueues, getConnectedUser, userMediaState } from './users';
 
 export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
@@ -45,7 +45,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         removeUserFromQueues(targetSocketId);
 
         // Get caller info to show on receiver's screen
-        const callerInfo = connectedUsers.get(socket.id);
+        const callerInfo = getConnectedUser(socket.id);
         const callerProfile = await userService.getUserProfile(myUserId);
 
         targetSocket.emit('incoming-call', {
@@ -112,8 +112,8 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         const mediaB = userMediaState.get(callerSocketId) || { isMuted: false };
 
         // Get geo info
-        const infoA = connectedUsers.get(socket.id);
-        const infoB = connectedUsers.get(callerSocketId);
+        const infoA = getConnectedUser(socket.id);
+        const infoB = getConnectedUser(callerSocketId);
 
         // Get profiles
         const callerUserId = userService.getUserId(callerSocketId);

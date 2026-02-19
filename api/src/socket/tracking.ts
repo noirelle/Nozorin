@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { historyService, SessionStart } from '../modules/history/history.service';
 import { getUserIdFromToken } from '../core/utils/jwt.utils';
-import { connectedUsers, activeCalls } from './users';
+import { getConnectedUser } from './users';
 import { v4 as uuidv4 } from 'uuid';
 
 // Track active sessions: socketId -> { userId, sessionId, partnerId }
@@ -43,6 +43,32 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 
         // Notify the socket that identification succeeded (used by reconnect flow)
         socket.emit('identify-success', { userId });
+    });
+
+    /**
+     * Seamlessly update token for existing connection
+     */
+    socket.on('update-token', async (data: { token: string }) => {
+        const { token } = data;
+        if (!token) return;
+
+        const userId = getUserIdFromToken(token);
+        if (!userId) {
+            // If the new token is also invalid, we might want to force disconnect or just warn
+            console.warn(`[TRACKING] Invalid token provided for update-token from ${socket.id}`);
+            socket.emit('auth-error', { message: 'Invalid token during update' });
+            return;
+        }
+
+        console.log(`[TRACKING] Updating token/session for user ${userId.substring(0, 8)}... on socket ${socket.id}`);
+
+        // Update the mapping
+        userService.setUserForSocket(socket.id, userId);
+
+        // Re-register user activity
+        await userService.registerUser(userId);
+
+        socket.emit('token-updated', { success: true, userId });
     });
 
     /**
@@ -102,8 +128,8 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
 
-        const userInfo = connectedUsers.get(socket.id);
-        const partnerInfo = connectedUsers.get(partnerId);
+        const userInfo = getConnectedUser(socket.id);
+        const partnerInfo = getConnectedUser(partnerId);
 
         if (!userInfo || !partnerInfo) {
             console.warn('[TRACKING] User or partner info not found');

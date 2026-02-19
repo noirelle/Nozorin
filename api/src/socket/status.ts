@@ -51,7 +51,6 @@ export const broadcastUserStatus = async (io: Server, userId: string) => {
         const status = await userService.getUserStatus(userId);
         const roomName = `status:${userId}`;
 
-        // console.log(`[STATUS] Broadcasting status for user ${userId.substring(0, 8)}: ${status.isOnline ? 'ONLINE' : 'OFFLINE'}`);
         io.to(roomName).emit('partner-status-change', {
             userId,
             status
@@ -59,4 +58,33 @@ export const broadcastUserStatus = async (io: Server, userId: string) => {
     } catch (error) {
         console.error(`[STATUS] Error broadcasting status for user ${userId}:`, error);
     }
+};
+
+/**
+ * Handle new user connection (stats, tracking)
+ */
+import { statsService } from '../modules/stats/stats.service';
+import { addActiveUser, removeActiveUser, getActiveUserCount } from './users';
+
+export const handleUserConnection = (io: Server, socket: Socket) => {
+    // 1. Track online state
+    addActiveUser(socket.id);
+
+    // 2. Update stats
+    statsService.setOnlineUsers(getActiveUserCount());
+    statsService.incrementTotalConnections();
+
+    // 3. Broadcast stats
+    const stats = statsService.getStats();
+    socket.emit('stats-update', stats);
+    io.emit('stats-update', stats);
+};
+
+/**
+ * Handle user disconnection (stats, tracking)
+ */
+export const handleUserDisconnection = (io: Server, socket: Socket) => {
+    removeActiveUser(socket.id);
+    statsService.setOnlineUsers(getActiveUserCount());
+    io.emit('stats-update', statsService.getStats());
 };

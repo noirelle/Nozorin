@@ -6,7 +6,7 @@ export async function POST(req: Request) {
         // We don't need body, just the cookie which is handled by the browser/proxy
         const cookieHeader = req.headers.get('cookie');
 
-        const { error, data, status, headers } = await api.post('/api/refresh', {}, {
+        const { error, data, status, headers } = await api.post('/api/auth/refresh', {}, {
             headers: {
                 'Cookie': cookieHeader || ''
             }

@@ -10,8 +10,16 @@ export const voiceBuckets = new Map<string, User[]>();
 
 export const activeCalls = new Map<string, string>(); // socketId -> partnerId
 export const userMediaState = new Map<string, MediaState>(); // socketId -> media state
-export const connectedUsers = new Map<string, UserConnectionInfo>(); // socketId -> Info
-export const activeUsers = new Set<string>(); // socketId
+const connectedUsers = new Map<string, UserConnectionInfo>(); // socketId -> Info
+const activeUsers = new Set<string>(); // socketId
+
+export const getConnectedUser = (socketId: string) => connectedUsers.get(socketId);
+export const addConnectedUser = (socketId: string, info: UserConnectionInfo) => connectedUsers.set(socketId, info);
+export const removeConnectedUser = (socketId: string) => connectedUsers.delete(socketId);
+
+export const getActiveUserCount = () => activeUsers.size;
+export const addActiveUser = (socketId: string) => activeUsers.add(socketId);
+export const removeActiveUser = (socketId: string) => activeUsers.delete(socketId);
 
 // Helpers
 export const removeUserFromQueues = (socketId: string, countryCode?: string) => {

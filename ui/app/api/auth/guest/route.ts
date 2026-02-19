@@ -19,7 +19,7 @@ export async function POST(req: Request) {
             headers.set('x-forwarded-for', ip);
         }
 
-        const { error, data, status, headers: responseHeaders } = await api.post('/api/guest', {
+        const { error, data, status, headers: responseHeaders } = await api.post('/api/auth/guest', {
             username, gender, agreed, sessionId, footprint, deviceId
         }, {
             headers: Object.fromEntries(headers.entries())
