@@ -1,22 +1,14 @@
-import { NextResponse } from 'next/server';
-import { api, getProxyHeaders } from '@/lib/api';
+import { getProxyHeaders, handleApiRequest } from '@/lib/api/index';
+import { friends } from '@/lib/api/endpoints/friends';
 
 export async function DELETE(req: Request) {
-    try {
-        const headers = getProxyHeaders(req);
+    const headers = getProxyHeaders(req);
+    const { searchParams } = new URL(req.url);
+    const friendId = searchParams.get('friendId');
 
-        const { error, data, status } = await api.delete('/api/friends/remove', { headers });
-
-        if (error) {
-            return NextResponse.json({ error }, { status: status || 500 });
-        }
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.error('[API Proxy] remove friend error:', error);
-        return NextResponse.json(
-            { error: 'Internal server proxy error' },
-            { status: 500 }
-        );
+    if (!friendId) {
+        return new Response(JSON.stringify({ error: 'Friend ID required' }), { status: 400 });
     }
+
+    return handleApiRequest(() => friends.removeFriend(friendId, headers));
 }

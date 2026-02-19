@@ -1,23 +1,10 @@
-import { NextResponse } from 'next/server';
-import { api, getProxyHeaders } from '@/lib/api';
+import { getProxyHeaders, handleApiRequest } from '@/lib/api/index';
+import { friends } from '@/lib/api/endpoints/friends';
 
 export async function POST(req: Request) {
-    try {
-        const headers = getProxyHeaders(req);
+    const headers = getProxyHeaders(req);
+    const body = await req.json().catch(() => ({}));
+    const { friendId } = body;
 
-        const body = await req.json().catch(() => ({}));
-        const { error, data, status } = await api.post('/api/friends/request', body, { headers });
-
-        if (error) {
-            return NextResponse.json({ error }, { status: status || 500 });
-        }
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.error('[API Proxy] send request error:', error);
-        return NextResponse.json(
-            { error: 'Internal server proxy error' },
-            { status: 500 }
-        );
-    }
+    return handleApiRequest(() => friends.sendRequest(friendId, headers));
 }
