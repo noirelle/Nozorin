@@ -1,401 +1,50 @@
+
 import { Socket, Server } from 'socket.io';
 import { User } from '../../shared/types/socket.types';
 import {
     voiceQueue,
-    voiceBuckets,
+    getConnectedUser,
     activeCalls,
-    userMediaState,
-    removeUserFromQueues,
-    getConnectedUser
+    userMediaState
 } from '../../socket/users';
 import { statsService } from '../stats/stats.service';
 import { userService } from '../user/user.service';
 
-// --- CONFIGURATION ---
+import { CONSTANTS } from './matchmaking.constants';
+import { QueueManager, notifyQueuePositions, skipLocks, setFallbackTimeout, userPendingMatch } from './matchmaking.queue';
+import { setMatchCooldown } from './matchmaking.cooldowns';
+import { handleMatchmakingDisconnect, pendingReconnects, cancelPendingReconnect, cleanupPendingReconnectsForPartner } from './matchmaking.reconnect';
+import { handleMatchFailure, pendingMatches } from './matchmaking.rooms';
+import { scanQueueForMatches } from './matchmaking.matcher';
 
-const CONSTANTS = {
-    COOLDOWN_MS: 5000,
-    HANDSHAKE_TIMEOUT_MS: 5000,
-    HEARTBEAT_FAST_MS: 1000,
-    HEARTBEAT_SLOW_MS: 4000,
-    FALLBACK_TIMER_MS: 5000,
-    RECONNECT_TIMEOUT_MS: 30000,
-    QUEUE_THRESHOLD_FAST_HEARTBEAT: 50
-};
+// --- INITIALIZATION ---
 
-// --- STATE MANAGEMENT ---
+let heartbeatTimeout: NodeJS.Timeout | null = null;
 
-const lastPartnerMap = new Map<string, string>();
-const lastPartnerTimeouts = new Map<string, NodeJS.Timeout>();
-const pendingMatches = new Map<string, PendingMatch>();
-const userPendingMatch = new Map<string, string>();
-const fallbackTimeouts = new Map<string, NodeJS.Timeout>();
-const skipLocks = new Set<string>();
+const runHeartbeat = (io: Server) => {
+    // Dynamic Interval based on load
+    const totalUsers = voiceQueue.length;
+    const interval = totalUsers > CONSTANTS.QUEUE_THRESHOLD_FAST_HEARTBEAT
+        ? CONSTANTS.HEARTBEAT_FAST_MS
+        : CONSTANTS.HEARTBEAT_SLOW_MS;
 
-// --- RECONNECT STATE ---
-
-interface PendingReconnect {
-    partnerSocketId: string;
-    partnerUserId: string;
-    disconnectedUserId: string;
-    timeout: NodeJS.Timeout;
-}
-
-const pendingReconnects = new Map<string, PendingReconnect>(); // disconnectedUserId -> PendingReconnect
-
-interface PendingMatch {
-    pair: [User, User];
-    mode: 'voice';
-    startTime: number;
-    acks: Set<string>;
-    timeout: NodeJS.Timeout;
-    roomId: string;
-}
-
-// --- CONCURRENCY CONTROL ---
-
-let isScanning = false;
-let needsRescan = false;
-
-// --- UTILITIES ---
-
-const areUsersCompatible = (userA: User, userB: User) => {
-    // Only users in FINDING state can be matched
-    if (userA.state !== 'FINDING' || userB.state !== 'FINDING') return false;
-    // Cannot match with self
-    if (userA.id === userB.id) return false;
-    // Cannot match if same person
-    if (userA.userId === userB.userId) return false;
-
-    // Last Partner Cooldown (userId based)
-    const lastA = lastPartnerMap.get(userA.userId);
-    const lastB = lastPartnerMap.get(userB.userId);
-    if (lastA === userB.userId || lastB === userA.userId) return false;
-
-    // Country Preferences
-    const aSatisfied = !userA.preferredCountry || userA.preferredCountry === userB.countryCode;
-    const bSatisfied = !userB.preferredCountry || userB.preferredCountry === userA.countryCode;
-
-    return aSatisfied && bSatisfied;
-};
-
-const notifyQueuePositions = (io: Server) => {
-    voiceQueue.forEach((user, index) => {
-        const socket = io.sockets.sockets.get(user.id);
-        if (socket) socket.emit('waiting-for-match', { position: index + 1 });
-    });
-};
-
-const clearCooldown = (userId: string) => {
-    lastPartnerMap.delete(userId);
-    const timeout = lastPartnerTimeouts.get(userId);
-    if (timeout) {
-        clearTimeout(timeout);
-        lastPartnerTimeouts.delete(userId);
-    }
-};
-
-const initiateHandshake = (io: Server, userA: User, userB: User) => {
-    // ATOMIC STATE CHANGE
-    userA.state = 'NEGOTIATING';
-    userB.state = 'NEGOTIATING';
-
-    const sortedIds = [userA.id, userB.id].sort();
-    const roomId = `room-${sortedIds[0]}-${sortedIds[1]}-${Date.now()}`;
-
-    // Set temporary "matched" state, but actual cooldown is set when they finish.
-    lastPartnerMap.set(userA.userId, userB.userId);
-    lastPartnerMap.set(userB.userId, userA.userId);
-
-    const timeout = setTimeout(() => handleMatchFailure(io, roomId, 'timeout'), CONSTANTS.HANDSHAKE_TIMEOUT_MS);
-
-    pendingMatches.set(roomId, {
-        pair: [userA, userB],
-        mode: 'voice',
-        startTime: Date.now(),
-        acks: new Set(),
-        timeout,
-        roomId
-    });
-
-    userPendingMatch.set(userA.id, roomId);
-    userPendingMatch.set(userB.id, roomId);
-
-    io.to(userB.id).emit('prepare-match', {
-        partnerCountry: userA.country,
-        partnerCountryCode: userA.countryCode,
-        partnerUsername: userA.username,
-        partnerAvatar: userA.avatar
-    });
-    io.to(userA.id).emit('prepare-match', {
-        partnerCountry: userB.country,
-        partnerCountryCode: userB.countryCode,
-        partnerUsername: userB.username,
-        partnerAvatar: userB.avatar
-    });
-};
-
-const handleMatchFailure = (io: Server, rid: string, reason: string) => {
-    const pending = pendingMatches.get(rid);
-    if (!pending) return;
-
-    // 1. ATOMIC STATE UPDATE
-    pending.pair.forEach(u => {
-        u.state = 'FINDING';
-    });
-
-    // 2. EXHAUSTIVE PURGE
-    pending.pair.forEach(u => {
-        userPendingMatch.delete(u.id);
-        const s = io.sockets.sockets.get(u.id);
-        if (s) {
-            s.emit('match-cancelled', { reason });
-            // SENIORITY PRESERVATION
-            QueueManager.add(u);
-        }
-    });
-
-    clearTimeout(pending.timeout);
-    pending.acks.clear();
-    pendingMatches.delete(rid);
-
-    scanQueueForMatches(io);
-    notifyQueuePositions(io);
-};
-
-// --- CORE LOGIC ---
-
-export const scanQueueForMatches = (io: Server) => {
-    if (isScanning) {
-        needsRescan = true;
-        return;
+    if (totalUsers >= 2) {
+        scanQueueForMatches(io);
     }
 
-    isScanning = true;
-
-    try {
-        if (voiceQueue.length < 2) return;
-
-        const matchedInThisPass = new Set<string>();
-
-        // 1. COLLECT AND VALIDATE ELIGIBLE USERS
-        const eligibleUsers = voiceQueue.filter(u =>
-            u.state === 'FINDING' &&
-            io.sockets.sockets.has(u.id) &&
-            userService.getSocketId(u.userId) === u.id
-        );
-
-        // 2. ITERATE BY JOIN ORDER (FIFO)
-        for (let i = 0; i < eligibleUsers.length; i++) {
-            const userA = eligibleUsers[i];
-            if (matchedInThisPass.has(userA.id)) continue;
-
-            let partner: User | undefined;
-
-            // TRY PREFERENCE MATCH FIRST
-            if (userA.preferredCountry) {
-                const targetBucket = voiceBuckets.get(userA.preferredCountry);
-                if (targetBucket) {
-                    partner = targetBucket.find(userB =>
-                        !matchedInThisPass.has(userB.id) &&
-                        userB.id !== userA.id &&
-                        userB.state === 'FINDING' &&
-                        userService.getSocketId(userB.userId) === userB.id &&
-                        areUsersCompatible(userA, userB)
-                    );
-                }
-            }
-
-            // TRY GENERAL MATCH
-            if (!partner) {
-                for (let j = 0; j < eligibleUsers.length; j++) {
-                    const userB = eligibleUsers[j];
-                    if (userB.id === userA.id || matchedInThisPass.has(userB.id)) continue;
-
-                    if (areUsersCompatible(userA, userB)) {
-                        partner = userB;
-                        break;
-                    }
-                }
-            }
-
-            if (partner) {
-                matchedInThisPass.add(userA.id);
-                matchedInThisPass.add(partner.id);
-
-                QueueManager.remove(userA.id);
-                QueueManager.remove(partner.id);
-
-                initiateHandshake(io, userA, partner);
-            }
-        }
-
-        if (matchedInThisPass.size > 0) {
-            notifyQueuePositions(io);
-        }
-    } finally {
-        isScanning = false;
-        if (needsRescan) {
-            needsRescan = false;
-            setTimeout(() => scanQueueForMatches(io), 100);
-        }
-    }
+    heartbeatTimeout = setTimeout(() => runHeartbeat(io), interval);
 };
 
-const QueueManager = {
-    add: (user: User, resetSeniority: boolean = false) => {
-        // Cleanup existing by userId (Singleton in queue)
-        const qIndex = voiceQueue.findIndex(u => u.userId === user.userId);
-        if (qIndex !== -1) voiceQueue.splice(qIndex, 1);
-
-        const bucket = voiceBuckets.get(user.countryCode);
-        if (bucket) {
-            const bIndex = bucket.findIndex(u => u.userId === user.userId);
-            if (bIndex !== -1) bucket.splice(bIndex, 1);
-        }
-
-        userPendingMatch.delete(user.id);
-
-        // SENIORITY RESET
-        if (resetSeniority) {
-            user.joinedAt = Date.now();
-        }
-
-        const insertSorted = (arr: User[], newUser: User) => {
-            let low = 0, high = arr.length;
-            while (low < high) {
-                let mid = (low + high) >>> 1;
-                if (arr[mid].joinedAt < newUser.joinedAt) low = mid + 1;
-                else high = mid;
-            }
-            arr.splice(low, 0, newUser);
-        };
-
-        insertSorted(voiceQueue, user);
-        if (!voiceBuckets.has(user.countryCode)) voiceBuckets.set(user.countryCode, []);
-        insertSorted(voiceBuckets.get(user.countryCode)!, user);
-    },
-    remove: (socketId: string) => {
-        skipLocks.delete(socketId);
-        const userInfo = getConnectedUser(socketId);
-        removeUserFromQueues(socketId, userInfo?.countryCode);
-    }
-};
-
-// --- HELPER: COOLDOWN ---
-const setMatchCooldown = (userAId: string, userBId: string) => {
-    lastPartnerMap.set(userAId, userBId);
-    lastPartnerMap.set(userBId, userAId);
-
-    // Clear existing timeouts
-    [userAId, userBId].forEach(uid => {
-        if (lastPartnerTimeouts.has(uid)) {
-            clearTimeout(lastPartnerTimeouts.get(uid)!);
-            lastPartnerTimeouts.delete(uid);
-        }
-    });
-
-    // Set new timeout
-    const timeout = setTimeout(() => {
-        if (lastPartnerMap.get(userAId) === userBId) clearCooldown(userAId);
-        if (lastPartnerMap.get(userBId) === userAId) clearCooldown(userBId);
-    }, CONSTANTS.COOLDOWN_MS);
-
-    lastPartnerTimeouts.set(userAId, timeout);
-    lastPartnerTimeouts.set(userBId, timeout);
+export const setupMatchmaking = (io: Server) => {
+    if (heartbeatTimeout) return;
+    console.log('[MATCH] Matchmaker heartbeat started (Voice Only).');
+    runHeartbeat(io);
 };
 
 // --- HANDLERS ---
 
-export const handleMatchmakingDisconnect = (io: Server, socketId: string, explicitUserId?: string) => {
-    QueueManager.remove(socketId);
-
-    const roomId = userPendingMatch.get(socketId);
-    if (roomId) handleMatchFailure(io, roomId, 'partner-disconnected');
-
-    const timeout = fallbackTimeouts.get(socketId);
-    if (timeout) clearTimeout(timeout);
-    fallbackTimeouts.delete(socketId);
-
-    // Handle Active Call Disconnect
-    const partnerId = activeCalls.get(socketId);
-    if (partnerId) {
-        const userId = explicitUserId || userService.getUserId(socketId);
-        const partnerUserId = userService.getUserId(partnerId);
-
-        if (userId && partnerUserId) {
-            // RECONNECT WINDOW: Instead of immediately ending the partner's call,
-            // give the disconnected user 30 seconds to reconnect.
-            console.log(`[MATCH] User ${userId.substring(0, 8)}... disconnected mid-call. Starting 30s reconnect window.`);
-
-            // Notify partner that their partner is reconnecting
-            io.to(partnerId).emit('partner-reconnecting', { timeoutMs: CONSTANTS.RECONNECT_TIMEOUT_MS });
-
-            const reconnectTimeout = setTimeout(() => {
-                // Time expired — fully end the call
-                console.log(`[MATCH] Reconnect timeout expired for user ${userId.substring(0, 8)}...`);
-                pendingReconnects.delete(userId);
-
-                // Now apply cooldown and end the partner's call
-                setMatchCooldown(userId, partnerUserId);
-                io.to(partnerId).emit('call-ended', { by: socketId, reason: 'reconnect-timeout' });
-                activeCalls.delete(partnerId);
-
-                scanQueueForMatches(io);
-            }, CONSTANTS.RECONNECT_TIMEOUT_MS);
-
-            pendingReconnects.set(userId, {
-                partnerSocketId: partnerId,
-                partnerUserId,
-                disconnectedUserId: userId,
-                timeout: reconnectTimeout,
-            });
-
-            // Remove the disconnected user's side of activeCalls but KEEP the partner's
-            activeCalls.delete(socketId);
-            return; // Don't clean up partner's activeCalls yet
-        }
-
-        // Fallback: if we can't identify users, end immediately
-        io.to(partnerId).emit('call-ended', { by: socketId });
-        activeCalls.delete(partnerId);
-    }
-    activeCalls.delete(socketId);
-
-    scanQueueForMatches(io);
-};
-
-/**
- * Cancel a pending reconnect (called when the partner or system cancels)
- */
-const cancelPendingReconnect = (io: Server, userId: string, reason: string = 'cancelled') => {
-    const pending = pendingReconnects.get(userId);
-    if (!pending) return;
-
-    clearTimeout(pending.timeout);
-    pendingReconnects.delete(userId);
-
-    setMatchCooldown(userId, pending.partnerUserId);
-    io.to(pending.partnerSocketId).emit('call-ended', { by: userId, reason });
-    activeCalls.delete(pending.partnerSocketId);
-
-    console.log(`[MATCH] Reconnect cancelled for ${userId.substring(0, 8)}... reason: ${reason}`);
-    scanQueueForMatches(io);
-};
-
-/**
- * When the waiting partner takes any action (end-call, stop-searching, find-match),
- * terminate any pending reconnect where they are the partner.
- * This prevents the disconnected user from rejoining a dead room.
- */
-const cleanupPendingReconnectsForPartner = (io: Server, socketId: string) => {
-    for (const [disconnectedUserId, pending] of pendingReconnects.entries()) {
-        if (pending.partnerSocketId === socketId) {
-            cancelPendingReconnect(io, disconnectedUserId, 'partner-left');
-            return; // Each socket can only be partner in at most one pending reconnect
-        }
-    }
-};
+// Re-export disconnect handler to be used by socket connection
+export { handleMatchmakingDisconnect } from './matchmaking.reconnect';
 
 export const handleMatchmaking = (io: Server, socket: Socket) => {
     socket.on('find-match', async (data: { mode: 'voice', preferredCountry?: string }) => {
@@ -425,19 +74,24 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             }
 
             // Clean up any pending reconnect where this user is the waiting partner
-            cleanupPendingReconnectsForPartner(io, socket.id);
+            cleanupPendingReconnectsForPartner(io, socket.id, scanQueueForMatches);
 
             const pendingRoomId = userPendingMatch.get(socket.id);
             if (pendingRoomId) {
-                handleMatchFailure(io, pendingRoomId, 'partner-left');
+                handleMatchFailure(io, pendingRoomId, 'partner-left', scanQueueForMatches);
             }
 
             // 2. AUTHORITATIVE CLEANUP
-            const existingTimeout = fallbackTimeouts.get(socket.id);
-            if (existingTimeout) {
-                clearTimeout(existingTimeout);
-                fallbackTimeouts.delete(socket.id);
-            }
+            // Note: fallbackTimeouts is managed in queue-manager now, but we need to clear it here if needed?
+            // QueueManager.remove handles cleanup but we might need explicit clear too if not in remove?
+            // Actually fallbackTimeouts is internal to queue mod.
+            // But we need to clear it if it exists for this user before re-adding.
+            // Let's add clearFallbackTimeout to queue exports if I haven't.
+            // I did export it. But wait, in original code it was explicit here.
+            // QueueManager.remove calls removeUserFromQueues and skipLocks.delete.
+            // We should ensure we clear the timeout.
+            const { clearFallbackTimeout } = require('./matchmaking.queue'); // Lazy import or ensure it is imported
+            clearFallbackTimeout(socket.id);
 
 
             const resetSeniority = true;
@@ -469,14 +123,14 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             // 4. FALLBACK TIMER
             if (currentUser.preferredCountry) {
                 const timeout = setTimeout(() => {
-                    fallbackTimeouts.delete(socket.id);
+                    clearFallbackTimeout(socket.id);
                     const u = voiceQueue.find(user => user.id === socket.id);
                     if (u && u.state === 'FINDING' && u.preferredCountry) {
                         u.preferredCountry = undefined;
                         scanQueueForMatches(io);
                     }
                 }, CONSTANTS.FALLBACK_TIMER_MS);
-                fallbackTimeouts.set(socket.id, timeout);
+                setFallbackTimeout(socket.id, timeout);
             }
         } finally {
             skipLocks.delete(socket.id);
@@ -492,7 +146,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         if (pending.acks.size === 2) {
             const [uA, uB] = pending.pair;
             if (uA.state !== 'NEGOTIATING' || uB.state !== 'NEGOTIATING') {
-                handleMatchFailure(io, pending.roomId, 'handshake-interrupted');
+                handleMatchFailure(io, pending.roomId, 'handshake-interrupted', scanQueueForMatches);
                 return;
             }
 
@@ -514,11 +168,8 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                     const media = userMediaState.get(partner.id) || { isMuted: false };
 
                     // Cleanup timeouts when matched
-                    const timeout = fallbackTimeouts.get(to);
-                    if (timeout) {
-                        clearTimeout(timeout);
-                        fallbackTimeouts.delete(to);
-                    }
+                    const { clearFallbackTimeout } = require('./matchmaking.queue');
+                    clearFallbackTimeout(to);
 
                     io.to(to).emit('match-found', {
                         role,
@@ -545,9 +196,8 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
     socket.on('stop-searching', () => {
         QueueManager.remove(socket.id);
-        const timeout = fallbackTimeouts.get(socket.id);
-        if (timeout) clearTimeout(timeout);
-        fallbackTimeouts.delete(socket.id);
+        const { clearFallbackTimeout } = require('./matchmaking.queue');
+        clearFallbackTimeout(socket.id);
 
         const partnerId = activeCalls.get(socket.id);
         if (partnerId) {
@@ -564,7 +214,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         activeCalls.delete(socket.id);
 
         // Clean up any pending reconnect where this user is the waiting partner
-        cleanupPendingReconnectsForPartner(io, socket.id);
+        cleanupPendingReconnectsForPartner(io, socket.id, scanQueueForMatches);
 
         notifyQueuePositions(io);
     });
@@ -586,7 +236,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         QueueManager.remove(socket.id);
 
         // Clean up any pending reconnect where this user is the waiting partner
-        cleanupPendingReconnectsForPartner(io, socket.id);
+        cleanupPendingReconnectsForPartner(io, socket.id, scanQueueForMatches);
     });
 
     // --- RECONNECT HANDLERS ---
@@ -644,42 +294,16 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
 
         // Check if this user has a pending reconnect (they are the one who disconnected)
         if (pendingReconnects.has(userId)) {
-            cancelPendingReconnect(io, userId, 'user-cancelled');
+            cancelPendingReconnect(io, userId, 'user-cancelled', scanQueueForMatches);
             return;
         }
 
         // Check if this user is the PARTNER waiting for someone to reconnect
         for (const [disconnectedUserId, pending] of pendingReconnects.entries()) {
             if (pending.partnerSocketId === socket.id) {
-                cancelPendingReconnect(io, disconnectedUserId, 'partner-cancelled');
+                cancelPendingReconnect(io, disconnectedUserId, 'partner-cancelled', scanQueueForMatches);
                 return;
             }
         }
     });
-
-    // socket.on('disconnect') handled by handleMatchmakingDisconnect called from connection.ts
-};
-
-// --- INITIALIZATION ---
-
-let heartbeatTimeout: NodeJS.Timeout | null = null;
-
-const runHeartbeat = (io: Server) => {
-    // Dynamic Interval based on load
-    const totalUsers = voiceQueue.length;
-    const interval = totalUsers > CONSTANTS.QUEUE_THRESHOLD_FAST_HEARTBEAT
-        ? CONSTANTS.HEARTBEAT_FAST_MS
-        : CONSTANTS.HEARTBEAT_SLOW_MS;
-
-    if (totalUsers >= 2) {
-        scanQueueForMatches(io);
-    }
-
-    heartbeatTimeout = setTimeout(() => runHeartbeat(io), interval);
-};
-
-export const setupMatchmaking = (io: Server) => {
-    if (heartbeatTimeout) return;
-    console.log('[MATCH] Matchmaker heartbeat started (Voice Only).');
-    runHeartbeat(io);
 };

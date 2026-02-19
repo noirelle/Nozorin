@@ -2,6 +2,7 @@
 import { Server, Socket } from 'socket.io';
 import { userService } from '../modules/user/user.service';
 import { handleMatchmakingDisconnect } from '../modules/matchmaking/matchmaking.service';
+import { scanQueueForMatches } from '../modules/matchmaking/matchmaking.matcher';
 import { cleanupUserSession } from './tracking';
 import { broadcastUserStatus, handleUserDisconnection } from './status';
 import {
@@ -21,7 +22,7 @@ export const handleDisconnectEvents = (io: Server, socket: Socket) => {
         await cleanupUserSession(socket.id);
 
         // Centralized disconnect logic for matchmaking
-        handleMatchmakingDisconnect(io, socket.id, userId);
+        handleMatchmakingDisconnect(io, socket.id, scanQueueForMatches, userId);
 
         // Match/Call cleanup is handled in matchmaking.ts to ensure proper event emission
         // and avoid race conditions or double-handling.
