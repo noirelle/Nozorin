@@ -1,11 +1,7 @@
 
 import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
 
-interface Stats {
-    peopleOnline: number;
-    matchesToday: number;
-    totalConnections: number;
-}
+import { Stats } from './stats.types';
 
 class StatsService {
     private stats: Stats = {
