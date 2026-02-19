@@ -90,51 +90,22 @@ export default function Home() {
 
   // Identify user to socket
   useEffect(() => {
-    // Force specific public socket initialization
     const s = socket(null);
     if (!s) return;
 
-    // If we were previously authenticated (connected with a token), we should reconnect cleanly as public
-    // We can check s.auth or just force a reconnect if we want to be safe
-    // For now, let's ensure we update the auth object (done by socket(null)) and if connected, 
-    // we might want to stay connected if public stats are allowed, OR strictly disconnect.
-    // User said: "switch to the public connection". This implies a state change.
-
-    // We do NOT want to identify.
-    // We definitely want to stop media if it was active (handled by Room unmount, but let's be safe?)
-    // Mic permission is stopped by Room unmount.
-
-    if (!s.connected) {
-      s.connect();
-    } else {
-      // If connected, we might have old auth? 
-      // socket.io doesn't auto-update session on .auth change without reconnect.
-      // So we should probably disconnect and reconnect to be truly "public" / anonymous.
+    if (s.connected) {
+      console.log('[Home] Disconnecting existing socket to ensure public state...');
       s.disconnect();
-      s.connect();
     }
 
-    // No identification logic here.
 
-    const onStorageChange = (e: StorageEvent) => {
-      // Just listen for changes, but don't auto-login on Home
-    };
-
-    const onFocus = () => {
-      // No identification on focus for Home
-    };
-
-    // s.on('connect', identify); // Removed
-    // s.on('auth-error', handleAuthError); // Removed, we don't expect auth errors on public
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('storage', onStorageChange);
 
     return () => {
-      // s.off(...);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('storage', onStorageChange);
+
+      console.log('[Home] Connecting public socket...');
+      s.connect();
     };
-  }, []); // Run once on mount
+  }, []);
 
 
   const handleJoin = async () => {

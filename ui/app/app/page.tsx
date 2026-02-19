@@ -231,6 +231,13 @@ export default function AppPage() {
     const handleLeave = () => {
         setIsConnected(false);
         setDirectMatchData(null);
+
+        // Explicitly disconnect socket to ensure clean state for Home page
+        const s = socket();
+        if (s) {
+            s.disconnect();
+        }
+
         router.push('/');
     };
 
