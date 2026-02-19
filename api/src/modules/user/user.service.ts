@@ -187,10 +187,10 @@ class UserService {
             return {
                 country: geo.country_code,
                 city: geo.city,
-                region: geo.region,
+                region: geo.subdivision,
                 lat: geo.latitude,
                 lon: geo.longitude,
-                timezone: geo.timezone.id
+                timezone: geo.time_zone
             };
         }
         return {};

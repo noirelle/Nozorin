@@ -1,73 +1,100 @@
-export interface IpWhoIsResponse {
+import IPLocate from 'node-iplocate';
+
+export interface LookupResponse {
     ip: string;
-    success: boolean;
-    type: string;
-    continent: string;
-    continent_code: string;
-    country: string;
-    country_code: string;
-    region: string;
-    region_code: string;
-    city: string;
-    latitude: number;
-    longitude: number;
+    country?: string;
+    country_code?: string;
     is_eu: boolean;
-    postal: string;
-    calling_code: string;
-    capital: string;
-    borders: string;
-    flag: {
-        img: string;
-        emoji: string;
-        emoji_unicode: string;
-    };
-    connection: {
-        asn: number;
-        org: string;
-        isp: string;
-        domain: string;
-    };
-    timezone: {
-        id: string;
-        abbr: string;
-        is_dst: boolean;
-        offset: number;
-        utc: string;
-        current_time: string;
-    };
+    city?: string;
+    continent?: string;
+    latitude?: number;
+    longitude?: number;
+    time_zone?: string;
+    postal_code?: string;
+    subdivision?: string;
+    currency_code?: string;
+    calling_code?: string;
+    network?: string;
+    asn?: ASN;
+    privacy: Privacy;
+    company?: Company;
+    hosting?: Hosting;
+    abuse?: Abuse;
 }
 
-export const getGeoInfo = async (ip: string): Promise<IpWhoIsResponse | null> => {
+interface ASN {
+    asn: string;
+    name: string;
+    domain: string;
+    route: string;
+    type: string;
+}
+
+interface Privacy {
+    vpn: boolean;
+    proxy: boolean;
+    tor: boolean;
+    relay: boolean;
+    hosting: boolean;
+    service: string;
+}
+
+interface Company {
+    name: string;
+    domain: string;
+    type: string;
+}
+
+interface Hosting {
+    provider?: string;
+    domain?: string;
+    network?: string;
+    region?: string;
+    service?: string;
+}
+
+interface Abuse {
+    address?: string;
+    country?: string;
+    email?: string;
+    name?: string;
+    network?: string;
+    phone?: string;
+}
+
+export const getGeoInfo = async (ip: string): Promise<LookupResponse | null> => {
+    const cleanIp = ip.replace('::ffff:', '');
+
     // Check for local/private IPs
     if (
-        ip === '::1' ||
-        ip === '127.0.0.1' ||
-        ip.includes('127.0.0.1') ||
-        ip.startsWith('192.168.') ||
-        ip.startsWith('10.') ||
-        ip.startsWith('172.')
+        cleanIp === '::1' ||
+        cleanIp === '127.0.0.1' ||
+        cleanIp.includes('127.0.0.1') ||
+        cleanIp.startsWith('192.168.') ||
+        cleanIp.startsWith('10.') ||
+        // 172.16.0.0 - 172.31.255.255
+        (cleanIp.startsWith('172.') &&
+            parseInt(cleanIp.split('.')[1], 10) >= 16 &&
+            parseInt(cleanIp.split('.')[1], 10) <= 31)
     ) {
         return null; // Local IP has no geo info
     }
 
-    const cleanIp = ip.replace('::ffff:', '');
-
     try {
-        const response = await fetch(`http://ipwho.is/${cleanIp}`);
+        const client = new IPLocate(process.env.IPLOCATE_API_KEY || '');
+        const response = await client.lookup(cleanIp);
 
-        if (!response.ok) {
-            console.warn(`[GEO] Failed to fetch geo info for ${cleanIp}: ${response.statusText}`);
-            return null;
+        // node-iplocate returns the response directly
+        // We verify if it has basic info or success indicator (implicit via content)
+        if (response && response.ip) {
+            // Cast to our interface if needed, or rely on compatibility
+
+            return response as unknown as LookupResponse;
+
         }
 
-        const data = (await response.json()) as IpWhoIsResponse;
-
-        if (data.success) {
-            return data;
-        } else {
-            console.warn(`[GEO] ipwho.is returned success:false for ${cleanIp}`);
-            return null;
-        }
+        console.warn(`[GEO] node-iplocate returned partial/empty response for ${cleanIp}`);
+        return null;
 
     } catch (e) {
         console.error(`[GEO] Error fetching geo info regarding ${cleanIp}:`, e);

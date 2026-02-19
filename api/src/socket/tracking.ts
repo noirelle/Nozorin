@@ -28,7 +28,10 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
         if (!token) return;
 
         const userId = getUserIdFromToken(token);
-        if (!userId) return;
+        if (!userId) {
+            socket.emit('auth-error', { message: 'Invalid or expired token' });
+            return;
+        }
 
         // No conflict, proceed with identification
         userService.setUserForSocket(socket.id, userId);

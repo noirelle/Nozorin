@@ -74,8 +74,13 @@ export const verifyVisitorToken = (token: string): VisitorPayload | null => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as VisitorPayload;
         return decoded;
-    } catch (error) {
-        console.error('[JWT] Token verification failed:', error);
+    } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
+            // Expected error, no need to log stack trace
+            // console.debug('[JWT] Token expired');
+        } else {
+            console.error('[JWT] Token verification failed:', error);
+        }
         return null;
     }
 };
