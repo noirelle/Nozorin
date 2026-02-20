@@ -10,6 +10,13 @@ export interface User {
     countryCode: string; // ISO Code
     mode: 'chat' | 'voice';
     preferredCountry?: string;
+    preferences?: {
+        language?: string;
+        region?: string;
+        minRating?: number;
+    };
+    peerId?: string;
+    requestId?: string;
     joinedAt: number; // For strict FIFO ordering
     state: MatchState;
 }

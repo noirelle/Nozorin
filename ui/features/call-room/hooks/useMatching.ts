@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
+import { matchmaking } from '@/lib/api';
+import { useUser } from '@/hooks/useUser';
 
 export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED' | 'RECONNECTING';
 
@@ -32,6 +34,7 @@ export const useMatching = ({
     onRejoinSuccess,
     onRejoinFailed,
 }: UseMatchingProps) => {
+    const { user } = useUser();
     const [status, setStatus] = useState<MatchStatus>('IDLE');
     const [position, setPosition] = useState<number | null>(null);
     const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
@@ -182,19 +185,60 @@ export const useMatching = ({
     }, [socket, clearReconnectTimer]); // Only re-run if socket instance changes
 
     // Start searching for a match
-    const startSearch = useCallback((preferredCountry?: string) => {
+    const startSearch = useCallback(async (options?: {
+        preferredCountry?: string;
+        userId?: string;
+        peerId?: string;
+    }) => {
         if (!socket) return;
-        console.log(`[Matching] Starting search for voice with preference: ${preferredCountry || 'None'}`);
+
+        const effectiveUserId = options?.userId || user?.id; // Use hook user as fallback
+        if (!effectiveUserId) {
+            console.error('[Matching] No user ID, cannot join queue');
+            return;
+        }
+
+        console.log(`[Matching] Starting search for voice with preference: ${options?.preferredCountry || 'None'}`);
         setStatus('FINDING');
-        socket.emit('find-match', { mode: 'voice', preferredCountry });
-    }, [socket]);
+
+        try {
+            const requestId = Math.random().toString(36).substring(7);
+            const payload = {
+                userId: effectiveUserId,
+                mode: 'voice' as const,
+                preferences: {
+                    region: options?.preferredCountry
+                },
+                session: {
+                    peerId: options?.peerId,
+                    connectionId: socket.id
+                },
+                requestId
+            };
+
+            const { error } = await matchmaking.joinQueue(payload);
+
+            if (error) {
+                console.error('[Matching] Join queue failed:', error);
+                setStatus('IDLE');
+                // Could emit a toast error here
+            }
+        } catch (err) {
+            console.error('[Matching] Join queue exception:', err);
+            setStatus('IDLE');
+        }
+    }, [socket, user]);
 
     // Stop searching (cancel)
-    const stopSearch = useCallback(() => {
+    const stopSearch = useCallback(async () => {
         if (!socket) return;
         setStatus('IDLE');
         setPosition(null);
-        socket.emit('stop-searching');
+        try {
+            await matchmaking.leaveQueue();
+        } catch (err) {
+            console.error('[Matching] Leave queue exception:', err);
+        }
     }, [socket]);
 
     // End the current call
@@ -248,7 +292,13 @@ export const useMatching = ({
 
             if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
 
-            startSearch(preferredCountry);
+            startSearch({
+                preferredCountry,
+                // userId and peerId need to be passed or accessible. 
+                // For now passing undefined, which might fail validation if strict, 
+                // but validation currently checks userId from token in controller, so payload userId is just for consistency check.
+                // peerId is missing.
+            });
 
             // Safety timeout to reset skipping state if server doesn't respond
             skipTimerRef.current = setTimeout(() => {

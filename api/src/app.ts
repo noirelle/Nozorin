@@ -4,10 +4,8 @@ import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
 import friendRoutes from './modules/friend/friend.routes';
-
 import cookieParser from 'cookie-parser';
-
-// ... other imports
+import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
 
 const app = express();
 
@@ -21,6 +19,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/matchmaking', matchmakingRoutes);
 
 // Basic health check
 app.get('/', (req, res) => {

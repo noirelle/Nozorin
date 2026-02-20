@@ -9,6 +9,7 @@ export * from './core/proxy';
 export * from './core/handler';
 export * from './endpoints/auth';
 export * from './endpoints/friends';
+export * from './endpoints/matchmaking';
 
 export const api = {
     get: <T>(endpoint: string, options: RequestInit = {}) =>

@@ -9,7 +9,7 @@ interface AuthRequest extends Request {
     user?: any;
 }
 
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserFromRequest = async (req: Request): Promise<any | null> => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -18,16 +18,15 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         try {
             jwtUser = jwt.verify(token, JWT_SECRET);
         } catch (err) {
-            // Token invalid or expired, proceed to check session cookie
+            // Token invalid or expired
         }
     }
 
     if (jwtUser && typeof jwtUser !== 'string') {
-        (req as AuthRequest).user = {
+        return {
             ...(jwtUser as any),
             id: (jwtUser as any).userId || (jwtUser as any).id
         };
-        return next();
     }
 
     // Fallback: Check for nz_sid cookie
@@ -47,14 +46,12 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
                 try {
                     const userId = await redis.get(`session:${sid}`);
                     if (userId) {
-                        // Found session, treating as authenticated guest
-                        (req as AuthRequest).user = {
+                        return {
                             userId,
                             id: userId,
                             userType: 'guest',
                             createdAt: Date.now()
                         };
-                        return next();
                     }
                 } catch (e) {
                     console.error('[AUTH] Redis session check error:', e);
@@ -62,6 +59,14 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
             }
         }
     }
+    return null;
+};
 
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+    const user = await getUserFromRequest(req);
+    if (user) {
+        (req as AuthRequest).user = user;
+        return next();
+    }
     return res.sendStatus(401);
 };

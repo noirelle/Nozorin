@@ -46,21 +46,32 @@ export const setupMatchmaking = (io: Server) => {
 // Re-export disconnect handler to be used by socket connection
 export { handleMatchmakingDisconnect } from './matchmaking.reconnect';
 
-export const handleMatchmaking = (io: Server, socket: Socket) => {
-    socket.on('find-match', async (data: { mode: 'voice', preferredCountry?: string }) => {
+
+export const matchmakingService = {
+    async joinQueue(io: Server, socketId: string, data: {
+        mode: 'voice',
+        preferredCountry?: string,
+        preferences?: any,
+        peerId?: string,
+        requestId?: string
+    }) {
         // SKIP LOCK: Prevent spamming
-        if (skipLocks.has(socket.id)) return;
-        skipLocks.add(socket.id);
+        if (skipLocks.has(socketId)) return;
+        skipLocks.add(socketId);
 
         try {
-            const userId = userService.getUserId(socket.id);
-            if (!userId || userService.getSocketId(userId) !== socket.id) {
-                socket.emit('multi-session', { message: 'Your session is no longer active.' });
-                return;
+            const userId = userService.getUserId(socketId);
+            if (!userId) {
+                throw new Error('User not identified');
+            }
+
+            // Check if user is already taking part in the queue
+            if (voiceQueue.some(u => u.userId === userId)) {
+                throw new Error('ALREADY_IN_QUEUE');
             }
 
             // 1. BACKEND-LEVEL SKIP
-            const activePartner = activeCalls.get(socket.id);
+            const activePartner = activeCalls.get(socketId);
             if (activePartner) {
                 // Apply fresh cooldown on skip
                 const partnerUserId = userService.getUserId(activePartner);
@@ -68,42 +79,34 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                     setMatchCooldown(userId, partnerUserId);
                 }
 
-                io.to(activePartner).emit('call-ended', { by: socket.id });
+                io.to(activePartner).emit('call-ended', { by: socketId });
                 activeCalls.delete(activePartner);
-                activeCalls.delete(socket.id);
+                activeCalls.delete(socketId);
             }
 
             // Clean up any pending reconnect where this user is the waiting partner
-            cleanupPendingReconnectsForPartner(io, socket.id, scanQueueForMatches);
+            cleanupPendingReconnectsForPartner(io, socketId, scanQueueForMatches);
 
-            const pendingRoomId = userPendingMatch.get(socket.id);
+            const pendingRoomId = userPendingMatch.get(socketId);
             if (pendingRoomId) {
                 handleMatchFailure(io, pendingRoomId, 'partner-left', scanQueueForMatches);
             }
 
             // 2. AUTHORITATIVE CLEANUP
-            // Note: fallbackTimeouts is managed in queue-manager now, but we need to clear it here if needed?
-            // QueueManager.remove handles cleanup but we might need explicit clear too if not in remove?
-            // Actually fallbackTimeouts is internal to queue mod.
-            // But we need to clear it if it exists for this user before re-adding.
-            // Let's add clearFallbackTimeout to queue exports if I haven't.
-            // I did export it. But wait, in original code it was explicit here.
-            // QueueManager.remove calls removeUserFromQueues and skipLocks.delete.
-            // We should ensure we clear the timeout.
-            const { clearFallbackTimeout } = require('./matchmaking.queue'); // Lazy import or ensure it is imported
-            clearFallbackTimeout(socket.id);
+            const { clearFallbackTimeout } = require('./matchmaking.queue');
+            clearFallbackTimeout(socketId);
 
 
             const resetSeniority = true;
             const joinTime = resetSeniority ? Date.now() : (voiceQueue.find(u => u.userId === userId)?.joinedAt || Date.now());
 
-            const userInfo = getConnectedUser(socket.id);
+            const userInfo = getConnectedUser(socketId);
             if (!userInfo) return;
 
             const userProfile = await userService.getUserProfile(userId);
 
             const currentUser: User = {
-                id: socket.id,
+                id: socketId,
                 userId,
                 username: userProfile?.username || 'Guest',
                 avatar: userProfile?.avatar || '/avatars/avatar1.webp',
@@ -112,6 +115,9 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
                 countryCode: userInfo.countryCode,
                 mode: 'voice',
                 preferredCountry: data.preferredCountry === 'GLOBAL' ? undefined : data.preferredCountry,
+                preferences: data.preferences,
+                peerId: data.peerId,
+                requestId: data.requestId,
                 joinedAt: joinTime,
                 state: 'FINDING'
             };
@@ -123,19 +129,60 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
             // 4. FALLBACK TIMER
             if (currentUser.preferredCountry) {
                 const timeout = setTimeout(() => {
-                    clearFallbackTimeout(socket.id);
-                    const u = voiceQueue.find(user => user.id === socket.id);
+                    clearFallbackTimeout(socketId);
+                    const u = voiceQueue.find(user => user.id === socketId);
                     if (u && u.state === 'FINDING' && u.preferredCountry) {
                         u.preferredCountry = undefined;
                         scanQueueForMatches(io);
                     }
                 }, CONSTANTS.FALLBACK_TIMER_MS);
-                setFallbackTimeout(socket.id, timeout);
+                setFallbackTimeout(socketId, timeout);
             }
+
+            // Get updated position
+            const position = voiceQueue.findIndex(u => u.id === socketId) + 1;
+
+            return {
+                queuePosition: position,
+                estimatedWait: position * 15, // Approx 15s per person in queue
+                timestamp: Date.now()
+            };
         } finally {
-            skipLocks.delete(socket.id);
+            skipLocks.delete(socketId);
         }
-    });
+    },
+
+    async leaveQueue(io: Server, socketId: string) {
+        QueueManager.remove(socketId);
+        const { clearFallbackTimeout } = require('./matchmaking.queue');
+        clearFallbackTimeout(socketId);
+
+        const partnerId = activeCalls.get(socketId);
+        if (partnerId) {
+            // Apply fresh cooldown on stop
+            const userId = userService.getUserId(socketId);
+            const partnerUserId = userService.getUserId(partnerId);
+            if (userId && partnerUserId) {
+                setMatchCooldown(userId, partnerUserId);
+            }
+
+            io.to(partnerId).emit('call-ended', { by: socketId });
+            activeCalls.delete(partnerId);
+        }
+        activeCalls.delete(socketId);
+
+        // Clean up any pending reconnect where this user is the waiting partner
+        cleanupPendingReconnectsForPartner(io, socketId, scanQueueForMatches);
+
+        notifyQueuePositions(io);
+    }
+};
+
+export const handleMatchmaking = (io: Server, socket: Socket) => {
+    // Legacy socket listeners removed or deprecated, now handled via REST
+    // We keep 'match-ready' and other signaling events here as they are part of the active connection flow
+
+    // socket.on('find-match', ...) -> Moved to REST
 
     socket.on('match-ready', () => {
         const roomId = userPendingMatch.get(socket.id);
@@ -194,30 +241,7 @@ export const handleMatchmaking = (io: Server, socket: Socket) => {
         }
     });
 
-    socket.on('stop-searching', () => {
-        QueueManager.remove(socket.id);
-        const { clearFallbackTimeout } = require('./matchmaking.queue');
-        clearFallbackTimeout(socket.id);
-
-        const partnerId = activeCalls.get(socket.id);
-        if (partnerId) {
-            // Apply fresh cooldown on stop
-            const userId = userService.getUserId(socket.id);
-            const partnerUserId = userService.getUserId(partnerId);
-            if (userId && partnerUserId) {
-                setMatchCooldown(userId, partnerUserId);
-            }
-
-            io.to(partnerId).emit('call-ended', { by: socket.id });
-            activeCalls.delete(partnerId);
-        }
-        activeCalls.delete(socket.id);
-
-        // Clean up any pending reconnect where this user is the waiting partner
-        cleanupPendingReconnectsForPartner(io, socket.id, scanQueueForMatches);
-
-        notifyQueuePositions(io);
-    });
+    // socket.on('stop-searching', ...) -> Moved to REST
 
     socket.on('end-call', () => {
         const partnerId = activeCalls.get(socket.id);

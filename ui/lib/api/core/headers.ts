@@ -29,10 +29,19 @@ export const getProxyHeaders = (req: Request): HeadersInit => {
         headers['user-agent'] = userAgent;
     }
 
-    // Forward Auth
+    // Forward Auth (or extract from cookie)
     const auth = req.headers.get('authorization');
     if (auth) {
         headers['authorization'] = auth;
+    } else {
+        // Fallback: Extract from cookie
+        const cookie = req.headers.get('cookie');
+        if (cookie) {
+            const match = cookie.match(/nz_token=([^;]+)/);
+            if (match && match[1]) {
+                headers['authorization'] = `Bearer ${match[1]}`;
+            }
+        }
     }
 
     // Forward Cookies (critical for session)
