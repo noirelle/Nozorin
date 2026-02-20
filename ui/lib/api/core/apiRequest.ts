@@ -1,4 +1,4 @@
-import { ApiResponse } from './types';
+import { ApiResponse, StandardApiResponse } from './types';
 import { getBaseApiUrl } from './config';
 import { handleTokenRefresh, handleAuthError } from './auth';
 import { logRequest, logResponse } from '../middleware/logging';
@@ -41,7 +41,33 @@ export async function apiRequest<T>(
         let data: any = null;
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
+            const json = await response.json();
+
+            // Check if it's a standard response
+            if (isStandardApiResponse(json)) {
+                if (json.status === 'success') {
+                    data = json.data;
+                    return {
+                        error: null,
+                        data: data as T,
+                        status: response.status,
+                        headers: response.headers,
+                        message: json.message
+                    };
+                } else {
+                    // It's an error response from the API
+                    return {
+                        error: json.message || json.error || 'Unknown API error',
+                        data: null,
+                        status: response.status,
+                        headers: response.headers,
+                        message: json.message
+                    };
+                }
+            } else {
+                // Fallback for non-standard responses (e.g. legacy or 3rd party)
+                data = json;
+            }
         }
 
         if (!response.ok) {
@@ -67,9 +93,27 @@ export async function apiRequest<T>(
                         });
 
                         let retryData: any = null;
+                        let retryMessage: string | undefined;
+
                         const retryContentType = retryResponse.headers.get('content-type');
                         if (retryContentType && retryContentType.includes('application/json')) {
-                            retryData = await retryResponse.json();
+                            const retryJson = await retryResponse.json();
+                            if (isStandardApiResponse(retryJson)) {
+                                if (retryJson.status === 'success') {
+                                    retryData = retryJson.data;
+                                    retryMessage = retryJson.message;
+                                } else {
+                                    return {
+                                        error: retryJson.message || retryJson.error || 'Unknown API error',
+                                        data: null,
+                                        status: retryResponse.status,
+                                        headers: retryResponse.headers,
+                                        message: retryJson.message
+                                    };
+                                }
+                            } else {
+                                retryData = retryJson;
+                            }
                         }
 
                         if (retryResponse.ok) {
@@ -77,7 +121,8 @@ export async function apiRequest<T>(
                                 error: null,
                                 data: retryData as T,
                                 status: retryResponse.status,
-                                headers: retryResponse.headers
+                                headers: retryResponse.headers,
+                                message: retryMessage
                             };
                         }
                     } else {
@@ -110,4 +155,8 @@ export async function apiRequest<T>(
             status: 500,
         };
     }
+}
+
+function isStandardApiResponse(data: any): data is StandardApiResponse {
+    return data && typeof data === 'object' && 'status' in data && ('message' in data || 'error' in data);
 }

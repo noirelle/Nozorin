@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { friendService } from './friend.service';
 import { userService } from '../user/user.service';
 import { io } from '../../server';
+import { successResponse, errorResponse } from '../../core/utils/response.util';
 
 export const friendController = {
     /**
@@ -12,7 +13,7 @@ export const friendController = {
         const { receiverId } = req.body;
 
         if (!receiverId) {
-            return res.status(400).json({ error: 'receiverId is required' });
+            return res.status(400).json(errorResponse('receiverId is required'));
         }
 
         try {
@@ -32,10 +33,10 @@ export const friendController = {
                 console.log(`[FRIEND] Receiver ${receiverId} is offline, no socket notification sent`);
             }
 
-            return res.status(201).json(request);
+            return res.status(201).json(successResponse(request, 'Friend request sent'));
         } catch (error: any) {
             console.error('[FRIEND] Error sending request:', error.message);
-            return res.status(400).json({ error: error.message });
+            return res.status(400).json(errorResponse(error.message));
         }
     },
 
@@ -47,7 +48,7 @@ export const friendController = {
         const { requestId } = req.body;
 
         if (!requestId) {
-            return res.status(400).json({ error: 'requestId is required' });
+            return res.status(400).json(errorResponse('requestId is required'));
         }
 
         try {
@@ -64,10 +65,10 @@ export const friendController = {
                 console.log(`[FRIEND] Notified user ${senderId} that ${userId} accepted their request`);
             }
 
-            return res.status(200).json({ message: 'Friend request accepted', request });
+            return res.status(200).json(successResponse({ request }, 'Friend request accepted'));
         } catch (error: any) {
             console.error('[FRIEND] Error accepting request:', error.message);
-            return res.status(400).json({ error: error.message });
+            return res.status(400).json(errorResponse(error.message));
         }
     },
 
@@ -79,15 +80,15 @@ export const friendController = {
         const { requestId } = req.body;
 
         if (!requestId) {
-            return res.status(400).json({ error: 'requestId is required' });
+            return res.status(400).json(errorResponse('requestId is required'));
         }
 
         try {
             const request = await friendService.declineRequest(userId, requestId);
-            return res.status(200).json({ message: 'Friend request declined', request });
+            return res.status(200).json(successResponse({ request }, 'Friend request declined'));
         } catch (error: any) {
             console.error('[FRIEND] Error declining request:', error.message);
-            return res.status(400).json({ error: error.message });
+            return res.status(400).json(errorResponse(error.message));
         }
     },
 
@@ -99,19 +100,19 @@ export const friendController = {
         const { friendId } = req.body;
 
         if (!friendId) {
-            return res.status(400).json({ error: 'friendId is required' });
+            return res.status(400).json(errorResponse('friendId is required'));
         }
 
         try {
             const success = await friendService.removeFriend(userId, friendId);
             if (success) {
-                return res.status(200).json({ message: 'Friend removed' });
+                return res.status(200).json(successResponse(null, 'Friend removed'));
             } else {
-                return res.status(404).json({ error: 'Friendship not found' });
+                return res.status(404).json(errorResponse('Friendship not found'));
             }
         } catch (error: any) {
             console.error('[FRIEND] Error removing friend:', error.message);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     },
 
@@ -123,10 +124,10 @@ export const friendController = {
 
         try {
             const friends = await friendService.getFriends(userId);
-            return res.status(200).json(friends);
+            return res.status(200).json(successResponse(friends, 'Friends retrieved successfully'));
         } catch (error: any) {
             console.error('[FRIEND] Error getting friends:', error.message);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     },
 
@@ -138,10 +139,10 @@ export const friendController = {
 
         try {
             const requests = await friendService.getPendingRequests(userId);
-            return res.status(200).json(requests);
+            return res.status(200).json(successResponse(requests, 'Pending requests retrieved successfully'));
         } catch (error: any) {
             console.error('[FRIEND] Error getting pending requests:', error.message);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     }
 };

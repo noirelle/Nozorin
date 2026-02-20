@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server';
 import { ApiResponse } from './types';
+import { successResponse, errorResponse } from './response';
 
 export function createProxyResponse<T>(
     result: ApiResponse<T>,
     successStatus: number = 200
 ): NextResponse {
-    const { error, data, status, headers } = result;
+    const { error, data, status, headers, message } = result;
+    const responseStatus = status || (error ? 500 : successStatus);
 
-    if (error || !data) {
-        return NextResponse.json(
-            { error: error || 'Request failed' },
-            { status: status || 500 }
-        );
+    let response: NextResponse;
+
+    if (error) {
+        response = errorResponse(message || error, null, responseStatus);
+    } else {
+        response = successResponse(data, message || 'Success', responseStatus);
     }
-
-    const response = NextResponse.json(data, { status: successStatus });
 
     if (headers) {
         // Handle headers whether they are essentially Headers object, generic HeadersInit, or Record

@@ -3,8 +3,8 @@ import { userService } from '../user/user.service';
 import { generateUserToken, generateRefreshToken, verifyRefreshToken } from '../../core/utils/jwt.utils';
 import { CreateUserDto } from '../../shared/types/user.types';
 import { v4 as uuidv4 } from 'uuid';
-import { getRedisClient } from '../../core/config/redis.config';
 import { getClientIp } from '../../core/utils/ip.utils';
+import { successResponse, errorResponse } from '../../core/utils/response.util';
 
 
 export const authController = {
@@ -20,7 +20,7 @@ export const authController = {
 
             if (!cleanIp) {
                 console.warn('[AUTH] Cannot determine IP');
-                return res.status(400).json({ error: 'Cannot determine IP address' });
+                return res.status(400).json(errorResponse('Cannot determine IP address'));
             }
 
             // 1. Check for existing unclaimed guest profile to prevent ghosting/spam
@@ -47,14 +47,14 @@ export const authController = {
                 console.log(`[AUTH] New guest user created: ${user.id}`);
             }
 
-            return res.status(200).json({
+            return res.status(200).json(successResponse({
                 user,
                 is_new: Date.now() - (user.created_at || 0) < 5000
-            });
+            }, 'Guest login successful'));
 
         } catch (error) {
             console.error('[AUTH] Guest login error:', error);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     },
 
@@ -63,7 +63,7 @@ export const authController = {
             const { chatIdentityId } = req.body;
 
             if (!chatIdentityId) {
-                return res.status(400).json({ error: 'Missing chatIdentityId' });
+                return res.status(400).json(errorResponse('Missing chatIdentityId'));
             }
 
             let user = await userService.getUserProfile(chatIdentityId);
@@ -80,7 +80,7 @@ export const authController = {
             }
 
             if (!user) {
-                return res.status(404).json({ error: 'User not found' });
+                return res.status(404).json(errorResponse('User not found'));
             }
 
             // Generate Access Token (15m)
@@ -112,7 +112,7 @@ export const authController = {
 
             const requestId = Math.random().toString(36).substring(2, 10);
 
-            return res.status(201).json({
+            return res.status(201).json(successResponse({
                 id: user.id,
                 token,
                 expiresIn: '15m',
@@ -126,10 +126,10 @@ export const authController = {
                     city: user.city || null,
                     timezone: user.timezone || null
                 }
-            });
+            }, 'Anonymous login successful'));
         } catch (error) {
             console.error('[AUTH] Token login error:', error);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     },
 
@@ -138,31 +138,31 @@ export const authController = {
             const refreshToken = req.cookies['nz_refresh_token'];
 
             if (!refreshToken) {
-                return res.status(401).json({ error: 'Refresh token missing' });
+                return res.status(401).json(errorResponse('Refresh token missing'));
             }
 
             const payload = verifyRefreshToken(refreshToken);
             if (!payload || !payload.userId) {
-                return res.status(403).json({ error: 'Invalid refresh token' });
+                return res.status(403).json(errorResponse('Invalid refresh token'));
             }
 
             // Verify user exists
             const user = await userService.getUserProfile(payload.userId);
             if (!user) {
-                return res.status(403).json({ error: 'User not found' });
+                return res.status(403).json(errorResponse('User not found'));
             }
 
             // Generate new access token
             const newToken = generateUserToken(user.id);
 
-            return res.status(200).json({
+            return res.status(200).json(successResponse({
                 token: newToken,
                 expiresIn: '15m'
-            });
+            }, 'Token refreshed successfully'));
 
         } catch (error) {
             console.error('[AUTH] Refresh token error:', error);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(errorResponse('Internal server error', error));
         }
     }
 };
