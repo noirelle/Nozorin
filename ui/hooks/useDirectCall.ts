@@ -1,120 +1,81 @@
-
 import { useCallback, useEffect, useState } from 'react';
-import { Socket } from 'socket.io-client';
+import { useSocketEvent } from '../lib/socket';
+import { SocketEvents } from '../lib/socket';
+import * as directCallActions from '../lib/socket/direct-call/directCall.actions';
+import { IncomingCallPayload, CallErrorPayload } from '../lib/socket/direct-call/directCall.types';
 
-interface IncomingCall {
-    fromUserId: string;
-    fromSocketId: string;
-    fromUsername: string;
-    fromAvatar: string;
-    fromGender: string;
-    fromCountry: string;
-    fromCountryCode: string;
-    mode: 'voice';
-}
-
-export const useDirectCall = (socket: Socket | null, onCallStarted?: () => void) => {
-    const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
+export const useDirectCall = (onCallStarted?: () => void) => {
+    const [incomingCall, setIncomingCall] = useState<IncomingCallPayload | null>(null);
     const [isCalling, setIsCalling] = useState(false);
     const [callTarget, setCallTarget] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!socket) return;
+    // ── Listeners ─────────────────────────────────────────────────────────────
 
-        const handleIncomingCall = (data: IncomingCall) => {
-            console.log('[DirectCall] Incoming call from:', data.fromUserId);
-            setError(null);
-            setIncomingCall(data);
-        };
+    const handleIncomingCall = useCallback((data: IncomingCallPayload) => {
+        console.log('[DirectCall] Incoming call from:', data.fromUserId);
+        setError(null);
+        setIncomingCall(data);
+    }, []);
 
-        const handleCallCancelled = () => {
-            console.log('[DirectCall] Call cancelled by caller');
-            setError('User aborted the call');
-            setTimeout(() => {
-                setIncomingCall(null);
-                setError(null);
-            }, 3000);
-        };
+    const handleCallCancelled = useCallback(() => {
+        console.log('[DirectCall] Call cancelled by caller');
+        setError('User aborted the call');
+        setTimeout(() => { setIncomingCall(null); setError(null); }, 3000);
+    }, []);
 
-        const handleCallError = (data: { message: string }) => {
-            setError(data.message);
-            setTimeout(() => {
-                setIsCalling(false);
-                setCallTarget(null);
-                setError(null);
-            }, 3000);
-        };
+    const handleCallError = useCallback((data: CallErrorPayload) => {
+        setError(data.message);
+        setTimeout(() => { setIsCalling(false); setCallTarget(null); setError(null); }, 3000);
+    }, []);
 
-        const handleCallDeclined = () => {
-            console.log('[DirectCall] Call declined by partner');
-            setError('User declined');
-            // Keep isCalling true for a bit so the overlay stays visible to show the error
-            setTimeout(() => {
-                setIsCalling(false);
-                setCallTarget(null);
-                setError(null);
-            }, 3000);
-        };
+    const handleCallDeclined = useCallback(() => {
+        console.log('[DirectCall] Call declined by partner');
+        setError('User declined');
+        setTimeout(() => { setIsCalling(false); setCallTarget(null); setError(null); }, 3000);
+    }, []);
 
-        const handleMatchFound = () => {
-            setIsCalling(false);
-            setCallTarget(null);
-        };
+    const handleMatchFound = useCallback(() => {
+        setIsCalling(false);
+        setCallTarget(null);
+    }, []);
 
-        socket.on('incoming-call', handleIncomingCall);
-        socket.on('call-cancelled-by-caller', handleCallCancelled);
-        socket.on('call-error', handleCallError);
-        socket.on('call-declined', handleCallDeclined);
-        socket.on('match-found', handleMatchFound);
+    useSocketEvent<IncomingCallPayload>(SocketEvents.INCOMING_CALL, handleIncomingCall);
+    useSocketEvent(SocketEvents.CALL_CANCELLED_BY_CALLER, handleCallCancelled);
+    useSocketEvent<CallErrorPayload>(SocketEvents.CALL_ERROR, handleCallError);
+    useSocketEvent(SocketEvents.CALL_DECLINED, handleCallDeclined);
+    useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
 
-        return () => {
-            socket.off('incoming-call', handleIncomingCall);
-            socket.off('call-cancelled-by-caller', handleCallCancelled);
-            socket.off('call-error', handleCallError);
-            socket.off('call-declined', handleCallDeclined);
-            socket.off('match-found', handleMatchFound);
-        };
-    }, [socket]);
+    // ── Actions ───────────────────────────────────────────────────────────────
 
     const initiateCall = useCallback((targetUserId: string, mode: 'voice') => {
-        if (!socket) return;
         setError(null);
         setIsCalling(true);
         setCallTarget(targetUserId);
         onCallStarted?.();
-        socket.emit('initiate-direct-call', { targetUserId, mode });
-    }, [socket, onCallStarted]);
+        directCallActions.emitInitiateCall(targetUserId, mode);
+    }, [onCallStarted]);
 
     const acceptCall = useCallback(() => {
-        if (!socket || !incomingCall) return;
+        if (!incomingCall) return;
         onCallStarted?.();
-        socket.emit('respond-to-call', {
-            callerSocketId: incomingCall.fromSocketId,
-            accepted: true,
-            mode: incomingCall.mode
-        });
+        directCallActions.emitRespondToCall(incomingCall.fromSocketId, true, incomingCall.mode);
         setIncomingCall(null);
-    }, [socket, incomingCall, onCallStarted]);
+    }, [incomingCall, onCallStarted]);
 
     const declineCall = useCallback(() => {
-        if (!socket || !incomingCall) return;
+        if (!incomingCall) return;
         onCallStarted?.();
-        socket.emit('respond-to-call', {
-            callerSocketId: incomingCall.fromSocketId,
-            accepted: false,
-            mode: incomingCall.mode
-        });
+        directCallActions.emitRespondToCall(incomingCall.fromSocketId, false, incomingCall.mode);
         setIncomingCall(null);
-    }, [socket, incomingCall, onCallStarted]);
+    }, [incomingCall, onCallStarted]);
 
     const cancelCall = useCallback(() => {
-        if (!socket || !callTarget) return;
-        onCallStarted?.();
-        socket.emit('cancel-call', { targetUserId: callTarget });
+        if (!callTarget) return;
+        directCallActions.emitCancelCall(callTarget);
         setIsCalling(false);
         setCallTarget(null);
-    }, [socket, callTarget, onCallStarted]);
+    }, [callTarget]);
 
     const clearCallState = useCallback(() => {
         if (error) {

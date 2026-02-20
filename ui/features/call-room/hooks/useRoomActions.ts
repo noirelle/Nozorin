@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Socket } from 'socket.io-client';
 import { useMatching } from './useMatching';
 import { CallRoomState } from './useCallRoom';
+import { emitToggleMute, emitUpdateMediaState } from '../../../lib/socket/media/media.actions';
+import { MatchFoundPayload } from '../../../lib/socket/matching/matching.types';
 
 interface UseRoomActionsProps {
-    socket: Socket | null;
     mode: 'voice';
     callRoomState: CallRoomState;
     setSearching: (searching: boolean) => void;
@@ -16,13 +16,12 @@ interface UseRoomActionsProps {
     clearMessages: () => void;
     sendMessage: (text: string) => void;
     trackSessionStart: (partnerId: string, mode: 'voice') => void;
-    trackSessionEnd: (reason: "user-action" | "partner-disconnect" | "error" | "skip" | "network" | "answered-another") => void;
+    trackSessionEnd: (reason: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another') => void;
     selectedCountry: string;
     toggleLocalMute: () => void;
 }
 
 export const useRoomActions = ({
-    socket,
     mode,
     callRoomState,
     setSearching,
@@ -38,12 +37,10 @@ export const useRoomActions = ({
     selectedCountry,
     toggleLocalMute,
 }: UseRoomActionsProps) => {
-    // UI State managed here related to actions
     const [partnerIsMuted, setPartnerIsMuted] = useState(false);
 
-    // Refs
     const partnerIdRef = useRef(callRoomState.partnerId);
-    const startSearchRef = useRef<(preferredCountry?: string) => void>(() => { });
+    const startSearchRef = useRef<(options?: { preferredCountry?: string; userId?: string; peerId?: string }) => Promise<void>>(() => Promise.resolve());
     const stopSearchRef = useRef<() => void>(() => { });
     const endCallRef = useRef<(id: string | null) => void>(() => { });
     const manualStopRef = useRef(false);
@@ -51,19 +48,16 @@ export const useRoomActions = ({
     const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Sync ref
     useEffect(() => {
         partnerIdRef.current = callRoomState.partnerId;
     }, [callRoomState.partnerId]);
 
-    // --- Action Callbacks ---
+    // ── Core Actions ──────────────────────────────────────────────────────────
 
     const handleStop = useCallback(() => {
         console.log('[Room] Stopping search or ending call');
-
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-
         stopSearchRef.current();
         endCallRef.current(partnerIdRef.current);
         closePeerConnection();
@@ -78,7 +72,6 @@ export const useRoomActions = ({
             console.log('[Room] Already in a call, skipping redundant findMatch');
             return;
         }
-
         console.log('[Room] Initiating new match search (Force Skip:', forceSkip, ')');
         manualStopRef.current = false;
         resetState();
@@ -86,22 +79,16 @@ export const useRoomActions = ({
         setPartnerIsMuted(false);
         closePeerConnection();
         setSearching(true);
-        startSearchRef.current(selectedCountry === 'GLOBAL' ? undefined : selectedCountry);
+        startSearchRef.current({ preferredCountry: selectedCountry === 'GLOBAL' ? undefined : selectedCountry });
     }, [resetState, clearMessages, closePeerConnection, setSearching, selectedCountry]);
 
     const handleNext = useCallback(() => {
-        console.log('[Room] Skipping to next partner (Atomic Skip)');
-
+        console.log('[Room] Skipping to next partner');
         manualStopRef.current = true;
-
         try { localStorage.removeItem('nz_active_call'); } catch { }
-
         trackSessionEnd('skip');
-
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
-
         findMatch(true);
-
     }, [findMatch, trackSessionEnd]);
 
     const handleUserStop = useCallback(() => {
@@ -113,27 +100,21 @@ export const useRoomActions = ({
     }, [handleStop, trackSessionEnd]);
 
     const handleSendMessage = useCallback((text: string, setInputText: (t: string) => void) => {
-        if (text.trim()) {
-            sendMessage(text);
-            setInputText('');
-        }
+        if (text.trim()) { sendMessage(text); setInputText(''); }
     }, [sendMessage]);
 
     const handleToggleMute = useCallback(() => {
         const newMuted = !callRoomState.isMuted;
         toggleLocalMute();
-        setPartnerIsMuted(prev => prev); // re-render hack? No, actually just emit
-        if (socket) {
-            if (callRoomState.isConnected && callRoomState.partnerId) {
-                socket.emit('toggle-mute', { target: callRoomState.partnerId, isMuted: newMuted });
-            }
-            socket.emit('update-media-state', { isMuted: newMuted });
+        if (callRoomState.isConnected && callRoomState.partnerId) {
+            emitToggleMute(callRoomState.partnerId, newMuted);
         }
-    }, [callRoomState.isMuted, callRoomState.isConnected, callRoomState.partnerId, toggleLocalMute, socket]);
+        emitUpdateMediaState(newMuted);
+    }, [callRoomState.isMuted, callRoomState.isConnected, callRoomState.partnerId, toggleLocalMute]);
 
-    // --- Matching Callbacks ---
+    // ── Matching Callbacks ────────────────────────────────────────────────────
 
-    const onMatchFound = useCallback(async (data: any) => {
+    const onMatchFound = useCallback(async (data: MatchFoundPayload) => {
         console.log('[Room] Match found:', data);
         setSearching(false);
         setConnected(true);
@@ -158,10 +139,7 @@ export const useRoomActions = ({
         } catch { }
 
         trackSessionStart(data.partnerId, mode);
-
-        if (mode === 'voice' && data.role === 'offerer') {
-            await createOffer(data.partnerId);
-        }
+        if (mode === 'voice' && data.role === 'offerer') await createOffer(data.partnerId);
     }, [mode, createOffer, setSearching, setConnected, setPartner, trackSessionStart]);
 
     const onCallEnded = useCallback(() => {
@@ -170,28 +148,20 @@ export const useRoomActions = ({
             manualStopRef.current = false;
             return;
         }
-
         console.log('[Room] Call ended by partner or system');
         trackSessionEnd('partner-disconnect');
         handleStop();
-
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         try { localStorage.removeItem('nz_active_call'); } catch { }
-
         setSearching(true);
-        reconnectTimeoutRef.current = setTimeout(() => {
-            findMatch();
-        }, 300);
+        reconnectTimeoutRef.current = setTimeout(() => findMatch(), 300);
     }, [handleStop, findMatch, trackSessionEnd, setSearching]);
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
         console.warn(`[Room] Match cancelled: ${data.reason}. Re-searching...`);
         handleStop();
         setSearching(true);
-        setTimeout(() => {
-            console.log('[Room] Attempting auto-reconnect after cancellation');
-            findMatch();
-        }, 1000);
+        setTimeout(() => { console.log('[Room] Auto-reconnect after cancellation'); findMatch(); }, 1000);
     }, [handleStop, findMatch, setSearching]);
 
     const onPartnerReconnected = useCallback(async (data: { newSocketId: string }) => {
@@ -202,10 +172,9 @@ export const useRoomActions = ({
     }, [closePeerConnection, setPartner, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
-        console.log('[Room] Rejoin success, restoring call state:', data);
+        console.log('[Room] Rejoin success:', data);
         setSearching(false);
         setConnected(true);
-
         const partnerId = data.partnerId;
         partnerIdRef.current = partnerId;
         setPartner(
@@ -215,12 +184,8 @@ export const useRoomActions = ({
             callRoomState.partnerUsername || '',
             callRoomState.partnerAvatar || '',
         );
-
         closePeerConnection();
-
-        if (mode === 'voice') {
-            pendingRejoinPartnerRef.current = partnerId;
-        }
+        if (mode === 'voice') pendingRejoinPartnerRef.current = partnerId;
     }, [setSearching, setConnected, setPartner, closePeerConnection, mode, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
@@ -229,9 +194,9 @@ export const useRoomActions = ({
         try { localStorage.removeItem('nz_active_call'); } catch { }
     }, [resetState]);
 
-    // Use Matching Hook
+    // ── Matching Hook ─────────────────────────────────────────────────────────
+
     const matching = useMatching({
-        socket,
         onMatchFound,
         onMatchCancelled,
         onCallEnded,
@@ -240,7 +205,6 @@ export const useRoomActions = ({
         onRejoinFailed,
     });
 
-    // Update refs with matching functions
     useEffect(() => {
         startSearchRef.current = matching.startSearch;
         stopSearchRef.current = matching.stopSearch;

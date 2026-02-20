@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Socket } from 'socket.io-client';
+import { useSocketEvent } from '../../../lib/socket';
+import { SocketEvents } from '../../../lib/socket';
+import { emitSendMessage } from '../../../lib/socket/chat/chat.actions';
+import { ReceiveMessagePayload } from '../../../lib/socket/chat/chat.types';
+import { getSocketClient } from '../../../lib/socket/socketClient';
 
 export interface Message {
     senderId: string;
@@ -8,7 +12,7 @@ export interface Message {
     timestamp: string;
 }
 
-export const useChat = (socket: Socket | null, partnerId: string | null) => {
+export const useChat = (partnerId: string | null) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [showChat, setShowChat] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -18,54 +22,27 @@ export const useChat = (socket: Socket | null, partnerId: string | null) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Listen for incoming messages
-    useEffect(() => {
-        if (!socket) return;
+    const handleReceiveMessage = useCallback((data: ReceiveMessagePayload) => {
+        setMessages(prev => [...prev, { ...data, isSelf: false }]);
+        setShowChat(true);
+    }, []);
 
-        const handleReceiveMessage = ({
-            senderId,
-            message,
-            timestamp,
-        }: {
-            senderId: string;
-            message: string;
-            timestamp: string;
-        }) => {
-            setMessages((prev) => [
-                ...prev,
-                {
-                    senderId,
-                    isSelf: false,
-                    message,
-                    timestamp,
-                },
-            ]);
-            setShowChat(true); // Auto-open chat on receive
-        };
-
-        socket.on('receive-message', handleReceiveMessage);
-
-        return () => {
-            socket.off('receive-message', handleReceiveMessage);
-        };
-    }, [socket]);
+    useSocketEvent<ReceiveMessagePayload>(SocketEvents.RECEIVE_MESSAGE, handleReceiveMessage);
 
     const sendMessage = useCallback((text: string) => {
-        if (!partnerId || !socket) return;
-
+        if (!partnerId) return;
+        const socket = getSocketClient();
         const msg: Message = {
-            senderId: socket.id || 'me',
+            senderId: socket?.id || 'me',
             isSelf: true,
             message: text,
             timestamp: new Date().toISOString(),
         };
-        setMessages((prev) => [...prev, msg]);
-        socket.emit('send-message', { target: partnerId, message: text });
-    }, [partnerId, socket]);
+        setMessages(prev => [...prev, msg]);
+        emitSendMessage(partnerId, text);
+    }, [partnerId]);
 
-    const clearMessages = useCallback(() => {
-        setMessages([]);
-    }, []);
+    const clearMessages = useCallback(() => { setMessages([]); }, []);
 
     return {
         messages,

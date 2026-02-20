@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Socket } from 'socket.io-client';
+import { connectSocket, useSocketEvent } from '../../../lib/socket';
+import { SocketEvents } from '../../../lib/socket';
+import { emitUpdateMediaState } from '../../../lib/socket/media/media.actions';
 import { CallRoomState } from './useCallRoom';
+import { PartnerMuteStatePayload, PartnerSignalStrengthPayload } from '../../../lib/socket/media/media.types';
 
 interface UseRoomEffectsProps {
-    socket: Socket | null;
     mode: 'voice';
     callRoomState: CallRoomState;
     setPartnerIsMuted: (muted: boolean) => void;
@@ -22,7 +24,6 @@ interface UseRoomEffectsProps {
 }
 
 export const useRoomEffects = ({
-    socket,
     mode,
     callRoomState,
     setPartnerIsMuted,
@@ -30,14 +31,12 @@ export const useRoomEffects = ({
     initMediaManager,
     cleanupMedia,
     onConnectionChange,
-    initialMatchData,
     createOffer,
     pendingRejoinPartnerRef,
     handleStop,
     handleNext,
     findMatch,
     handleUserStop,
-    onMatchFound,
 }: UseRoomEffectsProps) => {
 
     // Notify parent about connection state changes
@@ -49,7 +48,6 @@ export const useRoomEffects = ({
     useEffect(() => {
         const partnerId = pendingRejoinPartnerRef.current;
         if (!partnerId || !callRoomState.isMediaReady) return;
-
         pendingRejoinPartnerRef.current = null;
         console.log('[Room] Media ready — creating deferred WebRTC offer for rejoin.');
         createOffer(partnerId);
@@ -57,57 +55,43 @@ export const useRoomEffects = ({
 
     // Initialization & Cleanup
     useEffect(() => {
-        // Always init media for voice
         initMediaManager();
-        socket?.connect();
+        connectSocket();
+        return () => { handleStop(); cleanupMedia(); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode]);
 
-        return () => {
-            handleStop();
-            cleanupMedia();
-        };
-    }, [mode, socket, initMediaManager, cleanupMedia, handleStop]);
+    // Partner media state listeners
+    const handlePartnerMute = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.isMuted));
+    const handlePartnerSignal = useRef((data: PartnerSignalStrengthPayload) => setPartnerSignalStrength(data.strength));
 
-    // Socket Listeners (for media state)
+    useEffect(() => { handlePartnerMute.current = (data) => setPartnerIsMuted(data.isMuted); }, [setPartnerIsMuted]);
+    useEffect(() => { handlePartnerSignal.current = (data) => setPartnerSignalStrength(data.strength); }, [setPartnerSignalStrength]);
+
+    useSocketEvent<PartnerMuteStatePayload>(
+        SocketEvents.PARTNER_MUTE_STATE,
+        useRef((data: PartnerMuteStatePayload) => handlePartnerMute.current(data)).current
+    );
+    useSocketEvent<PartnerSignalStrengthPayload>(
+        SocketEvents.PARTNER_SIGNAL_STRENGTH,
+        useRef((data: PartnerSignalStrengthPayload) => handlePartnerSignal.current(data)).current
+    );
+
+    // Sync local media state with server
     useEffect(() => {
-        if (!socket) return;
+        if (!callRoomState.isMediaReady) return;
+        emitUpdateMediaState(callRoomState.isMuted);
+    }, [callRoomState.isMediaReady, callRoomState.isMuted]);
 
-        const onPartnerMute = (data: { isMuted: boolean }) => setPartnerIsMuted(data.isMuted);
-        const onPartnerSignal = (data: { strength: 'good' | 'fair' | 'poor' | 'reconnecting' }) => {
-            setPartnerSignalStrength(data.strength);
-        };
-
-        socket.on('partner-mute-state', onPartnerMute);
-        socket.on('partner-signal-strength', onPartnerSignal);
-
-        return () => {
-            socket.off('partner-mute-state', onPartnerMute);
-            socket.off('partner-signal-strength', onPartnerSignal);
-        };
-    }, [socket, setPartnerIsMuted, setPartnerSignalStrength]);
-
-    // Sync Local Media State with Server (Initial + Updates)
-    useEffect(() => {
-        if (!socket || !callRoomState.isMediaReady) return;
-
-        socket.emit('update-media-state', {
-            isMuted: callRoomState.isMuted,
-        });
-    }, [socket, callRoomState.isMediaReady, callRoomState.isMuted]);
-
-    // Keyboard Shortcuts
+    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                handleUserStop();
-            } else if (e.key === 'ArrowRight') {
-                if (callRoomState.isConnected || callRoomState.isSearching) {
-                    handleNext();
-                } else {
-                    findMatch();
-                }
+            if (e.key === 'Escape') handleUserStop();
+            else if (e.key === 'ArrowRight') {
+                if (callRoomState.isConnected || callRoomState.isSearching) handleNext();
+                else findMatch();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleUserStop, handleNext, findMatch, callRoomState.isConnected, callRoomState.isSearching]);

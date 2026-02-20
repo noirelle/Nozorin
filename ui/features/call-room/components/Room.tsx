@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
-import { socket as getSocket } from '../../../lib/socket';
+import { getSocketClient } from '../../../lib/socket/socketClient';
+import { emitSignalStrength } from '../../../lib/socket/matching/matching.actions';
 import { useRoomActions } from '../hooks/useRoomActions';
 import { useRoomEffects } from '../hooks/useRoomEffects';
 import { useWebRTC } from '../hooks/useWebRTC';
@@ -9,7 +10,6 @@ import { useCallRoom } from '../hooks/useCallRoom';
 import { useChat } from '../hooks/useChat';
 import { useReconnect } from '../hooks/useReconnect';
 import { useHistory, useUser } from '../../../hooks';
-import { Socket } from 'socket.io-client';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
 import { DevicePermissionOverlay } from './DevicePermissionOverlay';
@@ -38,8 +38,7 @@ export default function Room({
     friends,
     pendingRequests
 }: RoomProps) {
-    // 1. Core State & Framework Hooks
-    const socket = getSocket() as Socket | null;
+    // 1. Core State
     const {
         state: callRoomState,
         mediaManager,
@@ -53,55 +52,38 @@ export default function Room({
         resetState,
     } = useCallRoom(mode);
 
-    // 2. Extra UI State (Purely Visual)
+    // 2. Extra UI State
     const [showChat, setShowChat] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);
-    const [inputText, setInputText] = useState("");
+    const [inputText, setInputText] = useState('');
     const [mobileLayout, setMobileLayout] = useState<'overlay' | 'split'>('overlay');
     const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
 
     const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
-    // 3. Actions Ref (for breaking cyclic dependencies with WebRTC)
+    // 3. Actions Ref (break cyclic dep with WebRTC)
     const actionsRef = useRef<ReturnType<typeof useRoomActions> | null>(null);
 
-    // 4. WebRTC Hook
-    const {
-        createOffer,
-        closePeerConnection
-    } = useWebRTC({
-        socket,
+    // 4. WebRTC Hook — no socket prop
+    const { createOffer, closePeerConnection } = useWebRTC({
         mediaManager: mediaManager.current,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
-            if (state === 'failed') {
-                actionsRef.current?.handleStop();
-            }
+            if (state === 'failed') actionsRef.current?.handleStop();
         },
         onSignalQuality: (quality) => {
-            if (socket && callRoomState.partnerId) {
-                socket.emit('signal-strength', {
-                    target: callRoomState.partnerId,
-                    strength: quality
-                });
-            }
-        }
+            const partnerId = callRoomState.partnerId;
+            if (partnerId) emitSignalStrength(partnerId, quality);
+        },
     });
 
-    // 5. Chat & History Hooks
-    const {
-        messages,
-        messagesEndRef,
-        sendMessage,
-        clearMessages,
-    } = useChat(socket, callRoomState.partnerId);
-
+    // 5. Chat & History — no socket prop
+    const { messages, messagesEndRef, sendMessage, clearMessages } = useChat(callRoomState.partnerId);
     const { token } = useUser();
-    const { trackSessionStart, trackSessionEnd } = useHistory(socket, token);
+    const { trackSessionStart, trackSessionEnd } = useHistory(token);
 
-    // 6. Room Actions Hook (The Controller)
+    // 6. Room Actions — no socket prop
     const actions = useRoomActions({
-        socket,
         mode,
         callRoomState,
         setSearching,
@@ -118,12 +100,10 @@ export default function Room({
         toggleLocalMute,
     });
 
-    // Update ref for WebRTC callback access
     actionsRef.current = actions;
 
-    // 7. Room Effects Hook (Side Effects)
+    // 7. Room Effects — no socket prop
     useRoomEffects({
-        socket,
         mode,
         callRoomState,
         setPartnerIsMuted: actions.setPartnerIsMuted,
@@ -141,9 +121,8 @@ export default function Room({
         onMatchFound: actions.onMatchFound,
     });
 
-    // 8. Reconnect Hook
+    // 8. Reconnect Hook — no socket prop
     const { isReconnecting } = useReconnect({
-        socket,
         rejoinCall: actions.matching.rejoinCall,
         onRestorePartner: useCallback((data: any) => {
             if (data.partnerProfile) {
@@ -153,7 +132,6 @@ export default function Room({
         }, [setPartner]),
     });
 
-    // Render Helpers
     const handleSendMessageWrapper = (text: string) => actions.handleSendMessage(text, setInputText);
 
     return (

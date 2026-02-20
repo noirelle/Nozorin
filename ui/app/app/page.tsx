@@ -6,7 +6,8 @@ import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
 import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
 import { useHistory, useUser, useDirectCall, useFriends } from '@/hooks';
-import { socket } from '@/lib/socket';
+import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth } from '@/lib/socket';
+import { getSocketClient } from '@/lib/socket/socketClient';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
@@ -33,7 +34,7 @@ export default function AppPage() {
         fetchHistory,
         fetchStats,
         clearHistory
-    } = useHistory(socket(), token, async () => null); // Removed regenerateToken
+    } = useHistory(token, async () => null);
 
     // check for pending match data from landing page
     useEffect(() => {
@@ -63,7 +64,7 @@ export default function AppPage() {
         declineCall: performDeclineCall,
         cancelCall,
         clearCallState
-    } = useDirectCall(socket(), handleCloseHistory);
+    } = useDirectCall(handleCloseHistory);
 
     // Friend System hook
     const {
@@ -74,7 +75,7 @@ export default function AppPage() {
         declineRequest,
         removeFriend,
         isLoading: isLoadingFriendsData
-    } = useFriends(socket(), token);
+    } = useFriends(token);
 
     const handleAddFriend = useCallback(async (targetId: string) => {
         const result = await sendRequest(targetId);
@@ -85,137 +86,85 @@ export default function AppPage() {
         }
     }, [sendRequest]);
 
-    // Handle successful match-found for direct calls
+    // Handle successful match-found for direct calls (via useSocketEvent)
+    const handleMatchFound = useCallback((data: any) => {
+        setIsHistoryOpen(false);
+        clearCallState();
+        console.log('[App] Match found via direct call, ensuring room readiness...');
+        setDirectMatchData(data);
+    }, [clearCallState]);
+
+    const handleIdentifySuccess = useCallback(() => {
+        console.log('[App] Identification successful');
+    }, []);
+
+    const handleAuthError = useCallback((error: any) => {
+        console.error('[App] Socket authentication error:', error);
+    }, []);
+
+    useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
+    useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentifySuccess);
+
+    // Connect socket with token and identify
     useEffect(() => {
-        const s = socket();
-        if (!s) return;
-
-        const handleMatchFound = (data: any) => {
-            // 1. Close history modal first for a smooth transition
-            setIsHistoryOpen(false);
-            // 2. Clear any active "Calling..." overlays immediately
-            clearCallState();
-
-            console.log('[App] Match found via direct call, ensuring room readiness...');
-            // Store data to pass to Room component if needed for initial connection
-            setDirectMatchData(data);
-        };
-
-        const handleIdentifySuccess = () => {
-            console.log('[App] Identification successful');
-        };
-
-        const handleAuthError = (error: any) => {
-            console.error('[App] Socket authentication error:', error);
-            // Handle auth error, e.g., clear token, redirect to login
-            // For now, just log it.
-        };
-
-        s.on('match-found', handleMatchFound);
-        s.on('identify-success', handleIdentifySuccess);
-        s.on('auth-error', handleAuthError);
-
-        return () => {
-            s.off('match-found', handleMatchFound);
-            s.off('identify-success', handleIdentifySuccess);
-            s.off('auth-error', handleAuthError);
-        };
-    }, []); // Run once on mount
-
-    // Identify user to socket
-    useEffect(() => {
-        // Ensure socket is initialized with token
-        const s = socket(token);
-        if (!s) return;
-
-        // If we have a token but socket is disconnected, connect now
-        if (token && !s.connected) {
+        if (!token) return;
+        updateSocketAuth(token);
+        const s = getSocketClient(token);
+        if (s && !s.connected) {
             console.log('[App] Connecting socket with token...');
-            s.connect();
+            connectSocket();
         }
 
         const identify = () => {
             if (token) {
-                console.log('[App] Identifying socket...', s.id);
-                // We still keep this for backward compatibility or explicit identification if needed,
-                // but the middleware handles the main auth now.
-                s.emit('user-identify', { token });
+                console.log('[App] Identifying socket...', s?.id);
+                s?.emit('user-identify', { token });
             }
         };
 
         const handleAuthError = async (err: any) => {
             console.error('[App] Socket authentication error:', err);
-            // If error is related to expiration, try to refresh
-            const isAuthError =
-                !err ||
-                Object.keys(err).length === 0 ||
+            const isAuthError = !err || Object.keys(err).length === 0 ||
                 err?.message === 'Authentication error: Invalid token' ||
                 err?.message === 'jwt expired' ||
                 err?.message === 'Invalid or expired token';
-
             if (isAuthError) {
                 console.log('[App] Token invalid/expired, attempting refresh...');
                 const newToken = await refreshUser();
-
                 if (newToken) {
                     console.log('[App] Refresh successful, updating socket token...');
-
-                    // Update auth for future reconnections
-                    socket(newToken);
-
-                    // Seamless update for current connection
-                    if (s.connected) {
-                        s.emit('update-token', { token: newToken });
-                    } else {
-                        s.connect();
-                    }
+                    updateSocketAuth(newToken);
+                    if (s?.connected) s?.emit('update-token', { token: newToken });
+                    else connectSocket();
                 } else {
                     console.warn('[App] Refresh failed, disconnecting socket.');
-                    s.disconnect();
+                    s?.disconnect();
                 }
             }
         };
 
         const handleTokenUpdated = (data: { success: boolean }) => {
-            if (data.success) {
-                console.log('[App] Socket token updated successfully (Graceful Refresh)');
-            }
+            if (data.success) console.log('[App] Socket token updated successfully (Graceful Refresh)');
         };
 
-        if (s.connected && token) {
-            identify();
-        }
+        if (s?.connected && token) identify();
 
-        const onFocus = () => {
-            console.log('[App] Re-verifying session on focus...');
-            if (s.connected && token) identify();
-        };
-
-        const interval = setInterval(() => {
-            if (s.connected && token) {
-                identify();
-            }
-        }, 10000);
-
+        const onFocus = () => { if (s?.connected && token) identify(); };
+        const interval = setInterval(() => { if (s?.connected && token) identify(); }, 10000);
         const onStorageChange = (e: StorageEvent) => {
-            if (e.key === 'nz_token') {
-                console.log('[App] Visitor token changed in another tab, re-identifying...');
-                window.location.reload();
-            }
+            if (e.key === 'nz_token') window.location.reload();
         };
 
-        s.on('connect', identify);
-        s.on('auth-error', handleAuthError);
-        s.on('token-updated', handleTokenUpdated);
-
+        s?.on('connect', identify);
+        s?.on('auth-error', handleAuthError);
+        s?.on('token-updated', handleTokenUpdated);
         window.addEventListener('focus', onFocus);
         window.addEventListener('storage', onStorageChange);
 
         return () => {
-            s.off('connect', identify);
-            s.off('auth-error', handleAuthError);
-            s.off('token-updated', handleTokenUpdated);
-
+            s?.off('connect', identify);
+            s?.off('auth-error', handleAuthError);
+            s?.off('token-updated', handleTokenUpdated);
             window.removeEventListener('focus', onFocus);
             window.removeEventListener('storage', onStorageChange);
             clearInterval(interval);
@@ -231,13 +180,8 @@ export default function AppPage() {
     const handleLeave = () => {
         setIsConnected(false);
         setDirectMatchData(null);
-
-        // Explicitly disconnect socket to ensure clean state for Home page
-        const s = socket();
-        if (s) {
-            s.disconnect();
-        }
-
+        const s = getSocketClient();
+        if (s) s.disconnect();
         router.push('/');
     };
 
