@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon } from '../components/icons';
-import { useStats } from '../hooks/useStats';
+import { useStats } from '../hooks';
 
 export default function SocialProof() {
     const { stats } = useStats();

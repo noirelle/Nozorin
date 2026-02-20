@@ -3,7 +3,7 @@
 import React from 'react';
 import { MessageIcon, MicIcon } from '../components/icons';
 import HeroVisual from './HeroVisual';
-import { useStats } from '../hooks/useStats';
+import { useStats } from '../hooks';
 
 export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
     const { stats } = useStats();

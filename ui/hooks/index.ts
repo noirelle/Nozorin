@@ -1,18 +1,18 @@
-// call-room feature hooks
-export { useCallRoom } from '../features/call-room/hooks/useCallRoom';
-export { useChat } from '../features/call-room/hooks/useChat';
-export { useWebRTC } from '../features/call-room/hooks/useWebRTC';
-export { useMatching } from '../features/call-room/hooks/useMatching';
+export * from './user/useUser';
+export * from './history/useHistory';
+export * from './friends/useFriends';
+export * from './stats/useStats';
+export * from './session/useSession';
+export * from '../features/direct-call/hooks/useDirectCall';
+export * from '../features/call-room/hooks/matching/useMatching';
+export * from '../features/call-room/hooks/chat/useChat';
+export * from '../features/call-room/hooks/webrtc/useWebRTC';
+export * from '../features/call-room/hooks/media/useCallRoom';
+export * from '../features/call-room/hooks/room-actions/useRoomActions';
+export * from '../features/call-room/hooks/useReconnect';
 
-// global hooks
-export { useUser } from './useUser';
-export { useHistory } from './useHistory';
-export { useDirectCall } from './useDirectCall';
-export { useFriends } from './useFriends';
+export * from '../features/auth/hooks/guest-login/useGuestLogin';
 
-// re-exported sub-hook types (unchanged API surface)
-export type { CallRoomState } from '../features/call-room/hooks/useCallRoom';
-export type { Message } from '../features/call-room/hooks/useChat';
-export type { MatchStatus } from '../features/call-room/hooks/useMatching';
-export type { SessionRecord, HistoryStats } from './useHistory';
-
+// Re-export specific types if needed by consumers
+export type { UseUserStateReturn } from './user/useUserState';
+export type { UserGuestInput } from '../features/auth/hooks/guest-login/useGuestLoginActions';

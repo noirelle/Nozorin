@@ -3,11 +3,11 @@
 import { useRef, useState, useCallback } from 'react';
 import { getSocketClient } from '../../../lib/socket/socketClient';
 import { emitSignalStrength } from '../../../lib/socket/matching/matching.actions';
-import { useRoomActions } from '../hooks/useRoomActions';
+import { useRoomActions } from '@/hooks';
 import { useRoomEffects } from '../hooks/useRoomEffects';
-import { useWebRTC } from '../hooks/useWebRTC';
-import { useCallRoom } from '../hooks/useCallRoom';
-import { useChat } from '../hooks/useChat';
+import { useWebRTC } from '@/hooks';
+import { useCallRoom } from '@/hooks';
+import { useChat } from '@/hooks';
 import { useReconnect } from '../hooks/useReconnect';
 import { useHistory, useUser } from '../../../hooks';
 import { MobileRoomLayout } from './MobileRoomLayout';

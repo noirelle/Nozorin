@@ -6,7 +6,7 @@ import {
     emitCancelReconnect,
 } from '../../../../lib/socket/matching/matching.actions';
 import { matchmaking } from '@/lib/api';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/hooks';
 import {
     MatchFoundPayload,
     PartnerReconnectingPayload,

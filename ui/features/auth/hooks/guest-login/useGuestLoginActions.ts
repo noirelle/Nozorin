@@ -1,13 +1,16 @@
-import { useState, useCallback } from 'react';
-import { useAuthStore, AuthState } from '../../../stores/useAuthStore';
-import { useSession } from '../../../hooks/useSession';
-import { api } from '../../../lib/api';
+'use client';
+
+import { useCallback } from 'react';
+import { useAuthStore, AuthState } from '../../../../stores/useAuthStore';
+import { useSession } from '@/hooks';
+import { api } from '../../../../lib/api';
 import {
     GuestRegistrationRequest,
     GuestRegistrationResponse,
     AnonymousLoginResponse
-} from '../../../types/api';
-import { getBrowserFingerprint } from '../../../utils/fingerprint';
+} from '../../../../types/api';
+import { getBrowserFingerprint } from '../../../../utils/fingerprint';
+import { UseGuestLoginStateReturn } from './useGuestLoginState';
 
 interface UserGuestInput {
     username: string;
@@ -15,13 +18,7 @@ interface UserGuestInput {
     agreed: boolean;
 }
 
-interface UseGuestLoginReturn {
-    registerGuest: (data: UserGuestInput) => Promise<boolean>;
-    isRegistering: boolean;
-    error: string | null;
-}
-
-// Module-level promise to deduplicate simultaneous guest registration requests
+// Module-level promise for deduplication
 let globalRegisterPromise: Promise<boolean> | null = null;
 
 const getDeviceId = (): string => {
@@ -34,11 +31,15 @@ const getDeviceId = (): string => {
     return deviceId;
 };
 
-export const useGuestLogin = (): UseGuestLoginReturn => {
-    const [isRegistering, setIsRegistering] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+interface UseGuestLoginActionsProps {
+    setIsRegistering: UseGuestLoginStateReturn['setIsRegistering'];
+    setError: UseGuestLoginStateReturn['setError'];
+}
+
+export const useGuestLoginActions = ({ setIsRegistering, setError }: UseGuestLoginActionsProps) => {
     const login = useAuthStore((state: AuthState) => state.login);
     const setLocation = useAuthStore((state: AuthState) => state.setLocation);
+    // Use the shimmed useSession (or relative usage)
     const { getSessionId } = useSession();
 
     const registerGuest = useCallback(async (data: UserGuestInput) => {
@@ -55,15 +56,14 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
                     return false;
                 }
 
-                // Step 1: Register Guest
                 const deviceId = getDeviceId();
                 const fingerprint = getBrowserFingerprint();
 
                 const { error: guestError, data: guestData } = await api.post<GuestRegistrationResponse, GuestRegistrationRequest>('/api/auth/guest', {
                     ...data,
-                    sessionId,
+                    sessionId: sessionId as string, // Cast because getSessionId can return null but unlikely if logic holds
                     deviceId,
-                    footprint: fingerprint // Map fingerprint to the existing footprint field or new field
+                    footprint: fingerprint
                 });
 
                 if (guestError || !guestData) {
@@ -73,7 +73,6 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
 
                 const { user: newUser } = guestData;
 
-                // Step 2: Get Token (Anonymous Identity)
                 const { error: authError, data: authData } = await api.post<AnonymousLoginResponse>('/api/auth/anonymous', {
                     chatIdentityId: newUser.id
                 });
@@ -83,12 +82,8 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
                     return false;
                 }
 
-                const { token: newToken } = authData;
+                login(authData.token, newUser);
 
-                // Update auth store
-                login(newToken, newUser);
-
-                // Save location/footprint data
                 const locationData = {
                     location: {
                         country: newUser.country,
@@ -100,7 +95,7 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
                         detectionMethod: 'timezone',
                         detectedAt: new Date().toISOString()
                     },
-                    sessionId,
+                    sessionId: sessionId as string,
                     timestamp: Date.now()
                 };
                 setLocation(locationData);
@@ -117,11 +112,9 @@ export const useGuestLogin = (): UseGuestLoginReturn => {
         })();
 
         return globalRegisterPromise;
-    }, [login, setLocation, getSessionId]);
+    }, [login, setLocation, getSessionId, setIsRegistering, setError]);
 
-    return {
-        registerGuest,
-        isRegistering,
-        error
-    };
+    return { registerGuest };
 };
+
+export type { UserGuestInput };

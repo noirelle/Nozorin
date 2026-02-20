@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useGuestLogin } from '../hooks/useGuestLogin';
+import { useGuestLogin } from '@/hooks';
 
 interface WelcomeScreenProps {
     onSuccess: () => void;

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { connectSocket, useSocketEvent } from '../../../lib/socket';
 import { SocketEvents } from '../../../lib/socket';
 import { emitUpdateMediaState } from '../../../lib/socket/media/media.actions';
-import { CallRoomState } from './useCallRoom';
+import { CallRoomState } from '@/hooks';
 import { PartnerMuteStatePayload, PartnerSignalStrengthPayload } from '../../../lib/socket/media/media.types';
 
 interface UseRoomEffectsProps {

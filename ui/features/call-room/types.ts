@@ -1,7 +1,7 @@
-import { CallRoomState } from './hooks/useCallRoom';
-import { Message } from './hooks/useChat';
+import { CallRoomState } from '@/hooks';
+import { Message } from '@/hooks';
 import { RefObject } from 'react';
-import { MatchStatus } from './hooks/useMatching';
+import { MatchStatus } from '@/hooks';
 
 export interface RoomLayoutProps {
     callRoomState: CallRoomState;

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+'use client';
+
+import { useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 const LOCATION_KEY = 'nz_location';
 
-export const useSession = () => {
-    const [sessionId, setSessionId] = useState<string | null>(null);
-
+export const useSessionActions = () => {
     const getSessionId = useCallback(() => {
         if (typeof window === 'undefined') return null;
 
@@ -22,17 +22,13 @@ export const useSession = () => {
 
         if (!sid) {
             sid = uuidv4();
+            // Note: We don't save back to localStorage here because 
+            // the full location object structure is managed elsewhere (useUser/useGuestLogin).
+            // But if we generated a new ID, we return it.
         }
 
         return sid;
     }, []);
 
-    useEffect(() => {
-        setSessionId(getSessionId());
-    }, [getSessionId]);
-
-    return {
-        sessionId,
-        getSessionId
-    };
+    return { getSessionId };
 };
