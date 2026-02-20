@@ -1,4 +1,4 @@
-import { getProxyHeaders, handleApiRequest } from '@/lib/api/index';
+import { getProxyHeaders, handleApiRequest } from '@/lib/api';
 import { friends } from '@/lib/api/endpoints/friends';
 
 export async function DELETE(req: Request) {
