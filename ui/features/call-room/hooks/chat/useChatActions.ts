@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { emitSendMessage } from '../../../../lib/socket/chat/chat.actions';
-import { getSocketClient } from '../../../../lib/socket/socketClient';
+import { getSocketClient } from '../../../../lib/socket/core/socketClient';
 import { Message, UseChatStateReturn } from './useChatState';
 
 interface UseChatActionsProps {

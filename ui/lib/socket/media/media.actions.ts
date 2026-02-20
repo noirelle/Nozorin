@@ -1,5 +1,5 @@
-import { getSocketClient } from '../socketClient';
-import { SocketEvents } from '../socketEvents';
+import { getSocketClient } from '../core/socketClient';
+import { SocketEvents } from '../core/socketEvents';
 import { UpdateMediaStatePayload, ToggleMutePayload } from './media.types';
 
 export function emitUpdateMediaState(isMuted: boolean): void {

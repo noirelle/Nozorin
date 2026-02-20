@@ -10,9 +10,4 @@ export * from '../features/call-room/hooks/webrtc/useWebRTC';
 export * from '../features/call-room/hooks/media/useCallRoom';
 export * from '../features/call-room/hooks/room-actions/useRoomActions';
 export * from '../features/call-room/hooks/useReconnect';
-
 export * from '../features/auth/hooks/guest-login/useGuestLogin';
-
-// Re-export specific types if needed by consumers
-export type { UseUserStateReturn } from './user/useUserState';
-export type { UserGuestInput } from '../features/auth/hooks/guest-login/useGuestLoginActions';

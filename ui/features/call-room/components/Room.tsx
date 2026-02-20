@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
-import { getSocketClient } from '../../../lib/socket/socketClient';
+import { getSocketClient } from '../../../lib/socket/core/socketClient';
 import { emitSignalStrength } from '../../../lib/socket/matching/matching.actions';
 import { useRoomActions } from '@/hooks';
 import { useRoomEffects } from '../hooks/useRoomEffects';

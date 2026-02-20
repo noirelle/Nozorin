@@ -1,5 +1,5 @@
-import { getSocketClient } from '../socketClient';
-import { SocketEvents } from '../socketEvents';
+import { getSocketClient } from '../core/socketClient';
+import { SocketEvents } from '../core/socketEvents';
 import { SendMessagePayload } from './chat.types';
 
 export function emitSendMessage(target: string, message: string): void {

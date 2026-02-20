@@ -14,7 +14,7 @@ import Footer from '../sections/Footer';
 import { HistoryDrawer } from '../features/call-room/components/HistoryDrawer';
 import { useHistory, useUser, useDirectCall } from '../hooks';
 import { useSocketEvent, SocketEvents } from '../lib/socket';
-import { getSocketClient } from '../lib/socket/socketClient';
+import { getSocketClient } from '../lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '../features/direct-call/components/OutgoingCallOverlay';
 

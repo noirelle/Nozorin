@@ -1,8 +1,8 @@
 // ── Core socket infrastructure ────────────────────────────────────────────────
-export { getSocketClient, connectSocket, disconnectSocket, updateSocketAuth } from './socketClient';
-export { SocketEvents } from './socketEvents';
-export type { SocketEventName } from './socketEvents';
-export { useSocketEvent } from './socketRegistry';
+export { getSocketClient, connectSocket, disconnectSocket, updateSocketAuth } from './core/socketClient';
+export { SocketEvents } from './core/socketEvents';
+export type { SocketEventName } from './core/socketEvents';
+export { useSocketEvent } from './core/socketRegistry';
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 export type { SendMessagePayload, ReceiveMessagePayload } from './chat/chat.types';
