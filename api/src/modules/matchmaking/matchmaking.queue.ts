@@ -5,7 +5,7 @@ import {
     voiceBuckets,
     removeUserFromQueues,
     getConnectedUser
-} from '../../socket/users';
+} from '../../socket/store/socket.store';
 import { CONSTANTS } from './matchmaking.constants';
 
 // State

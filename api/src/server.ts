@@ -3,8 +3,8 @@ import 'dotenv/config';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
 import app from './app';
-import { handleSocketConnection } from './socket/connection';
 import { initDatabase } from './core/config/database.config';
+import { bootstrapSocket } from './socket';
 
 // Initialize Database
 initDatabase()
@@ -31,16 +31,7 @@ export const io = new Server(server, {
     pingTimeout: 5000,
 });
 
-import { socketAuthMiddleware } from './socket/middleware/auth.middleware';
-
-// Setup socket handlers
-io.use((socket, next) => {
-    socketAuthMiddleware(socket as any, next);
-});
-
-io.on('connection', (socket) => {
-    handleSocketConnection(io, socket);
-});
+bootstrapSocket(io);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {

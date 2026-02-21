@@ -1,54 +1,55 @@
-
 import { Server, Socket } from 'socket.io';
-import { userService } from '../modules/user/user.service';
-import { activeCalls, removeUserFromQueues, getConnectedUser, userMediaState } from './users';
+import { SocketEvents } from '../socket.events';
+import { userService } from '../../modules/user/user.service';
+import {
+    activeCalls,
+    removeUserFromQueues,
+    getConnectedUser,
+    userMediaState,
+} from '../store/socket.store';
 
 export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Initiate a call to a specific user by their userId
      */
-    socket.on('initiate-direct-call', async (data: { targetUserId: string, mode: 'voice' }) => {
+    socket.on(SocketEvents.INITIATE_DIRECT_CALL, async (data: { targetUserId: string; mode: 'voice' }) => {
         const { targetUserId, mode } = data;
 
-        // ROBUSTNESS: Ensure caller is identified and authoritative
         const myUserId = userService.getUserId(socket.id);
         const authoritativeSocketId = myUserId ? userService.getSocketId(myUserId) : null;
 
         if (!myUserId || authoritativeSocketId !== socket.id) {
-            socket.emit('multi-session', { message: 'Session no longer active. Please reconnect.' });
+            socket.emit(SocketEvents.MULTI_SESSION, { message: 'Session no longer active. Please reconnect.' });
             return;
         }
 
         const targetSocketId = userService.getSocketId(targetUserId);
-
         if (!targetSocketId) {
-            socket.emit('call-error', { message: 'User is offline' });
+            socket.emit(SocketEvents.CALL_ERROR, { message: 'User is offline' });
             return;
         }
 
         const targetSocket = io.sockets.sockets.get(targetSocketId);
         if (!targetSocket) {
-            socket.emit('call-error', { message: 'User is offline' });
+            socket.emit(SocketEvents.CALL_ERROR, { message: 'User is offline' });
             return;
         }
 
-        // Also check if sender is currently in a call
+        // End any existing call for the caller
         const myExistingPartnerId = activeCalls.get(socket.id);
         if (myExistingPartnerId) {
-            io.to(myExistingPartnerId).emit('call-ended', { by: socket.id });
+            io.to(myExistingPartnerId).emit(SocketEvents.CALL_ENDED, { by: socket.id });
             activeCalls.delete(myExistingPartnerId);
             activeCalls.delete(socket.id);
         }
 
-        // Ensure both are removed from matchmaking queues
         removeUserFromQueues(socket.id);
         removeUserFromQueues(targetSocketId);
 
-        // Get caller info to show on receiver's screen
         const callerInfo = getConnectedUser(socket.id);
         const callerProfile = await userService.getUserProfile(myUserId);
 
-        targetSocket.emit('incoming-call', {
+        targetSocket.emit(SocketEvents.INCOMING_CALL, {
             fromUserId: myUserId,
             fromSocketId: socket.id,
             fromUsername: callerProfile?.username || 'Guest',
@@ -56,7 +57,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
             fromGender: callerProfile?.gender || 'unknown',
             fromCountry: callerInfo?.country,
             fromCountryCode: callerInfo?.countryCode,
-            mode
+            mode,
         });
 
         console.log(`[DIRECT-CALL] Call request sent from ${socket.id} to ${targetSocketId}`);
@@ -65,38 +66,34 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Handle response to an incoming direct call
      */
-    socket.on('respond-to-call', async (data: { callerSocketId: string, accepted: boolean, mode: 'voice' }) => {
+    socket.on(SocketEvents.RESPOND_TO_CALL, async (data: { callerSocketId: string; accepted: boolean; mode: 'voice' }) => {
         const { callerSocketId, accepted, mode } = data;
 
-        // ROBUSTNESS: Ensure responder is identified and authoritative
         const myUserId = userService.getUserId(socket.id);
         const authoritativeSocketId = myUserId ? userService.getSocketId(myUserId) : null;
 
         if (!myUserId || authoritativeSocketId !== socket.id) {
-            socket.emit('multi-session', { message: 'Session no longer active. Please reconnect.' });
+            socket.emit(SocketEvents.MULTI_SESSION, { message: 'Session no longer active. Please reconnect.' });
             return;
         }
 
         const callerSocket = io.sockets.sockets.get(callerSocketId);
-
         if (!callerSocket) {
-            socket.emit('call-error', { message: 'Caller disconnected' });
+            socket.emit(SocketEvents.CALL_ERROR, { message: 'Caller disconnected' });
             return;
         }
 
         if (!accepted) {
-            callerSocket.emit('call-declined', { by: socket.id });
+            callerSocket.emit(SocketEvents.CALL_DECLINED, { by: socket.id });
             return;
         }
 
-        // ESTABLISH CONNECTION
         const roomId = `direct-${socket.id}-${callerSocketId}`;
 
-        // PRIORITY: If I (the answerer) am in a call, notify my current partner with a specific reason
         const myExistingPartnerId = activeCalls.get(socket.id);
         if (myExistingPartnerId) {
             console.log(`[DIRECT-CALL] Answerer ${socket.id} in call, disconnecting partner ${myExistingPartnerId} (ANSWERED ANOTHER CALL)`);
-            io.to(myExistingPartnerId).emit('call-ended', { by: 'answered-another' });
+            io.to(myExistingPartnerId).emit(SocketEvents.CALL_ENDED, { by: 'answered-another' });
             activeCalls.delete(myExistingPartnerId);
             activeCalls.delete(socket.id);
         }
@@ -107,21 +104,17 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
         socket.join(roomId);
         callerSocket.join(roomId);
 
-        // Get media states
         const mediaA = userMediaState.get(socket.id) || { isMuted: false };
         const mediaB = userMediaState.get(callerSocketId) || { isMuted: false };
 
-        // Get geo info
         const infoA = getConnectedUser(socket.id);
         const infoB = getConnectedUser(callerSocketId);
 
-        // Get profiles
         const callerUserId = userService.getUserId(callerSocketId);
         const profileA = await userService.getUserProfile(myUserId);
         const profileB = callerUserId ? await userService.getUserProfile(callerUserId) : null;
 
-        // Finalize match for both
-        socket.emit('match-found', {
+        socket.emit(SocketEvents.MATCH_FOUND, {
             role: 'answerer',
             partnerId: callerSocketId,
             partnerUsername: profileB?.username || 'Guest',
@@ -134,7 +127,7 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
             mode,
         });
 
-        callerSocket.emit('match-found', {
+        callerSocket.emit(SocketEvents.MATCH_FOUND, {
             role: 'offerer',
             partnerId: socket.id,
             partnerUsername: profileA?.username || 'Guest',
@@ -153,11 +146,11 @@ export const handleDirectCall = (io: Server, socket: Socket) => {
     /**
      * Cancel an outgoing call request
      */
-    socket.on('cancel-call', (data: { targetUserId: string }) => {
+    socket.on(SocketEvents.CANCEL_CALL, (data: { targetUserId: string }) => {
         const { targetUserId } = data;
         const targetSocketId = userService.getSocketId(targetUserId);
         if (targetSocketId) {
-            io.to(targetSocketId).emit('call-cancelled-by-caller', { from: socket.id });
+            io.to(targetSocketId).emit(SocketEvents.CALL_CANCELLED_BY_CALLER, { from: socket.id });
         }
     });
 };

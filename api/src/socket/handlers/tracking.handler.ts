@@ -1,10 +1,13 @@
 import { Server, Socket } from 'socket.io';
-import { historyService, SessionStart } from '../modules/history/history.service';
-import { getUserIdFromToken } from '../core/utils/jwt.utils';
-import { getConnectedUser } from './users';
+import { SocketEvents } from '../socket.events';
+import { historyService, SessionStart } from '../../modules/history/history.service';
+import { getUserIdFromToken } from '../../core/utils/jwt.utils';
+import { userService } from '../../modules/user/user.service';
+import { getConnectedUser } from '../store/socket.store';
+import { broadcastUserStatus } from './status.handler';
 import { v4 as uuidv4 } from 'uuid';
 
-// Track active sessions: socketId -> { userId, sessionId, partnerId }
+// Track active sessions: socketId → { userId, sessionId, partnerId, mode }
 const activeSessions = new Map<string, {
     userId: string;
     sessionId: string;
@@ -12,69 +15,55 @@ const activeSessions = new Map<string, {
     mode: 'chat' | 'voice';
 }>();
 
-import { userService } from '../modules/user/user.service';
-import { broadcastUserStatus } from './status';
-
 /**
  * Handle session tracking for history
  */
 export const handleUserTracking = (io: Server, socket: Socket) => {
-
     /**
      * Identify user with their visitor token
      */
-    socket.on('user-identify', async (data: { token: string }) => {
+    socket.on(SocketEvents.USER_IDENTIFY, async (data: { token: string }) => {
         const { token } = data;
         if (!token) return;
 
         const userId = getUserIdFromToken(token);
         if (!userId) {
-            socket.emit('auth-error', { message: 'Invalid or expired token' });
+            socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid or expired token' });
             return;
         }
 
-        // No conflict, proceed with identification
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
         console.log(`[TRACKING] Identified user ${userId.substring(0, 8)}... for socket ${socket.id}`);
 
-        // Broadcast that this user is now online
         await broadcastUserStatus(io, userId);
-
-        // Notify the socket that identification succeeded (used by reconnect flow)
-        socket.emit('identify-success', { userId });
+        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { userId });
     });
 
     /**
      * Seamlessly update token for existing connection
      */
-    socket.on('update-token', async (data: { token: string }) => {
+    socket.on(SocketEvents.UPDATE_TOKEN, async (data: { token: string }) => {
         const { token } = data;
         if (!token) return;
 
         const userId = getUserIdFromToken(token);
         if (!userId) {
-            // If the new token is also invalid, we might want to force disconnect or just warn
             console.warn(`[TRACKING] Invalid token provided for update-token from ${socket.id}`);
-            socket.emit('auth-error', { message: 'Invalid token during update' });
+            socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid token during update' });
             return;
         }
 
         console.log(`[TRACKING] Updating token/session for user ${userId.substring(0, 8)}... on socket ${socket.id}`);
-
-        // Update the mapping
         userService.setUserForSocket(socket.id, userId);
-
-        // Re-register user activity
         await userService.registerUser(userId);
-
-        socket.emit('token-updated', { success: true, userId });
+        socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, userId });
     });
 
     /**
-     * Forcefully take over a session from another tab/device 
+     * Forcefully take over a session from another tab/device
      */
-    socket.on('force-reconnect', async (data: { token: string }) => {
+    socket.on(SocketEvents.FORCE_RECONNECT, async (data: { token: string }) => {
         const { token } = data;
         if (!token) return;
 
@@ -83,32 +72,29 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 
         console.log(`[TRACKING] Force reconnect request from ${socket.id} for user ${userId.substring(0, 8)}...`);
 
-        // Use the atomic setUserForSocket which returns the old ID
         const oldSocketId = userService.setUserForSocket(socket.id, userId);
 
         if (oldSocketId && oldSocketId !== socket.id) {
             console.log(`[TRACKING] Kicking old session ${oldSocketId} for user ${userId.substring(0, 8)}...`);
-            io.to(oldSocketId).emit('multi-session', { message: 'You have been disconnected because a new session was started elsewhere.' });
+            io.to(oldSocketId).emit(SocketEvents.MULTI_SESSION, {
+                message: 'You have been disconnected because a new session was started elsewhere.',
+            });
 
             const oldSocket = io.sockets.sockets.get(oldSocketId);
-            if (oldSocket) {
-                oldSocket.disconnect(true);
-            }
+            if (oldSocket) oldSocket.disconnect(true);
         }
 
         await userService.registerUser(userId);
         await broadcastUserStatus(io, userId);
-
-        // Notify the new socket that they are now the primary session
-        socket.emit('identify-success', { userId });
+        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { userId });
     });
 
     /**
      * Track when a match is established
      */
-    socket.on('match-established', async (data: {
+    socket.on(SocketEvents.MATCH_ESTABLISHED, async (data: {
         token: string;
-        partnerId: string; // partner socket id
+        partnerId: string;
         mode: 'chat' | 'voice';
     }) => {
         const { token, partnerId, mode } = data;
@@ -124,7 +110,6 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
             return;
         }
 
-        // Map self if not already mapped
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
 
@@ -136,26 +121,15 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
             return;
         }
 
-        // Find partner's userId
         const partnerUserId = userService.getUserId(partnerId);
         if (!partnerUserId) {
             console.warn(`[TRACKING] Partner userId not found for socket ${partnerId}`);
-            // Note: In some race conditions, partner might not have identified yet.
-            // For now, we'll use partnerId (socketId) as fallback or just wait for the identify event.
-            // But usually, identify happens on connection.
         }
 
         const sessionId = uuidv4();
 
-        // Store active session
-        activeSessions.set(socket.id, {
-            userId,
-            sessionId,
-            partnerId,
-            mode,
-        });
+        activeSessions.set(socket.id, { userId, sessionId, partnerId, mode });
 
-        // Start tracking in history service
         const sessionData: SessionStart = {
             sessionId,
             partnerId: partnerUserId || 'unknown',
@@ -177,7 +151,7 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
     /**
      * Track when a session ends
      */
-    socket.on('session-end', async (data: {
+    socket.on(SocketEvents.SESSION_END, async (data: {
         token: string;
         reason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
     }) => {
@@ -213,12 +187,9 @@ export const handleUserTracking = (io: Server, socket: Socket) => {
 /**
  * Clean up session on disconnect
  */
-export const cleanupUserSession = async (socketId: string, token?: string) => {
+export const cleanupUserSession = async (socketId: string) => {
     const activeSession = activeSessions.get(socketId);
-
-    if (!activeSession) {
-        return; // No active session to clean up
-    }
+    if (!activeSession) return;
 
     const { userId } = activeSession;
 
@@ -231,5 +202,4 @@ export const cleanupUserSession = async (socketId: string, token?: string) => {
     }
 };
 
-// Export for use in other modules
 export { activeSessions };

@@ -1,10 +1,9 @@
-
 import { Server, Socket } from 'socket.io';
-import { getClientIp } from '../core/utils/ip.utils';
-import { getGeoInfo } from '../core/utils/geo.utils';
-import { userService } from '../modules/user/user.service';
-import { addConnectedUser, userMediaState } from './users';
-import { handleUserConnection } from './status';
+import { getClientIp } from '../../core/utils/ip.utils';
+import { getGeoInfo } from '../../core/utils/geo.utils';
+import { userService } from '../../modules/user/user.service';
+import { addConnectedUser, userMediaState } from '../store/socket.store';
+import { handleUserConnection } from '../handlers/status.handler';
 
 export const initializeSocketConnection = async (io: Server, socket: Socket) => {
     console.log(`[CONNECT] User connected: ${socket.id}`);
@@ -14,13 +13,10 @@ export const initializeSocketConnection = async (io: Server, socket: Socket) => 
     const country = (geo && geo.country) || 'Unknown';
     const countryCode = (geo && geo.country_code) || 'UN';
 
-    // Store user info
     addConnectedUser(socket.id, { country, countryCode });
 
-    // Handle online state and stats
     handleUserConnection(io, socket);
 
-    // Initialize user media state (unmuted)
     userMediaState.set(socket.id, { isMuted: false });
 
     // Auto-register if middleware authenticated the user

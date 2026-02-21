@@ -6,7 +6,7 @@ import {
     getConnectedUser,
     activeCalls,
     userMediaState
-} from '../../socket/users';
+} from '../../socket/store/socket.store';
 import { statsService } from '../stats/stats.service';
 import { userService } from '../user/user.service';
 

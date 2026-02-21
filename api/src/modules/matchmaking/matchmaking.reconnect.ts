@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import { PendingReconnect } from './matchmaking.types';
 import { CONSTANTS } from './matchmaking.constants';
 import { QueueManager, setFallbackTimeout, clearFallbackTimeout, userPendingMatch } from './matchmaking.queue';
-import { activeCalls } from '../../socket/users';
+import { activeCalls } from '../../socket/store/socket.store';
 import { userService } from '../user/user.service';
 import { setMatchCooldown } from './matchmaking.cooldowns';
 import { handleMatchFailure } from './matchmaking.rooms';

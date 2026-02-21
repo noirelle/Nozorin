@@ -5,7 +5,7 @@ import {
     voiceQueue,
     voiceBuckets,
     getConnectedUser
-} from '../../socket/users';
+} from '../../socket/store/socket.store';
 import { userService } from '../user/user.service';
 import { QueueManager, notifyQueuePositions } from './matchmaking.queue';
 import { checkCooldown } from './matchmaking.cooldowns';
