@@ -123,23 +123,25 @@ export default function AppPage() {
         };
 
         const handleAuthError = async (err: any) => {
-            console.error('[App] Socket authentication error:', err);
             const isAuthError = !err || Object.keys(err).length === 0 ||
                 err?.message === 'Authentication error: Invalid token' ||
                 err?.message === 'jwt expired' ||
                 err?.message === 'Invalid or expired token';
+
             if (isAuthError) {
-                console.log('[App] Token invalid/expired, attempting refresh...');
+                console.log('[App] Socket token expired. Initiating seamless refresh...');
                 const newToken = await refreshUser();
                 if (newToken) {
-                    console.log('[App] Refresh successful, updating socket token...');
+                    console.log('[App] Seamless refresh successful. Updating socket auth...');
                     updateSocketAuth(newToken);
                     if (s?.connected) s?.emit('update-token', { token: newToken });
                     else connectSocket();
                 } else {
-                    console.warn('[App] Refresh failed, disconnecting socket.');
+                    console.warn('[App] Token refresh failed permanently. Disconnecting socket.');
                     s?.disconnect();
                 }
+            } else {
+                console.warn('[App] Socket encountered non-auth error:', err);
             }
         };
 
