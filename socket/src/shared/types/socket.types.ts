@@ -12,7 +12,7 @@ export interface User {
     preferredCountry?: string;
     preferences?: {
         language?: string;
-        region?: string;
+        selectedCountry?: string;
         minRating?: number;
     };
     peerId?: string;

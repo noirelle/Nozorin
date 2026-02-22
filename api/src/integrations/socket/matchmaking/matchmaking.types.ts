@@ -2,7 +2,7 @@
 export interface JoinQueueDto {
     userId: string;
     mode: string;
-    preferences?: any;
+    preferences?: { selectedCountry?: string; language?: string; minRating?: number };
     peerId?: string;
     requestId?: string;
 }

@@ -127,7 +127,7 @@ export const joinQueue = async (
         joinedAt: Date.now(),
         state: 'FINDING',
         preferences,
-        preferredCountry: preferences?.region,
+        preferredCountry: preferences?.selectedCountry,
         peerId,
         requestId,
     };

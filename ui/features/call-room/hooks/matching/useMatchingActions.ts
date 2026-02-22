@@ -63,7 +63,7 @@ export const useMatchingActions = ({
             const { error } = await matchmaking.joinQueue({
                 userId: effectiveUserId,
                 mode: 'voice' as const,
-                preferences: { region: options?.preferredCountry },
+                preferences: { selectedCountry: options?.preferredCountry || 'GLOBAL' },
                 session: { peerId: options?.peerId, connectionId: undefined },
                 requestId,
             });

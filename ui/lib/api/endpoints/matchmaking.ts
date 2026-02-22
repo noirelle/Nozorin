@@ -4,7 +4,7 @@ export const matchmaking = {
     joinQueue: (data: {
         userId: string;
         mode: 'voice';
-        preferences?: { language?: string; region?: string; minRating?: number };
+        preferences?: { language?: string; selectedCountry?: string; minRating?: number };
         session?: { peerId?: string; connectionId?: string };
         requestId?: string;
     }, headers?: HeadersInit) =>

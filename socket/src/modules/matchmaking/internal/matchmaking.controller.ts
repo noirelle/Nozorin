@@ -14,7 +14,7 @@ router.post('/join', async (req: Request, res: Response) => {
     const { userId, mode, preferences, peerId, requestId } = req.body as {
         userId: string;
         mode: string;
-        preferences?: { region?: string; language?: string; minRating?: number };
+        preferences?: { selectedCountry?: string; language?: string; minRating?: number };
         peerId?: string;
         requestId?: string;
     };
