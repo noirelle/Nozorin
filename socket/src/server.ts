@@ -27,6 +27,10 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (_req, res) => {
+    res.json({ status: 'ok', service: 'nozorin_realtime' });
+});
+
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'nozorin_realtime' });
 });
