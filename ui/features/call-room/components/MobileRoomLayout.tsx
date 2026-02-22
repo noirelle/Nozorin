@@ -28,7 +28,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     isReconnecting,
     reconnectCountdown,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, isMuted } = callRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, partnerGender, partnerUserId, isMuted } = callRoomState;
     const { user: localUser } = useUser();
 
     return (
@@ -174,6 +174,11 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h4 className="text-sm font-bold text-[#5C4E50]">{partnerUsername || 'Stranger'}</h4>
+                                                {partnerGender && (
+                                                    <span className={`text-[9px] px-1 py-0.5 rounded-md font-bold uppercase tracking-wider ${partnerGender === 'male' ? 'bg-blue-50 text-blue-500' : partnerGender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>
+                                                        {partnerGender === 'male' ? '♂' : partnerGender === 'female' ? '♀' : partnerGender}
+                                                    </span>
+                                                )}
                                                 {partnerCountryCode && (
                                                     <ReactCountryFlag countryCode={partnerCountryCode} svg className="w-4 h-3 rounded-sm object-cover" />
                                                 )}
@@ -181,25 +186,27 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                             <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partnerCountry || 'Unknown Location'}</p>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => callRoomState.partnerId && onAddFriend && onAddFriend(callRoomState.partnerId)}
-                                        disabled={
-                                            friends.some(f => f.id === callRoomState.partnerId) ||
-                                            pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
-                                        }
-                                        className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${friends.some(f => f.id === callRoomState.partnerId)
+                                    {partnerUserId && (
+                                        <button
+                                            onClick={() => onAddFriend && onAddFriend(partnerUserId)}
+                                            disabled={
+                                                friends.some(f => f.id === partnerUserId) ||
+                                                pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
+                                            }
+                                            className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${friends.some(f => f.id === partnerUserId)
                                                 ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
                                                     ? 'bg-slate-400 cursor-not-allowed'
                                                     : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
-                                            }`}
-                                    >
-                                        {friends.some(f => f.id === callRoomState.partnerId)
-                                            ? 'FRIENDS'
-                                            : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
-                                                ? 'PENDING'
-                                                : 'ADD FRIEND'}
-                                    </button>
+                                                }`}
+                                        >
+                                            {friends.some(f => f.id === partnerUserId)
+                                                ? 'FRIENDS'
+                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
+                                                    ? 'PENDING'
+                                                    : 'ADD FRIEND'}
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col items-center justify-center py-4 opacity-40">

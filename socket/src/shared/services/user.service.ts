@@ -3,6 +3,7 @@
  * For profile data (username, avatar, status) it calls the API service.
  */
 import { logger } from '../../core/logger';
+import { getRedisClient } from '../../core/config/redis.config';
 
 const API_URL = process.env.API_SERVICE_URL || 'http://nozorin_api:3001';
 
@@ -85,7 +86,29 @@ export const userService = {
         username: string;
         avatar: string;
         gender: string;
+        country?: string;
+        countryCode?: string;
     } | null> {
+        // Priority 1: Fetch from Redis (cached by API on /join or /me)
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                const data = await redis.hgetall(`user:${userId}`);
+                if (data && Object.keys(data).length > 0) {
+                    return {
+                        username: data.username,
+                        avatar: data.avatar,
+                        gender: data.gender,
+                        country: data.country,
+                        countryCode: data.country_code || data.countryCode // Handle both naming conventions
+                    };
+                }
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] Redis error getting profile');
+            }
+        }
+
+        // Priority 2: Fallback to API
         try {
             const res = await fetch(`${API_URL}/api/users/${userId}/profile`);
             if (!res.ok) return null;

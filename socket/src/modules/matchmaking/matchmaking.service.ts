@@ -29,6 +29,7 @@ const tryMatch = (io: Server, queued: User): void => {
     io.to(queued.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'offerer',
         partnerId: partner.id,
+        partnerUserId: partner.userId,
         partnerUsername: partner.username,
         partnerAvatar: partner.avatar,
         partnerGender: partner.gender,
@@ -42,6 +43,7 @@ const tryMatch = (io: Server, queued: User): void => {
     io.to(partner.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'answerer',
         partnerId: queued.id,
+        partnerUserId: queued.userId,
         partnerUsername: queued.username,
         partnerAvatar: queued.avatar,
         partnerGender: queued.gender,
@@ -104,8 +106,8 @@ export const joinQueue = async (
         username: profile?.username || 'Guest',
         avatar: profile?.avatar || '/avatars/avatar1.webp',
         gender: profile?.gender || 'unknown',
-        country: country || 'Unknown',
-        countryCode: countryCode || 'UN',
+        country: profile?.country || country || 'Unknown',
+        countryCode: profile?.countryCode || countryCode || 'UN',
         mode: mode || 'voice',
         joinedAt: Date.now(),
         state: 'FINDING',

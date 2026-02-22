@@ -28,7 +28,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     isReconnecting,
     reconnectCountdown,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, isMuted } = callRoomState;
+    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, partnerGender, partnerUserId, isMuted } = callRoomState;
     const { user: localUser } = useUser();
 
     return (
@@ -187,6 +187,11 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                         <h4 className={`text-lg font-bold tracking-tight transition-colors ${isConnected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
                                             {isConnected ? (partnerUsername || 'Stranger') : 'Scanning...'}
                                         </h4>
+                                        {isConnected && partnerGender && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${partnerGender === 'male' ? 'bg-blue-50 text-blue-500' : partnerGender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>
+                                                {partnerGender === 'male' ? '♂' : partnerGender === 'female' ? '♀' : partnerGender}
+                                            </span>
+                                        )}
                                         {isConnected && partnerCountryCode && (
                                             <ReactCountryFlag countryCode={partnerCountryCode} svg className="w-5 h-4 rounded-sm object-cover" />
                                         )}
@@ -202,23 +207,23 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                         )}
                                     </div>
 
-                                    {isConnected && (
+                                    {isConnected && partnerUserId && (
                                         <button
-                                            onClick={() => callRoomState.partnerId && onAddFriend && onAddFriend(callRoomState.partnerId)}
+                                            onClick={() => onAddFriend && onAddFriend(partnerUserId)}
                                             disabled={
-                                                friends.some(f => f.id === callRoomState.partnerId) ||
-                                                pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                friends.some(f => f.id === partnerUserId) ||
+                                                pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
                                             }
-                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === callRoomState.partnerId)
+                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === partnerUserId)
                                                 ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
                                                     ? 'bg-slate-400 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'
                                                 }`}
                                         >
-                                            {friends.some(f => f.id === callRoomState.partnerId)
+                                            {friends.some(f => f.id === partnerUserId)
                                                 ? 'FRIENDS'
-                                                : pendingRequests?.some(r => r.senderId === callRoomState.partnerId || r.receiverId === callRoomState.partnerId)
+                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
                                                     ? 'PENDING'
                                                     : 'ADD FRIEND'}
                                         </button>

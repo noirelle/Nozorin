@@ -8,7 +8,9 @@ export interface CallRoomState {
     partnerCountryCode: string;
     partnerUsername: string;
     partnerAvatar: string;
+    partnerGender: string;
     partnerId: string | null;
+    partnerUserId: string | null;
     isMuted: boolean;
     isMediaReady: boolean;
     permissionDenied: boolean;
@@ -22,7 +24,9 @@ export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
     partnerCountryCode: '',
     partnerUsername: '',
     partnerAvatar: '',
+    partnerGender: '',
     partnerId: null,
+    partnerUserId: null,
     isMuted: false,
     isMediaReady: false,
     permissionDenied: false,

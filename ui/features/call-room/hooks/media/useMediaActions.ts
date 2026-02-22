@@ -75,14 +75,18 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
         countryCode?: string,
         username?: string,
         avatar?: string,
+        gender?: string,
+        userId?: string | null,
     ) => {
         setState(prev => ({
             ...prev,
             partnerId,
+            partnerUserId: userId || null,
             partnerCountry: country || '',
             partnerCountryCode: countryCode || '',
             partnerUsername: username || '',
             partnerAvatar: avatar || '',
+            partnerGender: gender || '',
         }));
     }, [setState]);
 
@@ -98,7 +102,9 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
             partnerCountryCode: '',
             partnerUsername: '',
             partnerAvatar: '',
+            partnerGender: '',
             partnerId: null,
+            partnerUserId: null,
             isMuted: prev.isMuted,
             isMediaReady: prev.isMediaReady,
             permissionDenied: prev.permissionDenied,

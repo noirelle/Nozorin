@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { successResponse, errorResponse } from '../../core/utils/response.util';
 import { matchmakingService } from './matchmaking.service';
+import { userService } from '../user/user.service';
 import { getUserFromRequest } from '../../core/middleware/auth.middleware';
 
 export const matchmakingController = {
@@ -17,6 +18,12 @@ export const matchmakingController = {
         }
 
         try {
+            // Fetch and cache user profile to Redis so the socket service can access it
+            const userProfile = await userService.getUserProfile(authUserId);
+            if (userProfile) {
+                await userService.cacheUserProfile(userProfile);
+            }
+
             const socketResponse = await matchmakingService.joinQueue({
                 userId: authUserId,
                 mode,

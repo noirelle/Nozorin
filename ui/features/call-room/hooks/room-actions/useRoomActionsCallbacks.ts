@@ -9,7 +9,7 @@ interface UseRoomActionsCallbacksProps {
     callRoomState: CallRoomState;
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
-    setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string) => void;
+    setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string, gender?: string, userId?: string | null) => void;
     resetState: () => void;
     createOffer: (partnerId: string) => Promise<void>;
     closePeerConnection: () => void;
@@ -103,7 +103,7 @@ export const useRoomActionsCallbacks = ({
     const onMatchFound = useCallback(async (data: MatchFoundPayload) => {
         setSearching(false);
         setConnected(true);
-        setPartner(data.partnerId, data.partnerCountry, data.partnerCountryCode, data.partnerUsername, data.partnerAvatar);
+        setPartner(data.partnerId, data.partnerCountry, data.partnerCountryCode, data.partnerUsername, data.partnerAvatar, data.partnerGender, data.partnerUserId);
         setPartnerIsMuted(!!data.partnerIsMuted);
         try {
             localStorage.setItem('nz_active_call', JSON.stringify({
@@ -132,17 +132,17 @@ export const useRoomActionsCallbacks = ({
     }, [handleStop, findMatch, setSearching]);
 
     const onPartnerReconnected = useCallback(async (data: { newSocketId: string }) => {
-        setPartner(data.newSocketId, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar);
+        setPartner(data.newSocketId, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId);
         closePeerConnection();
-    }, [closePeerConnection, setPartner, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar]);
+    }, [closePeerConnection, setPartner, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
         setSearching(false);
         setConnected(true);
-        setPartner(data.partnerId, data.partnerCountry || callRoomState.partnerCountry, data.partnerCountryCode || callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar);
+        setPartner(data.partnerId, data.partnerCountry || callRoomState.partnerCountry, data.partnerCountryCode || callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, data.partnerUserId || callRoomState.partnerUserId);
         closePeerConnection();
         if (mode === 'voice') pendingRejoinPartnerRef.current = data.partnerId;
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar]);
+    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

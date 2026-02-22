@@ -20,6 +20,7 @@ export interface PrepareMatchPayload {
 export interface MatchFoundPayload {
     role: 'offerer' | 'answerer';
     partnerId: string;
+    partnerUserId: string;
     partnerUsername: string;
     partnerAvatar: string;
     partnerGender: string;
