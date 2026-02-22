@@ -7,7 +7,8 @@ import {
 } from '../../../../lib/socket/matching/matching.actions';
 import { matchmaking } from '@/lib/api';
 import { useUser } from '@/hooks';
-import { waitForSocketConnection } from '../../../../lib/socket/core/socketClient';
+import { waitForSocketConnection, getSocketClient } from '../../../../lib/socket/core/socketClient';
+import { SocketEvents } from '../../../../lib/socket/core/socketEvents';
 import { UseMatchingStateReturn } from './useMatchingState';
 import {
     MatchFoundPayload,
@@ -79,6 +80,7 @@ export const useMatchingActions = ({
         preferredCountry?: string;
         userId?: string;
         peerId?: string;
+        isRetry?: boolean;
     }) => {
         if (isJoiningRef.current) {
             console.warn('[Matching] Join already in progress, ignoring request');
@@ -118,7 +120,7 @@ export const useMatchingActions = ({
 
             // 2. Call the join queue API
             const requestId = Math.random().toString(36).substring(7);
-            const { error, data } = await matchmaking.joinQueue({
+            const joinPromise = matchmaking.joinQueue({
                 userId: effectiveUserId,
                 mode: 'voice' as const,
                 preferences: { selectedCountry: options?.preferredCountry || 'GLOBAL' },
@@ -126,8 +128,33 @@ export const useMatchingActions = ({
                 requestId,
             });
 
+            // Add a safety timeout for the API call
+            const timeoutPromise = new Promise<{ error: string; data: null }>(resolve =>
+                setTimeout(() => resolve({ error: 'MATCHMAKING_TIMEOUT', data: null }), 10000)
+            );
+
+            const { error, data } = await Promise.race([joinPromise, timeoutPromise]);
+
             if (error) {
                 console.error('[Matching] Join queue API failed:', error);
+
+                // Check for transient "not connected" error and retry once
+                const isNotConnectedError = typeof error === 'string' && error.includes('not connected');
+                if (isNotConnectedError && !options?.isRetry) {
+                    console.log('[Matching] Detected connection desync, attempting re-identification and retry...');
+
+                    const s = getSocketClient();
+                    const token = localStorage.getItem('nz_token');
+                    if (s && token) {
+                        s.emit(SocketEvents.USER_IDENTIFY, { token });
+                    }
+
+                    // Wait a bit and retry
+                    await new Promise(r => setTimeout(r, 800));
+                    isJoiningRef.current = false; // Allow the retry
+                    return startSearch({ ...options, isRetry: true });
+                }
+
                 setStatus('IDLE');
                 callbacksRef.current.onFatalError?.();
             } else {

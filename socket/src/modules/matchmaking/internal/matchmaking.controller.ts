@@ -23,6 +23,7 @@ router.post('/join', async (req: Request, res: Response) => {
 
     const socketId = userService.getSocketId(userId);
     if (!socketId) {
+        console.warn(`[MATCHMAKING-CONTROLLER] Join failed: User ${userId.substring(0, 8)} is not mapped to any socketId. isJoiningRef.current: ${requestId}`);
         return res.status(400).json({ error: 'User is not connected to the realtime service' });
     }
 

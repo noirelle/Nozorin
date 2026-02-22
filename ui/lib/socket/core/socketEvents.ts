@@ -6,6 +6,12 @@ export const SocketEvents = {
     // ── Connection ──────────────────────────────────────────────────────────
     CONNECT_ERROR: 'connect_error',
     IDENTIFY_SUCCESS: 'identify-success',
+    USER_IDENTIFY: 'user-identify',
+    UPDATE_TOKEN: 'update-token',
+    FORCE_RECONNECT: 'force-reconnect',
+    AUTH_ERROR: 'auth-error',
+    TOKEN_UPDATED: 'token-updated',
+    MULTI_SESSION: 'multi-session',
 
     // ── Matchmaking ──────────────────────────────────────────────────────────
     WAITING_FOR_MATCH: 'waiting-for-match',

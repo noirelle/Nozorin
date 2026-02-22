@@ -6,7 +6,7 @@ import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
 import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
 import { useHistory, useUser, useDirectCall, useFriends } from '@/hooks';
-import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth } from '@/lib/socket';
+import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
@@ -118,7 +118,7 @@ export default function AppPage() {
         const identify = () => {
             if (token) {
                 console.log('[App] Identifying socket...', s?.id);
-                s?.emit('user-identify', { token });
+                s?.emit(SocketEvents.USER_IDENTIFY, { token });
             }
         };
 
@@ -134,7 +134,7 @@ export default function AppPage() {
                 if (newToken) {
                     console.log('[App] Seamless refresh successful. Updating socket auth...');
                     updateSocketAuth(newToken);
-                    if (s?.connected) s?.emit('update-token', { token: newToken });
+                    if (s?.connected) s?.emit(SocketEvents.UPDATE_TOKEN, { token: newToken });
                     else connectSocket();
                 } else {
                     console.warn('[App] Token refresh failed permanently. Disconnecting socket.');
@@ -149,27 +149,25 @@ export default function AppPage() {
             if (data.success) console.log('[App] Socket token updated successfully (Graceful Refresh)');
         };
 
-        if (s?.connected && token) identify();
+        if (s?.connected && token && !isSocketIdentified()) identify();
 
         const onFocus = () => { if (s?.connected && token) identify(); };
-        const interval = setInterval(() => { if (s?.connected && token) identify(); }, 10000);
         const onStorageChange = (e: StorageEvent) => {
             if (e.key === 'nz_token') window.location.reload();
         };
 
         s?.on('connect', identify);
-        s?.on('auth-error', handleAuthError);
-        s?.on('token-updated', handleTokenUpdated);
+        s?.on(SocketEvents.AUTH_ERROR, handleAuthError);
+        s?.on(SocketEvents.TOKEN_UPDATED, handleTokenUpdated);
         window.addEventListener('focus', onFocus);
         window.addEventListener('storage', onStorageChange);
 
         return () => {
             s?.off('connect', identify);
-            s?.off('auth-error', handleAuthError);
-            s?.off('token-updated', handleTokenUpdated);
+            s?.off(SocketEvents.AUTH_ERROR, handleAuthError);
+            s?.off(SocketEvents.TOKEN_UPDATED, handleTokenUpdated);
             window.removeEventListener('focus', onFocus);
             window.removeEventListener('storage', onStorageChange);
-            clearInterval(interval);
         };
     }, [token, refreshUser]);
 

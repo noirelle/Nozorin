@@ -1,5 +1,5 @@
 // ── Core socket infrastructure ────────────────────────────────────────────────
-export { getSocketClient, connectSocket, disconnectSocket, updateSocketAuth } from './core/socketClient';
+export { getSocketClient, connectSocket, disconnectSocket, updateSocketAuth, isSocketIdentified } from './core/socketClient';
 export { SocketEvents } from './core/socketEvents';
 export type { SocketEventName } from './core/socketEvents';
 export { useSocketEvent } from './core/socketRegistry';

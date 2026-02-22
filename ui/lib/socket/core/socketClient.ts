@@ -1,12 +1,11 @@
 import { io, Socket } from 'socket.io-client';
+import { SocketEvents } from './socketEvents';
 
 let _socket: Socket | null = null;
 let lastIdentifiedSocketId: string | null = null;
 
 /**
  * Returns the shared Socket.io instance, creating it on first call.
- * Token is only used during initial construction; use updateSocketAuth to
- * change it for subsequent reconnects.
  */
 export function getSocketClient(token?: string | null): Socket | null {
     if (typeof window === 'undefined') return null;
@@ -20,7 +19,7 @@ export function getSocketClient(token?: string | null): Socket | null {
             auth: token ? { token } : {},
         });
 
-        _socket.on('identify-success', () => {
+        _socket.on(SocketEvents.IDENTIFY_SUCCESS, () => {
             lastIdentifiedSocketId = _socket?.id || null;
             console.log('[Socket] Identified successfully:', lastIdentifiedSocketId);
         });
@@ -28,8 +27,20 @@ export function getSocketClient(token?: string | null): Socket | null {
         _socket.on('disconnect', () => {
             lastIdentifiedSocketId = null;
         });
-    } else if (token !== undefined) {
-        _socket.auth = token ? { token } : {};
+    }
+
+    if (token !== undefined) {
+        const hasChanged = (window as any)._lastSocketToken !== token;
+        if (hasChanged) {
+            (window as any)._lastSocketToken = token;
+            _socket.auth = token ? { token } : {};
+
+            // If already connected, we must proactively update/identify
+            if (_socket.connected && token) {
+                console.log('[Socket] Token updated on active connection, re-identifying...');
+                _socket.emit(SocketEvents.USER_IDENTIFY, { token });
+            }
+        }
     }
 
     return _socket;
@@ -45,76 +56,86 @@ export function connectSocket(): void {
 export function disconnectSocket(): void {
     _socket?.disconnect();
     lastIdentifiedSocketId = null;
+    (window as any)._lastSocketToken = null;
+}
+
+/** Check if the current socket is identified with the server. */
+export function isSocketIdentified(): boolean {
+    return !!_socket?.connected && lastIdentifiedSocketId === _socket.id;
 }
 
 /**
  * Update auth credentials on the existing socket instance.
- * The new token will be picked up on the next reconnect.
  */
 export function updateSocketAuth(token: string | null): void {
-    if (_socket) {
-        _socket.auth = token ? { token } : {};
-    }
+    getSocketClient(token);
 }
 
 /**
  * Returns a promise that resolves when the socket is connected (and identified if token exists).
- * If already connected and identified, resolves immediately.
  */
 export async function waitForSocketConnection(timeoutMs = 10000): Promise<boolean> {
     const s = getSocketClient();
     if (!s) return false;
 
-    const hasToken = s.auth && (s.auth as any).token;
+    const token = (s.auth as any)?.token;
+    const isIdentified = lastIdentifiedSocketId === s.id;
 
-    // Fast path: already connected and (if needed) identified
-    if (s.connected) {
-        if (!hasToken || lastIdentifiedSocketId === s.id) {
-            return true;
-        }
-        console.log('[Socket] Connected but identification pending, waiting...');
+    // Fast path: fully ready
+    if (s.connected && (!token || isIdentified)) {
+        return true;
     }
 
-    // Ensure it's trying to connect
+    // Ensure it's active
     if (!s.active) s.connect();
 
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-            s.off('connect', onConnect);
-            s.off('connect_error', onError);
-            s.off('identify-success', onIdentify);
+            cleanup();
             console.warn('[Socket] Connection/Identification timed out after', timeoutMs, 'ms');
             resolve(false);
         }, timeoutMs);
 
-        const onIdentify = () => {
+        const cleanup = () => {
             clearTimeout(timeout);
             s.off('connect', onConnect);
             s.off('connect_error', onError);
+            s.off(SocketEvents.IDENTIFY_SUCCESS, onIdentify);
+            s.off(SocketEvents.TOKEN_UPDATED, onIdentify);
+            s.off(SocketEvents.AUTH_ERROR, onError);
+        };
+
+        const onIdentify = () => {
+            cleanup();
             resolve(true);
         };
 
         const onConnect = () => {
-            // If we have a token, we must also wait for identify-success (if it hasn't happened yet)
-            if (hasToken && lastIdentifiedSocketId !== s.id) {
-                s.once('identify-success', onIdentify);
+            if (token && lastIdentifiedSocketId !== s.id) {
+                // Wait for identification
             } else {
-                clearTimeout(timeout);
-                s.off('connect_error', onError);
-                s.off('identify-success', onIdentify);
+                cleanup();
                 resolve(true);
             }
         };
 
         const onError = (err: any) => {
-            clearTimeout(timeout);
-            s.off('connect', onConnect);
-            s.off('identify-success', onIdentify);
-            console.error('[Socket] Connection error:', err);
+            cleanup();
+            console.error('[Socket] Connection/Auth error:', err);
             resolve(false);
         };
 
-        s.once('connect', onConnect);
+        // If we are already connected but not identified, we just need to wait for onIdentify
+        if (!s.connected) {
+            s.once('connect', onConnect);
+        } else if (token && !isIdentified) {
+            console.log('[Socket] Waiting for identification on active connection...');
+            s.emit(SocketEvents.USER_IDENTIFY, { token });
+        }
+
         s.once('connect_error', onError);
+        s.once(SocketEvents.AUTH_ERROR, onError);
+        s.once(SocketEvents.IDENTIFY_SUCCESS, onIdentify);
+        s.once(SocketEvents.TOKEN_UPDATED, onIdentify);
     });
 }
