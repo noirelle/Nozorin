@@ -111,7 +111,18 @@ export const useRoomActionsCallbacks = ({
         try {
             localStorage.setItem('nz_active_call', JSON.stringify({
                 roomId: data.roomId, peerId: data.partnerId, startedAt: Date.now(),
-                partnerProfile: { id: data.partnerId, username: data.partnerUsername, displayName: data.partnerUsername, avatar: data.partnerAvatar, country: data.partnerCountry || 'unknown', city: null, timezone: null },
+                partnerProfile: {
+                    id: data.partnerId,
+                    userId: data.partnerUserId,
+                    username: data.partnerUsername,
+                    displayName: data.partnerUsername,
+                    avatar: data.partnerAvatar,
+                    gender: data.partnerGender,
+                    country: data.partnerCountry || 'unknown',
+                    countryCode: data.partnerCountryCode || 'UN',
+                    city: null,
+                    timezone: null
+                },
             }));
         } catch { }
         trackSessionStart(data.partnerId, mode);

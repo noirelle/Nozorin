@@ -127,7 +127,15 @@ export default function Room({
         onRestorePartner: useCallback((data: any) => {
             if (data.partnerProfile) {
                 const pp = data.partnerProfile;
-                setPartner(data.peerId, pp.country || '', '', pp.username || '', pp.avatar || '');
+                setPartner(
+                    data.peerId,
+                    pp.country || '',
+                    pp.countryCode || '',
+                    pp.username || '',
+                    pp.avatar || '',
+                    pp.gender || '',
+                    pp.userId || null
+                );
             }
         }, [setPartner]),
     });
