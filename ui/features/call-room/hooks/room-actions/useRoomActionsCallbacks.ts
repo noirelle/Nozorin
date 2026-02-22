@@ -79,8 +79,11 @@ export const useRoomActionsCallbacks = ({
         try { localStorage.removeItem('nz_active_call'); } catch { }
         trackSessionEnd('skip');
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+        if (callRoomState.partnerId) {
+            endCallRef.current(callRoomState.partnerId);
+        }
         findMatch(true);
-    }, [findMatch, trackSessionEnd, manualStopRef, nextTimeoutRef]);
+    }, [findMatch, trackSessionEnd, manualStopRef, nextTimeoutRef, callRoomState.partnerId, endCallRef]);
 
     const handleUserStop = useCallback(() => {
         manualStopRef.current = true;
@@ -139,7 +142,15 @@ export const useRoomActionsCallbacks = ({
     const onRejoinSuccess = useCallback(async (data: any) => {
         setSearching(false);
         setConnected(true);
-        setPartner(data.partnerId, data.partnerCountry || callRoomState.partnerCountry, data.partnerCountryCode || callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, data.partnerUserId || callRoomState.partnerUserId);
+        setPartner(
+            data.partnerId,
+            data.partnerCountry || callRoomState.partnerCountry,
+            data.partnerCountryCode || callRoomState.partnerCountryCode,
+            data.partnerUsername || callRoomState.partnerUsername,
+            data.partnerAvatar || callRoomState.partnerAvatar,
+            data.partnerGender || callRoomState.partnerGender,
+            data.partnerUserId || callRoomState.partnerUserId
+        );
         closePeerConnection();
         if (mode === 'voice') pendingRejoinPartnerRef.current = data.partnerId;
     }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId]);

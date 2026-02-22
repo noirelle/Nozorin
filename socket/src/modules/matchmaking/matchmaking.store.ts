@@ -9,6 +9,15 @@ export const voiceBuckets = new Map<string, User[]>();
 /** socketId → partner socketId */
 export const activeCalls = new Map<string, string>();
 
+/** userId → reconnection info */
+export interface RejoinInfo {
+    partnerSocketId: string;
+    partnerUserId: string;
+    roomId: string;
+    expiresAt: number;
+}
+export const reconnectingUsers = new Map<string, RejoinInfo>();
+
 export const removeUserFromQueues = (socketId: string, countryCode?: string): void => {
     const voiceIdx = voiceQueue.findIndex(u => u.id === socketId);
     if (voiceIdx !== -1) voiceQueue.splice(voiceIdx, 1);

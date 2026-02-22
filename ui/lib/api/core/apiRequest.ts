@@ -125,7 +125,7 @@ export async function apiRequest<T>(
                                 message: retryMessage
                             };
                         }
-                    } else {
+                    } else if (!endpoint.includes('/matchmaking/leave')) {
                         handleAuthError();
                     }
                 } catch (refreshErr) {
