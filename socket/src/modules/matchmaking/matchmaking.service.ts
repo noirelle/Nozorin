@@ -91,8 +91,24 @@ export const joinQueue = async (
         requestId,
     } = params;
 
-    const alreadyIdx = voiceQueue.findIndex(u => u.id === socketId);
-    if (alreadyIdx !== -1) return;
+    // Reliability guard: if userId is already in queue, remove old entry (likely a stale connection)
+    if (userId && userId !== 'unknown') {
+        const existingIdx = voiceQueue.findIndex(u => u.userId === userId);
+        if (existingIdx !== -1) {
+            const staleUser = voiceQueue[existingIdx];
+            if (staleUser.id !== socketId) {
+                logger.info({ userId, oldSocketId: staleUser.id, newSocketId: socketId }, '[MATCHMAKING] Replacing stale queue entry for user');
+                removeUserFromQueues(staleUser.id);
+            } else {
+                // Same socket, same user, already in queue. Just return.
+                return;
+            }
+        }
+    } else {
+        // Fallback to socketId check if userId is missing
+        const alreadyIdx = voiceQueue.findIndex(u => u.id === socketId);
+        if (alreadyIdx !== -1) return;
+    }
 
     // Safety guard: if user is already in a call, end it before re-queueing
     const existingPartnerId = activeCalls.get(socketId);

@@ -26,10 +26,14 @@ router.post('/join', async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'User is not connected to the realtime service' });
     }
 
-    // Already queued?
-    if (voiceQueue.some(u => u.id === socketId)) {
-        return res.status(409).json({ error: 'ALREADY_IN_QUEUE' });
+    // Already queued with the SAME socketId?
+    const existingUser = voiceQueue.find(u => u.id === socketId);
+    if (existingUser) {
+        return res.json({ queued: true, queueLength: voiceQueue.length, alreadyQueued: true });
     }
+
+    // Note: If they are in queue with a DIFFERENT socketId (e.g. after reconnect),
+    // matchmakingService.joinQueue will handle replacing the old entry by userId.
 
     await matchmakingService.joinQueue(null, {
         socketId,

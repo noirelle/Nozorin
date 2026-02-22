@@ -45,3 +45,53 @@ export function updateSocketAuth(token: string | null): void {
         _socket.auth = token ? { token } : {};
     }
 }
+
+/**
+ * Returns a promise that resolves when the socket is connected.
+ * If already connected, resolves immediately.
+ */
+export async function waitForSocketConnection(timeoutMs = 5000): Promise<boolean> {
+    const s = getSocketClient();
+    if (!s) return false;
+    if (s.connected) return true;
+
+    // Ensure it's trying to connect
+    if (!s.active) s.connect();
+
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            s.off('connect', onConnect);
+            s.off('connect_error', onError);
+            s.off('identify-success', onIdentify);
+            resolve(false);
+        }, timeoutMs);
+
+        const onIdentify = () => {
+            clearTimeout(timeout);
+            s.off('connect', onConnect);
+            s.off('connect_error', onError);
+            resolve(true);
+        };
+
+        const onConnect = () => {
+            // If we have a token, we must also wait for identify-success
+            if (s.auth && (s.auth as any).token) {
+                s.once('identify-success', onIdentify);
+            } else {
+                clearTimeout(timeout);
+                s.off('connect_error', onError);
+                resolve(true);
+            }
+        };
+
+        const onError = () => {
+            clearTimeout(timeout);
+            s.off('connect', onConnect);
+            s.off('identify-success', onIdentify);
+            resolve(false);
+        };
+
+        s.once('connect', onConnect);
+        s.once('connect_error', onError);
+    });
+}

@@ -5,6 +5,7 @@ import { userService } from '../../shared/services/user.service';
 import { addConnectedUser } from '../../modules/tracking';
 import { statusService } from '../../modules/status/status.service';
 import { logger } from '../../core/logger';
+import { SocketEvents } from '../socket.events';
 
 export const initializeSocketConnection = async (io: Server, socket: Socket): Promise<void> => {
     logger.info({ socketId: socket.id }, '[CONNECT] New connection');
@@ -23,5 +24,6 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
         logger.info({ socketId: socket.id, userId: userId.substring(0, 8) }, '[CONNECT] Auto-registered');
+        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { userId, auto: true });
     }
 };

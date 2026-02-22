@@ -7,13 +7,14 @@ import {
 } from '../../../../lib/socket/matching/matching.actions';
 import { matchmaking } from '@/lib/api';
 import { useUser } from '@/hooks';
+import { waitForSocketConnection } from '../../../../lib/socket/core/socketClient';
+import { UseMatchingStateReturn } from './useMatchingState';
 import {
     MatchFoundPayload,
     PartnerReconnectingPayload,
     PartnerReconnectedPayload,
     RejoinSuccessPayload,
 } from '../../../../lib/socket/matching/matching.types';
-import { UseMatchingStateReturn } from './useMatchingState';
 
 interface MatchingCallbacks {
     onMatchFound?: (data: MatchFoundPayload) => void;
@@ -42,6 +43,7 @@ export const useMatchingActions = ({
     callbacks,
 }: UseMatchingActionsProps) => {
     const { user } = useUser();
+    const isJoiningRef = useRef(false);
 
     // Keep callbacks stable without stale closure issues
     const callbacksRef = useRef(callbacks);
@@ -54,23 +56,42 @@ export const useMatchingActions = ({
     }) => {
         const effectiveUserId = options?.userId || user?.id;
         if (!effectiveUserId) { console.error('[Matching] No user ID, cannot join queue'); return; }
+        if (isJoiningRef.current) { console.warn('[Matching] Join already in progress, ignoring request'); return; }
 
         console.log(`[Matching] Starting search, preference: ${options?.preferredCountry || 'None'}`);
         setStatus('FINDING');
+        isJoiningRef.current = true;
 
         try {
+            // 1. Ensure socket is connected before joining the queue
+            const isConnected = await waitForSocketConnection();
+            if (!isConnected) {
+                console.error('[Matching] Could not establish socket connection for join');
+                setStatus('IDLE');
+                return;
+            }
+
+            // 2. Call the join queue API
             const requestId = Math.random().toString(36).substring(7);
-            const { error } = await matchmaking.joinQueue({
+            const { error, data } = await matchmaking.joinQueue({
                 userId: effectiveUserId,
                 mode: 'voice' as const,
                 preferences: { selectedCountry: options?.preferredCountry || 'GLOBAL' },
                 session: { peerId: options?.peerId, connectionId: undefined },
                 requestId,
             });
-            if (error) { console.error('[Matching] Join queue failed:', error); setStatus('IDLE'); }
+
+            if (error) {
+                console.error('[Matching] Join queue failed:', error);
+                setStatus('IDLE');
+            } else if ((data as any)?.alreadyQueued) {
+                console.log('[Matching] Already in queue, status preserved');
+            }
         } catch (err) {
             console.error('[Matching] Join queue exception:', err);
             setStatus('IDLE');
+        } finally {
+            isJoiningRef.current = false;
         }
     }, [user, setStatus]);
 

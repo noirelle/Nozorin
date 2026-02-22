@@ -35,3 +35,21 @@ export const removeUserFromQueues = (socketId: string, countryCode?: string): vo
         });
     }
 };
+
+export const removeUserFromQueuesByUserId = (userId: string): void => {
+    // Remove from main queue
+    for (let i = voiceQueue.length - 1; i >= 0; i--) {
+        if (voiceQueue[i].userId === userId) {
+            voiceQueue.splice(i, 1);
+        }
+    }
+
+    // Remove from buckets
+    voiceBuckets.forEach(bucket => {
+        for (let i = bucket.length - 1; i >= 0; i--) {
+            if (bucket[i].userId === userId) {
+                bucket.splice(i, 1);
+            }
+        }
+    });
+};
