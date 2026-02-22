@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 
-export type MatchStatus = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED' | 'RECONNECTING';
+export type MatchStatus = 'IDLE' | 'CONNECTING' | 'FINDING' | 'NEGOTIATING' | 'MATCHED' | 'RECONNECTING';
 
 export const useMatchingState = () => {
     const [status, setStatus] = useState<MatchStatus>('IDLE');

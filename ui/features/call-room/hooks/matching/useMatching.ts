@@ -17,6 +17,7 @@ interface UseMatchingProps {
     onPartnerReconnected?: (data: PartnerReconnectedPayload) => void;
     onRejoinSuccess?: (data: RejoinSuccessPayload) => void;
     onRejoinFailed?: (data: { reason: string }) => void;
+    onFatalError?: () => void;
 }
 
 export type { MatchStatus };

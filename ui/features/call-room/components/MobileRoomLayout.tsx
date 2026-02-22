@@ -24,6 +24,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     friends = [],
     pendingRequests = [],
     selectedCountry,
+    matchmakingStatus,
     queuePosition,
     isReconnecting,
     reconnectCountdown,
@@ -87,10 +88,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                             <div className="flex flex-col items-center">
                                 <div className="relative w-12 h-12 mb-4">
                                     <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
-                                    <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
+                                    {matchmakingStatus === 'FINDING' && (
+                                        <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
+                                    )}
                                 </div>
                                 <span className="text-white font-semibold tracking-widest text-[10px] uppercase">
-                                    {queuePosition ? `Position: ${queuePosition}` : 'Searching...'}
+                                    {queuePosition ? `Position: ${queuePosition}` : (matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Connecting...' : 'Searching...')}
                                 </span>
                             </div>
                         ) : isConnected ? (
@@ -215,7 +218,9 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                         <div className="w-1.5 h-1.5 bg-[#FF8BA7] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                                         <div className="w-1.5 h-1.5 bg-[#FF8BA7] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
                                     </div>
-                                    <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#A58E92]">Waiting for partner</span>
+                                    <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#A58E92]">
+                                        {matchmakingStatus === 'CONNECTING' || (isSearching && matchmakingStatus === 'IDLE') ? 'Connecting to server...' : 'Waiting for partner'}
+                                    </span>
                                 </div>
                             )}
                         </div>

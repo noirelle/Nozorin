@@ -24,6 +24,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     friends = [],
     pendingRequests = [],
     selectedCountry,
+    matchmakingStatus,
     queuePosition,
     isReconnecting,
     reconnectCountdown,
@@ -106,11 +107,13 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                 <div className="flex flex-col items-center">
                                     <div className="relative w-16 h-16 mb-6">
                                         <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
-                                        <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
+                                        {matchmakingStatus === 'FINDING' && (
+                                            <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
+                                        )}
                                         <div className="absolute inset-4 bg-white/10 rounded-full animate-pulse" />
                                     </div>
                                     <span className="text-white font-bold tracking-[0.2em] text-[11px] uppercase opacity-90 drop-shadow-sm">
-                                        {queuePosition ? `POS: ${queuePosition}` : 'Scanner'}
+                                        {matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Connecting' : (queuePosition ? `POS: ${queuePosition}` : 'Scanner')}
                                     </span>
                                 </div>
                             ) : isConnected ? (
@@ -185,7 +188,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-center gap-2">
                                         <h4 className={`text-lg font-bold tracking-tight transition-colors ${isConnected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
-                                            {isConnected ? (partnerUsername || 'Stranger') : 'Scanning...'}
+                                            {isConnected ? (partnerUsername || 'Stranger') : (matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Initializing...' : 'Scanning...')}
                                         </h4>
                                         {isConnected && partnerGender && (
                                             <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${partnerGender === 'male' ? 'bg-blue-50 text-blue-500' : partnerGender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>

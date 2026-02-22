@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 let _socket: Socket | null = null;
+let lastIdentifiedSocketId: string | null = null;
 
 /**
  * Returns the shared Socket.io instance, creating it on first call.
@@ -18,6 +19,15 @@ export function getSocketClient(token?: string | null): Socket | null {
             secure: SOCKET_URL.startsWith('https'),
             auth: token ? { token } : {},
         });
+
+        _socket.on('identify-success', () => {
+            lastIdentifiedSocketId = _socket?.id || null;
+            console.log('[Socket] Identified successfully:', lastIdentifiedSocketId);
+        });
+
+        _socket.on('disconnect', () => {
+            lastIdentifiedSocketId = null;
+        });
     } else if (token !== undefined) {
         _socket.auth = token ? { token } : {};
     }
@@ -34,6 +44,7 @@ export function connectSocket(): void {
 /** Explicitly disconnect the shared socket. */
 export function disconnectSocket(): void {
     _socket?.disconnect();
+    lastIdentifiedSocketId = null;
 }
 
 /**
@@ -47,13 +58,22 @@ export function updateSocketAuth(token: string | null): void {
 }
 
 /**
- * Returns a promise that resolves when the socket is connected.
- * If already connected, resolves immediately.
+ * Returns a promise that resolves when the socket is connected (and identified if token exists).
+ * If already connected and identified, resolves immediately.
  */
-export async function waitForSocketConnection(timeoutMs = 5000): Promise<boolean> {
+export async function waitForSocketConnection(timeoutMs = 10000): Promise<boolean> {
     const s = getSocketClient();
     if (!s) return false;
-    if (s.connected) return true;
+
+    const hasToken = s.auth && (s.auth as any).token;
+
+    // Fast path: already connected and (if needed) identified
+    if (s.connected) {
+        if (!hasToken || lastIdentifiedSocketId === s.id) {
+            return true;
+        }
+        console.log('[Socket] Connected but identification pending, waiting...');
+    }
 
     // Ensure it's trying to connect
     if (!s.active) s.connect();
@@ -63,6 +83,7 @@ export async function waitForSocketConnection(timeoutMs = 5000): Promise<boolean
             s.off('connect', onConnect);
             s.off('connect_error', onError);
             s.off('identify-success', onIdentify);
+            console.warn('[Socket] Connection/Identification timed out after', timeoutMs, 'ms');
             resolve(false);
         }, timeoutMs);
 
@@ -74,20 +95,22 @@ export async function waitForSocketConnection(timeoutMs = 5000): Promise<boolean
         };
 
         const onConnect = () => {
-            // If we have a token, we must also wait for identify-success
-            if (s.auth && (s.auth as any).token) {
+            // If we have a token, we must also wait for identify-success (if it hasn't happened yet)
+            if (hasToken && lastIdentifiedSocketId !== s.id) {
                 s.once('identify-success', onIdentify);
             } else {
                 clearTimeout(timeout);
                 s.off('connect_error', onError);
+                s.off('identify-success', onIdentify);
                 resolve(true);
             }
         };
 
-        const onError = () => {
+        const onError = (err: any) => {
             clearTimeout(timeout);
             s.off('connect', onConnect);
             s.off('identify-success', onIdentify);
+            console.error('[Socket] Connection error:', err);
             resolve(false);
         };
 

@@ -24,6 +24,7 @@ interface MatchingCallbacks {
     onPartnerReconnected?: (data: PartnerReconnectedPayload) => void;
     onRejoinSuccess?: (data: RejoinSuccessPayload) => void;
     onRejoinFailed?: (data: { reason: string }) => void;
+    onFatalError?: () => void;
 }
 
 interface UseMatchingActionsProps extends UseMatchingStateReturn {
@@ -42,34 +43,78 @@ export const useMatchingActions = ({
     skipTimerRef,
     callbacks,
 }: UseMatchingActionsProps) => {
-    const { user } = useUser();
+    const { user, isChecking } = useUser();
     const isJoiningRef = useRef(false);
 
-    // Keep callbacks stable without stale closure issues
+    // Keep callbacks and user/checking state stable for async loops
     const callbacksRef = useRef(callbacks);
+    const userRef = useRef(user);
+    const isCheckingRef = useRef(isChecking);
+
     useEffect(() => { callbacksRef.current = callbacks; }, [callbacks]);
+    useEffect(() => { userRef.current = user; }, [user]);
+    useEffect(() => { isCheckingRef.current = isChecking; }, [isChecking]);
+
+    const waitForUser = useCallback(async (timeoutMs = 5000): Promise<boolean> => {
+        if (!isCheckingRef.current && userRef.current?.id) return true;
+
+        console.log('[Matching] Waiting for user identification...');
+        return new Promise((resolve) => {
+            const start = Date.now();
+            const timer = setInterval(() => {
+                if (!isCheckingRef.current) {
+                    clearInterval(timer);
+                    console.log('[Matching] User identification complete, user exists:', !!userRef.current?.id);
+                    resolve(!!userRef.current?.id);
+                } else if (Date.now() - start > timeoutMs) {
+                    clearInterval(timer);
+                    console.warn('[Matching] Timed out waiting for user identification');
+                    resolve(false);
+                }
+            }, 100);
+        });
+    }, []);
 
     const startSearch = useCallback(async (options?: {
         preferredCountry?: string;
         userId?: string;
         peerId?: string;
     }) => {
-        const effectiveUserId = options?.userId || user?.id;
-        if (!effectiveUserId) { console.error('[Matching] No user ID, cannot join queue'); return; }
-        if (isJoiningRef.current) { console.warn('[Matching] Join already in progress, ignoring request'); return; }
+        if (isJoiningRef.current) {
+            console.warn('[Matching] Join already in progress, ignoring request');
+            return;
+        }
 
-        console.log(`[Matching] Starting search, preference: ${options?.preferredCountry || 'None'}`);
-        setStatus('FINDING');
+        console.log(`[Matching] Starting search flow, preference: ${options?.preferredCountry || 'None'}`);
+        setStatus('CONNECTING');
         isJoiningRef.current = true;
 
         try {
-            // 1. Ensure socket is connected before joining the queue
-            const isConnected = await waitForSocketConnection();
-            if (!isConnected) {
-                console.error('[Matching] Could not establish socket connection for join');
+            // 0. Ensure user is identified (especially after quick reload)
+            const userAvailable = await waitForUser();
+            const effectiveUserId = options?.userId || userRef.current?.id;
+
+            if (!effectiveUserId) {
+                console.error('[Matching] Aborting: No user ID available. userAvailable:', userAvailable);
                 setStatus('IDLE');
+                callbacksRef.current.onFatalError?.();
                 return;
             }
+
+            // 1. Ensure socket is connected and IDENTIFIED before joining the queue
+            console.log('[Matching] Waiting for socket connection & identification...');
+            const isConnected = await waitForSocketConnection();
+
+            if (!isConnected) {
+                console.error('[Matching] FAILED: Could not establish identified socket connection for join');
+                setStatus('IDLE');
+                callbacksRef.current.onFatalError?.();
+                return;
+            }
+
+            console.log('[Matching] Socket ready. Transitioning to FINDING status...');
+            setStatus('FINDING');
+            console.log('[Matching] Calling joinQueue API...');
 
             // 2. Call the join queue API
             const requestId = Math.random().toString(36).substring(7);
@@ -82,18 +127,21 @@ export const useMatchingActions = ({
             });
 
             if (error) {
-                console.error('[Matching] Join queue failed:', error);
+                console.error('[Matching] Join queue API failed:', error);
                 setStatus('IDLE');
-            } else if ((data as any)?.alreadyQueued) {
-                console.log('[Matching] Already in queue, status preserved');
+                callbacksRef.current.onFatalError?.();
+            } else {
+                const alreadyQueued = (data as any)?.alreadyQueued;
+                console.log(`[Matching] Join queue API success${alreadyQueued ? ' (already in queue)' : ''}`);
             }
         } catch (err) {
-            console.error('[Matching] Join queue exception:', err);
+            console.error('[Matching] Join queue caught exception:', err);
             setStatus('IDLE');
+            callbacksRef.current.onFatalError?.();
         } finally {
             isJoiningRef.current = false;
         }
-    }, [user, setStatus]);
+    }, [setStatus, waitForUser]);
 
     const stopSearch = useCallback(async () => {
         setStatus('IDLE');

@@ -32,6 +32,7 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         onPartnerReconnected: callbacks.onPartnerReconnected,
         onRejoinSuccess: callbacks.onRejoinSuccess,
         onRejoinFailed: callbacks.onRejoinFailed,
+        onFatalError: props.resetState,
     });
 
     useEffect(() => {
