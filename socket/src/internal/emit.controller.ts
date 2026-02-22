@@ -8,6 +8,10 @@ export const setIo = (io: import('socket.io').Server): void => {
     _ioInstance = io;
 };
 
+export const getIo = (): import('socket.io').Server | null => {
+    return _ioInstance;
+};
+
 const router = Router();
 
 /**

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { voiceQueue, voiceBuckets, activeCalls, removeUserFromQueues } from '../matchmaking.store';
 import { userService } from '../../../shared/services/user.service';
+import * as matchmakingService from '../matchmaking.service';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * Body: { userId, mode, preferences?, peerId?, requestId? }
  * Resolves socketId from this service's own in-memory registry.
  */
-router.post('/join', (req: Request, res: Response) => {
+router.post('/join', async (req: Request, res: Response) => {
     const { userId, mode, preferences, peerId, requestId } = req.body as {
         userId: string;
         mode: string;
@@ -30,31 +31,14 @@ router.post('/join', (req: Request, res: Response) => {
         return res.status(409).json({ error: 'ALREADY_IN_QUEUE' });
     }
 
-    const entry = {
-        id: socketId,
+    await matchmakingService.joinQueue(null, {
+        socketId,
         userId,
-        username: '',
-        avatar: '',
-        gender: '',
-        country: '',
-        countryCode: '',
         mode: mode as 'voice',
-        preferredCountry: preferences?.region,
         preferences,
         peerId,
         requestId,
-        joinedAt: Date.now(),
-        state: 'FINDING' as const,
-    };
-
-    voiceQueue.push(entry);
-
-    // Also push into country bucket if we have geo info
-    if (entry.countryCode) {
-        const bucket = voiceBuckets.get(entry.countryCode) ?? [];
-        bucket.push(entry);
-        voiceBuckets.set(entry.countryCode, bucket);
-    }
+    });
 
     res.json({ queued: true, queueLength: voiceQueue.length });
 });

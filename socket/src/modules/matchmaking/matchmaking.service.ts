@@ -6,7 +6,7 @@ import { voiceQueue, voiceBuckets, activeCalls, removeUserFromQueues } from './m
 import { userMediaState } from '../media/media.store';
 import { User } from '../../shared/types/socket.types';
 import { statsService } from '../../shared/services/stats.service';
-
+import { getIo } from '../../internal/emit.controller';
 
 let heartbeatSetup = false;
 
@@ -59,9 +59,61 @@ const tryMatch = (io: Server, queued: User): void => {
 
 // ── Join / leave queue helpers (used by internal controller too) ──────────────
 
-export const joinQueue = (io: Server, user: User): void => {
-    const already = voiceQueue.findIndex(u => u.id === user.id);
-    if (already !== -1) return;
+export const joinQueue = async (
+    io: Server | null,
+    params: {
+        socketId: string;
+        userId?: string;
+        mode: 'voice';
+        country?: string;
+        countryCode?: string;
+        preferences?: any;
+        peerId?: string;
+        requestId?: string;
+    }
+): Promise<void> => {
+    const serverIo = io || getIo();
+    if (!serverIo) {
+        logger.error({}, '[MATCHMAKING] Cannot join queue: io instance not available');
+        return;
+    }
+
+    const {
+        socketId,
+        userId,
+        mode,
+        country,
+        countryCode,
+        preferences,
+        peerId,
+        requestId,
+    } = params;
+
+    const alreadyIdx = voiceQueue.findIndex(u => u.id === socketId);
+    if (alreadyIdx !== -1) return;
+
+    // Fetch full profile if we have a userId
+    let profile = null;
+    if (userId && userId !== 'unknown') {
+        profile = await userService.getUserProfile(userId);
+    }
+
+    const user: User = {
+        id: socketId,
+        userId: userId || 'unknown',
+        username: profile?.username || 'Guest',
+        avatar: profile?.avatar || '/avatars/avatar1.webp',
+        gender: profile?.gender || 'unknown',
+        country: country || 'Unknown',
+        countryCode: countryCode || 'UN',
+        mode: mode || 'voice',
+        joinedAt: Date.now(),
+        state: 'FINDING',
+        preferences,
+        preferredCountry: preferences?.region,
+        peerId,
+        requestId,
+    };
 
     voiceQueue.push(user);
     if (user.countryCode) {
@@ -70,8 +122,8 @@ export const joinQueue = (io: Server, user: User): void => {
         voiceBuckets.set(user.countryCode, bucket);
     }
 
-    io.to(user.id).emit(SocketEvents.WAITING_FOR_MATCH, { position: voiceQueue.length });
-    tryMatch(io, user);
+    serverIo.to(user.id).emit(SocketEvents.WAITING_FOR_MATCH, { position: voiceQueue.length });
+    tryMatch(serverIo, user);
 };
 
 export const leaveQueue = (socketId: string): void => {
@@ -114,25 +166,21 @@ export const handleMatchmakingDisconnect = (io: Server, socketId: string): void 
 export const register = (io: Server, socket: Socket): void => {
     setupMatchmaking(io);
 
-    socket.on(SocketEvents.WAITING_FOR_MATCH, async (data: { mode: 'voice'; country?: string; countryCode?: string }) => {
+    socket.on(SocketEvents.WAITING_FOR_MATCH, async (data: {
+        mode: 'voice';
+        country?: string;
+        countryCode?: string;
+        preferences?: any;
+    }) => {
         const userId = userService.getUserId(socket.id);
-        let profile = null;
-        if (userId) profile = await userService.getUserProfile(userId);
-
-        const user: User = {
-            id: socket.id,
+        await joinQueue(io, {
+            socketId: socket.id,
             userId: userId || 'unknown',
-            username: profile?.username || 'Guest',
-            avatar: profile?.avatar || '/avatars/avatar1.webp',
-            gender: profile?.gender || 'unknown',
-            country: data.country || 'Unknown',
-            countryCode: data.countryCode || 'UN',
             mode: data.mode || 'voice',
-            joinedAt: Date.now(),
-            state: 'FINDING',
-        };
-
-        joinQueue(io, user);
+            country: data.country,
+            countryCode: data.countryCode,
+            preferences: data.preferences,
+        });
     });
 
     socket.on(SocketEvents.END_CALL, () => {
