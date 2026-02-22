@@ -10,6 +10,7 @@ export default function SocialProof() {
 
     // Format large numbers (e.g., 7200000 -> "7.2m")
     const formatLargeNumber = (num: number) => {
+        if (num === undefined || num === null) return '0';
         if (num >= 1000000) {
             return `${(num / 1000000).toFixed(1)}m`;
         } else if (num >= 1000) {
@@ -17,6 +18,7 @@ export default function SocialProof() {
         }
         return num.toString();
     };
+
 
     return (
         <section className="py-20 md:py-32 bg-white relative overflow-hidden">

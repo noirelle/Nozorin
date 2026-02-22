@@ -3,6 +3,7 @@ import { FriendRequest } from './friend-request.entity';
 import { Friend } from './friend.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { userService } from '../user/user.service';
+import { friendsClient } from '../../integrations/socket/friends/friends.client';
 
 class FriendService {
     private requestRepository = AppDataSource.getRepository(FriendRequest);
@@ -36,8 +37,7 @@ class FriendService {
             if (existingRequest.senderId === senderId) {
                 throw new Error('Friend request already sent');
             } else {
-                // They already sent a request to us - auto accept? 
-                // For now, just tell them to accept the existing one
+                // They already sent a request to us - auto accept or return error
                 throw new Error('You already have a pending request from this user');
             }
         }
@@ -50,7 +50,16 @@ class FriendService {
             created_at: Date.now()
         });
 
-        return await this.requestRepository.save(request);
+        const savedRequest = await this.requestRepository.save(request);
+        const senderProfile = await userService.getUserProfile(senderId);
+
+        // Notify receiver via socket service
+        await friendsClient.notifyRequest({
+            userId: receiverId,
+            senderProfile
+        });
+
+        return savedRequest;
     }
 
     /**
@@ -85,6 +94,15 @@ class FriendService {
 
         await this.friendRepository.save([friend1, friend2]);
 
+        const receiverProfile = await userService.getUserProfile(receiverId);
+
+        // Notify sender via socket service
+        await friendsClient.notifyAccept({
+            userId: request.senderId,
+            requestId: request.id,
+            friendProfile: receiverProfile
+        });
+
         return { request, senderId: request.senderId };
     }
 
@@ -101,24 +119,36 @@ class FriendService {
         }
 
         request.status = 'declined';
-        return await this.requestRepository.save(request);
+        const savedRequest = await this.requestRepository.save(request);
+
+        // Notify sender via socket service
+        await friendsClient.notifyDecline({
+            userId: request.senderId,
+            requestId: request.id
+        });
+
+        return savedRequest;
     }
 
     /**
      * Remove a friend
      */
     async removeFriend(userId: string, friendId: string) {
-        const result = await this.friendRepository.delete({
-            userId,
-            friendId
-        });
+        // Delete bidirectional entries
+        const res1 = await this.friendRepository.delete({ userId, friendId });
+        const res2 = await this.friendRepository.delete({ userId: friendId, friendId: userId });
 
-        await this.friendRepository.delete({
-            userId: friendId,
-            friendId: userId
-        });
+        const affected = (res1.affected || 0) > 0 || (res2.affected || 0) > 0;
 
-        return result.affected && result.affected > 0;
+        if (affected) {
+            // Notify the other user via socket service
+            await friendsClient.notifyRemove({
+                userId: friendId,
+                friendId: userId
+            });
+        }
+
+        return affected;
     }
 
     /**
@@ -129,7 +159,6 @@ class FriendService {
             where: { userId }
         });
 
-        // Fetch profiles and status
         const friendIds = friends.map(f => f.friendId);
         if (friendIds.length === 0) return [];
 
@@ -168,7 +197,7 @@ class FriendService {
 
         return requests.map((req, index) => ({
             ...req,
-            profile: profiles[index], // Use generic 'profile' field
+            profile: profiles[index],
             type: req.senderId === userId ? 'sent' : 'received'
         }));
     }

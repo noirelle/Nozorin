@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import { friendService } from './friend.service';
-import { userService } from '../user/user.service';
-import { io } from '../../server';
 import { successResponse, errorResponse } from '../../core/utils/response.util';
 
 export const friendController = {
@@ -18,21 +16,6 @@ export const friendController = {
 
         try {
             const request = await friendService.sendRequest(userId, receiverId);
-            const senderProfile = await userService.getUserProfile(userId);
-
-            // Notify receiver if online
-            const receiverSocketId = userService.getSocketId(receiverId);
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit('friend-request-received', {
-                    ...request,
-                    profile: senderProfile,
-                    type: 'received'
-                });
-                console.log(`[FRIEND] Notified user ${receiverId} of friend request from ${userId} (Socket: ${receiverSocketId})`);
-            } else {
-                console.log(`[FRIEND] Receiver ${receiverId} is offline, no socket notification sent`);
-            }
-
             return res.status(201).json(successResponse(request, 'Friend request sent'));
         } catch (error: any) {
             console.error('[FRIEND] Error sending request:', error.message);
@@ -52,19 +35,7 @@ export const friendController = {
         }
 
         try {
-            const { request, senderId } = await friendService.acceptRequest(userId, requestId);
-
-            // Notify sender if online
-            const senderSocketId = userService.getSocketId(senderId);
-            if (senderSocketId) {
-                const receiverProfile = await userService.getUserProfile(userId);
-                io.to(senderSocketId).emit('friend-request-accepted', {
-                    requestId: request.id,
-                    friend: receiverProfile
-                });
-                console.log(`[FRIEND] Notified user ${senderId} that ${userId} accepted their request`);
-            }
-
+            const { request } = await friendService.acceptRequest(userId, requestId);
             return res.status(200).json(successResponse({ request }, 'Friend request accepted'));
         } catch (error: any) {
             console.error('[FRIEND] Error accepting request:', error.message);

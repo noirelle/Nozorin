@@ -13,11 +13,6 @@ export interface UserStatus {
     lastSeen: number;
 }
 
-// Map for socketId -> userId
-const socketToUserMap = new Map<string, string>();
-// Map for userId -> socketId (assuming one socket per user for now)
-const userToSocketMap = new Map<string, string>();
-
 class UserService {
     private userRepository = AppDataSource.getRepository(User);
 
@@ -34,57 +29,6 @@ class UserService {
                 console.error('[USER] Redis error saving footprint:', error);
             }
         }
-    }
-
-    /**
-     * Map a socket ID to a User ID (from JWT)
-     */
-    setUserForSocket(socketId: string, userId: string): string | undefined {
-        const oldSocketId = userToSocketMap.get(userId);
-
-        // Cleanup old mapping if it exists for this socket
-        const prevUserIdForSocket = socketToUserMap.get(socketId);
-        if (prevUserIdForSocket && prevUserIdForSocket !== userId) {
-            userToSocketMap.delete(prevUserIdForSocket);
-        }
-
-        socketToUserMap.set(socketId, userId);
-        userToSocketMap.set(userId, socketId);
-
-        // Update status as online
-        this.updateUserStatus(userId, true);
-
-        return oldSocketId;
-    }
-
-    /**
-     * Get User ID for a Socket ID
-     */
-    getUserId(socketId: string): string | undefined {
-        return socketToUserMap.get(socketId);
-    }
-
-    /**
-     * Get Socket ID for a User ID
-     */
-    getSocketId(userId: string): string | undefined {
-        return userToSocketMap.get(userId);
-    }
-
-    /**
-     * Remove socket mapping (on disconnect)
-     */
-    removeSocket(socketId: string) {
-        const userId = socketToUserMap.get(socketId);
-        if (userId) {
-            // Only update status and clear mapping if this is still the active socket for the user
-            // This prevents an old session's disconnect from killing a newly established session (takeover)
-            if (userToSocketMap.get(userId) === socketId) {
-                this.updateUserStatus(userId, false);
-                userToSocketMap.delete(userId);
-            }
-        }
-        socketToUserMap.delete(socketId);
     }
 
     /**
@@ -124,11 +68,6 @@ class UserService {
      * Get a single user's status
      */
     async getUserStatus(userId: string): Promise<UserStatus> {
-        // If user is currently in userToSocketMap, they are definitely online
-        if (userToSocketMap.has(userId)) {
-            return { isOnline: true, lastSeen: Date.now() };
-        }
-
         const redis = getRedisClient();
         if (redis) {
             try {
@@ -163,8 +102,6 @@ class UserService {
      * Check if a user is registered/known
      */
     async isUserRegistered(userId: string): Promise<boolean> {
-        if (userToSocketMap.has(userId)) return true;
-
         const redis = getRedisClient();
         if (redis) {
             try {
@@ -177,6 +114,7 @@ class UserService {
 
         return false;
     }
+
 
     /**
      * Resolve location from IP

@@ -16,6 +16,27 @@ services:
     environment:
       - DB_HOST=db
       - REDISHOST=redis
+      - SOCKET_SERVICE_URL=http://nozorin_realtime:3002
+    depends_on:
+      - db
+      - redis
+      - realtime
+
+  realtime:
+    build:
+      context: .
+      dockerfile: socket/Dockerfile
+    container_name: nozorin_realtime
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./socket:/app
+    command: npm run dev
+    env_file:
+      - ./socket/.env.local
+    environment:
+      - REDISHOST=redis
+      - DB_HOST=db
     depends_on:
       - db
       - redis
@@ -58,6 +79,11 @@ services:
       - ./ui/.env.local
     environment:
       - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3002
+    depends_on:
+      - api
+      - realtime
 
 volumes:
   mysql_data:
