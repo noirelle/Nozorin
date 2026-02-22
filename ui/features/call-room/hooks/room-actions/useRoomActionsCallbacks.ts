@@ -120,19 +120,36 @@ export const useRoomActionsCallbacks = ({
 
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
+
+        // Ignore late echoes if we already left/skipped
+        if (!callRoomState.partnerId) return;
+
         trackSessionEnd('partner-disconnect');
-        handleStop();
+
+        // Cleanup UI without triggering /leave or an END_CALL ping-pong
+        if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+        closePeerConnection();
+        resetState();
+        clearMessages();
+        setPartnerIsMuted(false);
+
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         try { localStorage.removeItem('nz_active_call'); } catch { }
         setSearching(true);
-        reconnectTimeoutRef.current = setTimeout(() => findMatch(), 300);
-    }, [handleStop, findMatch, trackSessionEnd, setSearching, manualStopRef, reconnectTimeoutRef]);
+        reconnectTimeoutRef.current = setTimeout(() => findMatch(true), 300);
+    }, [manualStopRef, callRoomState.partnerId, trackSessionEnd, nextTimeoutRef, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, reconnectTimeoutRef, setSearching, findMatch]);
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
-        handleStop();
+        if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        closePeerConnection();
+        resetState();
+        clearMessages();
+        setPartnerIsMuted(false);
+
         setSearching(true);
         setTimeout(() => findMatch(), 1000);
-    }, [handleStop, findMatch, setSearching]);
+    }, [nextTimeoutRef, reconnectTimeoutRef, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
 
     const onPartnerReconnected = useCallback(async (data: { newSocketId: string }) => {
         setPartner(data.newSocketId, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId);
