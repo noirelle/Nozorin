@@ -55,7 +55,6 @@ export const useRoomEffects = ({
 
     // Initialization & Cleanup
     useEffect(() => {
-        initMediaManager();
         connectSocket();
         return () => { cleanupMedia(); };
         // eslint-disable-next-line react-hooks/exhaustive-deps

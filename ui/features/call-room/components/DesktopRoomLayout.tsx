@@ -247,7 +247,15 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                 </div>
 
                 {/* Floating Bottom Toolbar (Centered & Proportional) */}
-                <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] w-full max-w-xl px-4">
+                <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] w-full max-w-xl px-4 flex flex-col gap-4">
+                    {callRoomState.permissionDenied && (
+                        <div className="bg-rose-50 border border-rose-100 px-6 py-3 rounded-2xl flex items-center justify-center gap-3 animate-in slide-in-from-bottom-4 duration-500 shadow-sm self-center">
+                            <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span className="text-xs font-bold text-rose-600 tracking-tight">Unable to start call. Microphone permission is required.</span>
+                        </div>
+                    )}
                     <div className="bg-white/85 backdrop-blur-2xl px-10 py-3 rounded-[32px] shadow-[0_15px_40px_-10px_rgba(255,183,206,0.15)] border border-white flex items-center justify-between relative">
 
                         {/* Left Controls */}

@@ -11,6 +11,7 @@ interface UseRoomActionsProps {
     setConnected: (v: boolean) => void;
     setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string, gender?: string, userId?: string | null) => void;
     resetState: () => void;
+    initMediaManager: () => Promise<void>;
     createOffer: (partnerId: string) => Promise<void>;
     closePeerConnection: () => void;
     clearMessages: () => void;

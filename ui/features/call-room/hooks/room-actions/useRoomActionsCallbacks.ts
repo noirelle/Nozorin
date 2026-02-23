@@ -19,6 +19,7 @@ interface UseRoomActionsCallbacksProps {
     trackSessionEnd: (reason: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another') => void;
     selectedCountry: string;
     toggleLocalMute: () => void;
+    initMediaManager: () => Promise<void>;
     roomActionsState: UseRoomActionsStateReturn;
 }
 
@@ -37,6 +38,7 @@ export const useRoomActionsCallbacks = ({
     trackSessionEnd,
     selectedCountry,
     toggleLocalMute,
+    initMediaManager,
     roomActionsState,
 }: UseRoomActionsCallbacksProps) => {
     const {
@@ -63,8 +65,22 @@ export const useRoomActionsCallbacks = ({
         setPartnerIsMuted(false);
     }, [closePeerConnection, resetState, clearMessages, setPartnerIsMuted, callRoomState.partnerId, stopSearchRef, endCallRef, nextTimeoutRef, reconnectTimeoutRef]);
 
-    const findMatch = useCallback((forceSkip: boolean = false) => {
+    const findMatch = useCallback(async (forceSkip: boolean = false) => {
         if (callRoomState.partnerId && !forceSkip) return;
+
+        // Ensure media is ready before searching
+        if (!callRoomState.isMediaReady) {
+            console.log('[RoomActions] Media not ready, initializing before match search...');
+            await initMediaManager();
+        }
+
+        // Re-check after attempt
+        // (If user declined, permissionDenied will be true and isMediaReady false)
+        if (!manualStopRef.current && !callRoomState.isMediaReady) {
+            console.warn('[RoomActions] Media not ready after initialization attempt, aborting search.');
+            return;
+        }
+
         manualStopRef.current = false;
         resetState();
         clearMessages();
@@ -72,7 +88,7 @@ export const useRoomActionsCallbacks = ({
         closePeerConnection();
         setSearching(true);
         startSearchRef.current({ preferredCountry: selectedCountry === 'GLOBAL' ? undefined : selectedCountry });
-    }, [callRoomState.partnerId, resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, setPartnerIsMuted, manualStopRef, startSearchRef]);
+    }, [callRoomState.partnerId, callRoomState.isMediaReady, initMediaManager, resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, setPartnerIsMuted, manualStopRef, startSearchRef]);
 
     const handleNext = useCallback(() => {
         manualStopRef.current = true;

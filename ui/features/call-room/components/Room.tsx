@@ -12,7 +12,6 @@ import { useReconnect } from '../hooks/useReconnect';
 import { useHistory, useUser } from '../../../hooks';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
-import { DevicePermissionOverlay } from './DevicePermissionOverlay';
 import { FilterDrawer } from './FilterDrawer';
 
 interface RoomProps {
@@ -98,6 +97,7 @@ export default function Room({
         trackSessionEnd,
         selectedCountry,
         toggleLocalMute,
+        initMediaManager,
     });
 
     actionsRef.current = actions;
@@ -202,9 +202,6 @@ export default function Room({
                 isReconnecting={isReconnecting || actions.matching.status === 'RECONNECTING'}
                 reconnectCountdown={actions.matching.reconnectCountdown}
             />
-            {callRoomState.permissionDenied && (
-                <DevicePermissionOverlay onRetry={initMediaManager} />
-            )}
             <FilterDrawer
                 isOpen={filtersOpen}
                 onClose={() => setFiltersOpen(false)}

@@ -229,7 +229,15 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
             </div>
 
             {/* Bottom Floating Bar */}
-            <div className="fixed bottom-8 left-6 right-6 z-[60]">
+            <div className="fixed bottom-8 left-6 right-6 z-[60] flex flex-col gap-3">
+                {callRoomState.permissionDenied && (
+                    <div className="bg-rose-50 border border-rose-100 px-5 py-3 rounded-2xl flex items-center justify-center gap-2.5 animate-in slide-in-from-bottom-4 duration-500 shadow-sm self-center w-full">
+                        <svg className="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="text-[10px] font-bold text-rose-600 tracking-tight">Mic permission required to start.</span>
+                    </div>
+                )}
                 <div className="bg-white/90 backdrop-blur-2xl rounded-[32px] p-3 shadow-[0_15px_35px_-10px_rgba(255,183,206,0.25)] border border-white flex items-center justify-between px-6">
                     {/* Left Icons */}
                     <div className="flex items-center gap-5">
