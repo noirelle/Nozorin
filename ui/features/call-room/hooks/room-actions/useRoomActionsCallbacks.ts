@@ -132,6 +132,14 @@ export const useRoomActionsCallbacks = ({
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
 
+        // RELIABILITY: If we are currently in RECONNECTING state (either local or partner),
+        // ignore the CALL_ENDED event as it might be a stale event from the previous socket
+        // session or a race condition during rejoin.
+        if (callRoomState.partnerSignalStrength === 'reconnecting') {
+            console.log('[RoomActions] Ignoring CALL_ENDED during reconnection grace period.');
+            return;
+        }
+
         // Ignore late echoes if we already left/skipped
         if (!callRoomState.partnerId) return;
 
@@ -163,8 +171,11 @@ export const useRoomActionsCallbacks = ({
     }, [nextTimeoutRef, reconnectTimeoutRef, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
 
     const onPartnerReconnected = useCallback(async (data: { newSocketId: string }) => {
-        setPartner(data.newSocketId, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId);
+        console.log('[RoomActions] Partner reconnected with new socket:', data.newSocketId);
+        // CRITICAL: Close the existing peer connection before the new offer comes in.
+        // This ensures the WebRTC state machine is reset for the new session.
         closePeerConnection();
+        setPartner(data.newSocketId, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId);
     }, [closePeerConnection, setPartner, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {

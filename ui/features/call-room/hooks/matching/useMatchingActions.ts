@@ -20,7 +20,7 @@ import {
 interface MatchingCallbacks {
     onMatchFound?: (data: MatchFoundPayload) => void;
     onMatchCancelled?: (data: { reason: string }) => void;
-    onCallEnded?: () => void;
+    onCallEnded?: (data?: { reason?: string; by?: string }) => void;
     onPartnerReconnecting?: (data: PartnerReconnectingPayload) => void;
     onPartnerReconnected?: (data: PartnerReconnectedPayload) => void;
     onRejoinSuccess?: (data: RejoinSuccessPayload) => void;
@@ -45,7 +45,11 @@ export const useMatchingActions = ({
     callbacks,
 }: UseMatchingActionsProps) => {
     const { user, isChecking } = useUser();
+    const statusRef = useRef(status);
+    useEffect(() => { statusRef.current = status; }, [status]);
+
     const isJoiningRef = useRef(false);
+    const lastOptionsRef = useRef<{ preferredCountry?: string; userId?: string; peerId?: string } | undefined>(undefined);
 
     // Keep callbacks and user/checking state stable for async loops
     const callbacksRef = useRef(callbacks);
@@ -88,6 +92,7 @@ export const useMatchingActions = ({
         }
 
         console.log(`[Matching] Starting search flow, preference: ${options?.preferredCountry || 'None'}`);
+        lastOptionsRef.current = options;
         setStatus('CONNECTING');
         isJoiningRef.current = true;
 
@@ -240,12 +245,12 @@ export const useMatchingActions = ({
         callbacksRef.current.onMatchCancelled?.(data);
     }, [setStatus, setPosition]);
 
-    const buildHandleCallEnded = useCallback(() => () => {
-        console.log('[Matching] Call ended. Resetting to IDLE.');
+    const buildHandleCallEnded = useCallback(() => (data?: { reason?: string; by?: string }) => {
+        console.log('[Matching] Call ended. Resetting to IDLE. Reason:', data?.reason || data?.by || 'unknown');
         clearReconnectTimer();
         setStatus('IDLE');
         setPosition(null);
-        callbacksRef.current.onCallEnded?.();
+        callbacksRef.current.onCallEnded?.(data);
     }, [clearReconnectTimer, setStatus, setPosition]);
 
     const buildHandlePartnerReconnecting = useCallback(() => (data: PartnerReconnectingPayload) => {
@@ -297,6 +302,13 @@ export const useMatchingActions = ({
         emitMatchReady();
     }, [setStatus]);
 
+    const buildHandleIdentified = useCallback(() => () => {
+        if (statusRef.current === 'FINDING') {
+            console.log('[Matching] Socket identified while finding, re-triggering search...');
+            startSearch(lastOptionsRef.current);
+        }
+    }, [startSearch, statusRef]);
+
     return {
         startSearch,
         stopSearch,
@@ -314,5 +326,6 @@ export const useMatchingActions = ({
         buildHandleRejoinFailed,
         buildHandleWaitingForMatch,
         buildHandlePrepareMatch,
+        buildHandleIdentified,
     };
 };

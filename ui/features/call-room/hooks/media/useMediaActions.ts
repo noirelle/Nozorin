@@ -10,7 +10,15 @@ interface UseMediaActionsProps {
 
 export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaActionsProps) => {
     const initMediaManager = useCallback(async () => {
-        if (!mediaManager.current) {
+        const existingStream = mediaManager.current?.getStream();
+        const isHealthy = existingStream && existingStream.active && existingStream.getAudioTracks().some(t => t.readyState === 'live');
+
+        if (!mediaManager.current || !isHealthy) {
+            if (mediaManager.current && !isHealthy) {
+                console.log('[MediaActions] Existing media stream unhealthy, re-initializing...');
+                cleanupMedia();
+            }
+
             const manager = new MediaStreamManager();
             mediaManager.current = manager;
 
