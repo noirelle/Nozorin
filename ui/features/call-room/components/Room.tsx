@@ -1,7 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
-import { getSocketClient } from '../../../lib/socket/core/socketClient';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { emitSignalStrength } from '../../../lib/socket/matching/matching.actions';
 import { useRoomActions } from '@/hooks';
 import { useRoomEffects } from '../hooks/useRoomEffects';
@@ -48,6 +47,8 @@ export default function Room({
         setConnected,
         setPartner,
         setPartnerSignalStrength,
+        setPermissionDenied,
+        setHasPromptedForPermission,
         resetState,
     } = useCallRoom(mode);
 
@@ -60,12 +61,27 @@ export default function Room({
 
     const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
+    // 2.5 Native Permission Check
+    useEffect(() => {
+        if (!navigator.permissions) return;
+
+        navigator.permissions.query({ name: 'microphone' as PermissionName })
+            .then((permissionStatus) => {
+                setPermissionDenied(permissionStatus.state === 'denied');
+
+                permissionStatus.onchange = () => {
+                    setPermissionDenied(permissionStatus.state === 'denied');
+                };
+            })
+            .catch(err => console.warn('[Room] Failed to query native mic permission:', err));
+    }, [setPermissionDenied]);
+
     // 3. Actions Ref (break cyclic dep with WebRTC)
     const actionsRef = useRef<ReturnType<typeof useRoomActions> | null>(null);
 
     // 4. WebRTC Hook — no socket prop
     const { createOffer, closePeerConnection } = useWebRTC({
-        mediaManager: mediaManager.current,
+        mediaManager,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
             if (state === 'failed') actionsRef.current?.handleStop();
@@ -98,6 +114,8 @@ export default function Room({
         selectedCountry,
         toggleLocalMute,
         initMediaManager,
+        cleanupMedia,
+        setHasPromptedForPermission,
     });
 
     actionsRef.current = actions;

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, MutableRefObject, RefObject } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 import {
     emitOffer,
@@ -8,8 +8,8 @@ import {
 import { UseWebRTCStateReturn } from './useWebRTCState';
 
 interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
-    mediaManager: MediaStreamManager | null;
-    remoteAudioRef: React.RefObject<HTMLAudioElement | null>;
+    mediaManager: MutableRefObject<MediaStreamManager | null>;
+    remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
     onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
 }
@@ -23,7 +23,7 @@ export const useWebRTCActions = ({
     onSignalQuality,
 }: UseWebRTCActionsProps) => {
     const createPeerConnection = useCallback((targetId: string) => {
-        const stream = mediaManager?.getStream();
+        const stream = mediaManager.current?.getStream();
         if (!stream) return null;
 
         const pc = new RTCPeerConnection(ICE_CONFIG);

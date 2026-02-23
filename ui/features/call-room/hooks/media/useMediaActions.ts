@@ -102,6 +102,14 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
         setState(prev => ({ ...prev, partnerSignalStrength: strength }));
     }, [setState]);
 
+    const setPermissionDenied = useCallback((denied: boolean) => {
+        setState(prev => ({ ...prev, permissionDenied: denied }));
+    }, [setState]);
+
+    const setHasPromptedForPermission = useCallback((prompted: boolean) => {
+        setState(prev => ({ ...prev, hasPromptedForPermission: prompted }));
+    }, [setState]);
+
     const resetState = useCallback(() => {
         setState(prev => ({
             isSearching: false,
@@ -117,6 +125,7 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
             isMediaReady: prev.isMediaReady,
             permissionDenied: prev.permissionDenied,
             partnerSignalStrength: 'good',
+            hasPromptedForPermission: prev.hasPromptedForPermission,
         }));
     }, [setState]);
 
@@ -128,6 +137,8 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
         setConnected,
         setPartner,
         setPartnerSignalStrength,
+        setPermissionDenied,
+        setHasPromptedForPermission,
         resetState,
     };
 };

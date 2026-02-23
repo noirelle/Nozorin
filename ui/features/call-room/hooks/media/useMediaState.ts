@@ -15,6 +15,7 @@ export interface CallRoomState {
     isMediaReady: boolean;
     permissionDenied: boolean;
     partnerSignalStrength: 'good' | 'fair' | 'poor' | 'reconnecting';
+    hasPromptedForPermission: boolean;
 }
 
 export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
@@ -31,6 +32,7 @@ export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
     isMediaReady: false,
     permissionDenied: false,
     partnerSignalStrength: 'good',
+    hasPromptedForPermission: false,
 };
 
 export const useMediaState = () => {

@@ -92,10 +92,12 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
 
                         <button
                             onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
+                            disabled={callRoomState.permissionDenied}
                             className={`
                                 relative w-64 h-64 rounded-full flex flex-col items-center justify-center transition-all duration-700
                                 shadow-[0_30px_60px_-15px_rgba(255,183,206,0.35),inset_0_4px_16px_rgba(255,255,255,0.4)]
-                                active:scale-95 group
+                                group disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale-[0.5]
+                                ${!callRoomState.permissionDenied ? 'active:scale-95' : ''}
                                 ${isConnected
                                     ? 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597] border-[8px] border-white/20'
                                     : 'bg-gradient-to-br from-[#FFC2D1] to-[#FF8BA7] border-[8px] border-white'}
@@ -135,11 +137,19 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                             ) : (
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6 border border-white/30 group-hover:scale-110 transition-transform duration-500 shadow-sm">
-                                        <svg className="w-8 h-8 text-white fill-current translate-x-0.5" viewBox="0 0 24 24">
-                                            <path d="M5 3l14 9-14 9V3z" />
-                                        </svg>
+                                        {callRoomState.permissionDenied ? (
+                                            <svg className="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-8 h-8 text-white fill-current translate-x-0.5" viewBox="0 0 24 24">
+                                                <path d="M5 3l14 9-14 9V3z" />
+                                            </svg>
+                                        )}
                                     </div>
-                                    <span className="text-white font-bold tracking-[0.2em] text-[14px] uppercase drop-shadow-sm">Tune In</span>
+                                    <span className="text-white font-bold tracking-[0.2em] text-[14px] uppercase drop-shadow-sm">
+                                        {callRoomState.permissionDenied ? 'Blocked' : 'Tune In'}
+                                    </span>
                                 </div>
                             )}
                         </button>

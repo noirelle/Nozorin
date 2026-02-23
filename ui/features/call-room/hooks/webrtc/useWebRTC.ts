@@ -1,11 +1,12 @@
+import { MutableRefObject, RefObject } from 'react';
 import { useWebRTCState } from './useWebRTCState';
 import { useWebRTCActions } from './useWebRTCActions';
 import { useWebRTCListeners } from './useWebRTCListeners';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 
 interface UseWebRTCProps {
-    mediaManager: MediaStreamManager | null;
-    remoteAudioRef: React.RefObject<HTMLAudioElement | null>;
+    mediaManager: MutableRefObject<MediaStreamManager | null>;
+    remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
     onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
 }

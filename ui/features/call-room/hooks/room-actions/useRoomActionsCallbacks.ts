@@ -10,6 +10,7 @@ interface UseRoomActionsCallbacksProps {
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
     setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string, gender?: string, userId?: string | null) => void;
+    setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     createOffer: (partnerId: string) => Promise<void>;
     closePeerConnection: () => void;
@@ -20,6 +21,7 @@ interface UseRoomActionsCallbacksProps {
     selectedCountry: string;
     toggleLocalMute: () => void;
     initMediaManager: () => Promise<void>;
+    cleanupMedia: () => void;
     roomActionsState: UseRoomActionsStateReturn;
 }
 
@@ -29,6 +31,7 @@ export const useRoomActionsCallbacks = ({
     setSearching,
     setConnected,
     setPartner,
+    setHasPromptedForPermission,
     resetState,
     createOffer,
     closePeerConnection,
@@ -39,6 +42,7 @@ export const useRoomActionsCallbacks = ({
     selectedCountry,
     toggleLocalMute,
     initMediaManager,
+    cleanupMedia,
     roomActionsState,
 }: UseRoomActionsCallbacksProps) => {
     const {
@@ -59,26 +63,26 @@ export const useRoomActionsCallbacks = ({
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         stopSearchRef.current();
         endCallRef.current(callRoomState.partnerId);
+        cleanupMedia();
         closePeerConnection();
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
-    }, [closePeerConnection, resetState, clearMessages, setPartnerIsMuted, callRoomState.partnerId, stopSearchRef, endCallRef, nextTimeoutRef, reconnectTimeoutRef]);
+    }, [cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, callRoomState.partnerId, stopSearchRef, endCallRef, nextTimeoutRef, reconnectTimeoutRef]);
 
     const findMatch = useCallback(async (forceSkip: boolean = false) => {
         if (callRoomState.partnerId && !forceSkip) return;
 
-        // Ensure media is ready before searching
-        if (!callRoomState.isMediaReady) {
-            console.log('[RoomActions] Media not ready, initializing before match search...');
-            await initMediaManager();
+        if (callRoomState.permissionDenied) {
+            console.warn('[RoomActions] Media permission previously denied, aborting search.');
+            return;
         }
 
-        // Re-check after attempt
-        // (If user declined, permissionDenied will be true and isMediaReady false)
-        if (!manualStopRef.current && !callRoomState.isMediaReady) {
-            console.warn('[RoomActions] Media not ready after initialization attempt, aborting search.');
-            return;
+        if (!callRoomState.hasPromptedForPermission) {
+            console.log('[RoomActions] First time finding match, prompting for mic permission...');
+            await initMediaManager();
+            cleanupMedia();
+            setHasPromptedForPermission(true);
         }
 
         manualStopRef.current = false;
@@ -88,7 +92,7 @@ export const useRoomActionsCallbacks = ({
         closePeerConnection();
         setSearching(true);
         startSearchRef.current({ preferredCountry: selectedCountry === 'GLOBAL' ? undefined : selectedCountry });
-    }, [callRoomState.partnerId, callRoomState.isMediaReady, initMediaManager, resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, setPartnerIsMuted, manualStopRef, startSearchRef]);
+    }, [callRoomState.partnerId, callRoomState.permissionDenied, resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, setPartnerIsMuted, manualStopRef, startSearchRef]);
 
     const handleNext = useCallback(() => {
         manualStopRef.current = true;
@@ -142,8 +146,12 @@ export const useRoomActionsCallbacks = ({
             }));
         } catch { }
         trackSessionStart(data.partnerId, mode);
+
+        console.log('[RoomActions] Match found. Powering up mic.');
+        await initMediaManager();
+
         if (mode === 'voice' && data.role === 'offerer') await createOffer(data.partnerId);
-    }, [mode, createOffer, setSearching, setConnected, setPartner, setPartnerIsMuted, trackSessionStart]);
+    }, [mode, createOffer, setSearching, setConnected, setPartner, setPartnerIsMuted, trackSessionStart, initMediaManager]);
 
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
@@ -163,6 +171,7 @@ export const useRoomActionsCallbacks = ({
 
         // Cleanup UI without triggering /leave or an END_CALL ping-pong
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
+        cleanupMedia();
         closePeerConnection();
         resetState();
         clearMessages();
@@ -172,11 +181,12 @@ export const useRoomActionsCallbacks = ({
         try { localStorage.removeItem('nz_active_call'); } catch { }
         setSearching(true);
         reconnectTimeoutRef.current = setTimeout(() => findMatch(true), 300);
-    }, [manualStopRef, callRoomState.partnerId, trackSessionEnd, nextTimeoutRef, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, reconnectTimeoutRef, setSearching, findMatch]);
+    }, [manualStopRef, callRoomState.partnerId, trackSessionEnd, nextTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, reconnectTimeoutRef, setSearching, findMatch]);
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        cleanupMedia();
         closePeerConnection();
         resetState();
         clearMessages();
@@ -184,7 +194,7 @@ export const useRoomActionsCallbacks = ({
 
         setSearching(true);
         setTimeout(() => findMatch(), 1000);
-    }, [nextTimeoutRef, reconnectTimeoutRef, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
+    }, [nextTimeoutRef, reconnectTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
 
     const onPartnerReconnected = useCallback(async (data: { newSocketId: string }) => {
         console.log('[RoomActions] Partner reconnected with new socket:', data.newSocketId);
@@ -206,9 +216,13 @@ export const useRoomActionsCallbacks = ({
             data.partnerGender || callRoomState.partnerGender,
             data.partnerUserId || callRoomState.partnerUserId
         );
+
+        console.log('[RoomActions] Rejoin success. Powering up mic.');
+        await initMediaManager();
+
         closePeerConnection();
         if (mode === 'voice') pendingRejoinPartnerRef.current = data.partnerId;
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId]);
+    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partnerCountry, callRoomState.partnerCountryCode, callRoomState.partnerUsername, callRoomState.partnerAvatar, callRoomState.partnerGender, callRoomState.partnerUserId, initMediaManager]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

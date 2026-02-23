@@ -10,8 +10,10 @@ interface UseRoomActionsProps {
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
     setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string, gender?: string, userId?: string | null) => void;
+    setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     initMediaManager: () => Promise<void>;
+    cleanupMedia: () => void;
     createOffer: (partnerId: string) => Promise<void>;
     closePeerConnection: () => void;
     clearMessages: () => void;

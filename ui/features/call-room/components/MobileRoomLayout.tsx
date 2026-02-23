@@ -72,10 +72,12 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
 
                     <button
                         onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
+                        disabled={callRoomState.permissionDenied}
                         className={`
                             relative w-56 h-56 rounded-full flex flex-col items-center justify-center transition-all duration-500
                             shadow-[0_20px_40px_-10px_rgba(255,183,206,0.3),inset_0_4px_12px_rgba(255,255,255,0.4)]
-                            active:scale-95 group
+                            group disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale-[0.5]
+                            ${!callRoomState.permissionDenied ? 'active:scale-95' : ''}
                             ${isConnected
                                 ? 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597]'
                                 : 'bg-gradient-to-br from-[#FFC2D1] to-[#FF8BA7]'}
@@ -115,11 +117,19 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                         ) : (
                             <div className="flex flex-col items-center">
                                 <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-4 border border-white/30">
-                                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 3l14 9-14 9V3z" />
-                                    </svg>
+                                    {callRoomState.permissionDenied ? (
+                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 3l14 9-14 9V3z" />
+                                        </svg>
+                                    )}
                                 </div>
-                                <span className="text-white font-bold tracking-widest text-[11px] uppercase">Tap to Connect</span>
+                                <span className="text-white font-bold tracking-widest text-[11px] uppercase">
+                                    {callRoomState.permissionDenied ? 'Blocked' : 'Tap to Connect'}
+                                </span>
                             </div>
                         )}
                     </button>
