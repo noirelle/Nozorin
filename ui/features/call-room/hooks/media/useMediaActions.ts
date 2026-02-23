@@ -25,6 +25,15 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
             try {
                 await manager.init();
 
+                // CRITICAL: If cleanupMedia was called while we were waiting for user permission,
+                // mediaManager.current will be null. We MUST instantly stop these tracks as the user
+                // has already pressed stop.
+                if (mediaManager.current !== manager) {
+                    console.log('[MediaActions] Initialization finished, but stream was already cleaned up (e.g. user clicked stop). Shutting down immediately.');
+                    manager.cleanup();
+                    return;
+                }
+
                 const stream = manager.getStream();
                 if (!stream || stream.getAudioTracks().length === 0) {
                     throw new Error('Missing audio tracks');

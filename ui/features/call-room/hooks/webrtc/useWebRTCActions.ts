@@ -53,6 +53,12 @@ export const useWebRTCActions = ({
 
     const closePeerConnection = useCallback(() => {
         if (peerConnectionRef.current) {
+            // Actively stop sender tracks on the RTCPeerConnection to force immediate hardware release
+            peerConnectionRef.current.getSenders().forEach(sender => {
+                if (sender.track) {
+                    sender.track.stop();
+                }
+            });
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }

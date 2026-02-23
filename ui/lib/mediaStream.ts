@@ -64,7 +64,12 @@ export class MediaStreamManager {
      */
     cleanup() {
         if (this.stream) {
-            this.stream.getTracks().forEach((track) => track.stop());
+            this.stream.getTracks().forEach((track) => {
+                // Setting enabled to false before stop() tells Chrome to instantly
+                // drop the hardware recording indicator UI
+                track.enabled = false;
+                track.stop();
+            });
             this.stream = null;
         }
     }

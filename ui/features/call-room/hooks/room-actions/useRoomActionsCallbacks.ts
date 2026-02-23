@@ -79,11 +79,12 @@ export const useRoomActionsCallbacks = ({
         }
 
         if (!callRoomState.hasPromptedForPermission) {
-            console.log('[RoomActions] First time finding match, prompting for mic permission...');
-            await initMediaManager();
-            cleanupMedia();
+            console.log('[RoomActions] First time finding match, setting permission flag.');
             setHasPromptedForPermission(true);
         }
+
+        // The user wants mic active during the search so there's no spin-up delay
+        initMediaManager().catch(err => console.error('[RoomActions] Mic start failed:', err));
 
         manualStopRef.current = false;
         resetState();
