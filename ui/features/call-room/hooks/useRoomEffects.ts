@@ -10,7 +10,7 @@ interface UseRoomEffectsProps {
     callRoomState: CallRoomState;
     setPartnerIsMuted: (muted: boolean) => void;
     setPartnerSignalStrength: (strength: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
-    initMediaManager: () => Promise<void>;
+    initMediaManager: () => Promise<boolean>;
     cleanupMedia: () => void;
     onConnectionChange: (connected: boolean) => void;
     initialMatchData?: any;

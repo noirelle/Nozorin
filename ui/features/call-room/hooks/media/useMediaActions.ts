@@ -9,66 +9,68 @@ interface UseMediaActionsProps {
 }
 
 export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaActionsProps) => {
-    const initMediaManager = useCallback(async () => {
-        const existingStream = mediaManager.current?.getStream();
-        const isHealthy = existingStream && existingStream.active && existingStream.getAudioTracks().some(t => t.readyState === 'live');
-
-        if (!mediaManager.current || !isHealthy) {
-            if (mediaManager.current && !isHealthy) {
-                console.log('[MediaActions] Existing media stream unhealthy, re-initializing...');
-                cleanupMedia();
-            }
-
-            const manager = new MediaStreamManager();
-            mediaManager.current = manager;
-
-            try {
-                await manager.init();
-
-                // CRITICAL: If cleanupMedia was called while we were waiting for user permission,
-                // mediaManager.current will be null. We MUST instantly stop these tracks as the user
-                // has already pressed stop.
-                if (mediaManager.current !== manager) {
-                    console.log('[MediaActions] Initialization finished, but stream was already cleaned up (e.g. user clicked stop). Shutting down immediately.');
-                    manager.cleanup();
-                    return;
-                }
-
-                const stream = manager.getStream();
-                if (!stream || stream.getAudioTracks().length === 0) {
-                    throw new Error('Missing audio tracks');
-                }
-
-                const handleTrackEnded = () => {
-                    if (mediaManager.current === manager) {
-                        console.log('Track ended unexpectedly');
-                        cleanupMedia();
-                        setState(prev => ({ ...prev, permissionDenied: true, isMediaReady: false }));
-                    }
-                };
-
-                stream.getAudioTracks().forEach(track => {
-                    track.onended = handleTrackEnded;
-                });
-
-                if (mediaManager.current === manager) {
-                    setState(prev => ({ ...prev, isMediaReady: true, permissionDenied: false }));
-                }
-            } catch (err) {
-                console.error('Failed to initialize media:', err);
-                if (mediaManager.current === manager) {
-                    setState(prev => ({ ...prev, permissionDenied: true }));
-                    mediaManager.current = null;
-                }
-            }
-        }
-    }, [mode, mediaManager, setState]);
-
     const cleanupMedia = useCallback(() => {
         mediaManager.current?.cleanup();
         mediaManager.current = null;
         setState(prev => ({ ...prev, isMediaReady: false }));
     }, [mediaManager, setState]);
+
+    const initMediaManager = useCallback(async (): Promise<boolean> => {
+        const existingStream = mediaManager.current?.getStream();
+        const isHealthy = existingStream && existingStream.active && existingStream.getAudioTracks().some(t => t.readyState === 'live');
+
+        if (isHealthy) return true;
+
+        if (mediaManager.current) {
+            console.log('[MediaActions] Existing media stream unhealthy, re-initializing...');
+            cleanupMedia();
+        }
+
+        const manager = new MediaStreamManager();
+        mediaManager.current = manager;
+
+        try {
+            await manager.init();
+
+            // CRITICAL: If cleanupMedia was called while we were waiting for user permission,
+            // mediaManager.current will be null. We MUST instantly stop these tracks as the user
+            // has already pressed stop.
+            if (mediaManager.current !== manager) {
+                console.log('[MediaActions] Initialization finished, but stream was already cleaned up (e.g. user clicked stop). Shutting down immediately.');
+                manager.cleanup();
+                return false;
+            }
+
+            const stream = manager.getStream();
+            if (!stream || stream.getAudioTracks().length === 0) {
+                throw new Error('Missing audio tracks');
+            }
+
+            const handleTrackEnded = () => {
+                if (mediaManager.current === manager) {
+                    console.log('Track ended unexpectedly');
+                    cleanupMedia();
+                    setState(prev => ({ ...prev, permissionDenied: true, isMediaReady: false }));
+                }
+            };
+
+            stream.getAudioTracks().forEach(track => {
+                track.onended = handleTrackEnded;
+            });
+
+            if (mediaManager.current === manager) {
+                setState(prev => ({ ...prev, isMediaReady: true, permissionDenied: false }));
+            }
+            return true;
+        } catch (err) {
+            console.error('Failed to initialize media:', err);
+            if (mediaManager.current === manager) {
+                setState(prev => ({ ...prev, permissionDenied: true }));
+                mediaManager.current = null;
+            }
+            return false;
+        }
+    }, [mediaManager, setState, cleanupMedia]);
 
     const toggleMute = useCallback(() => {
         setState(prev => {

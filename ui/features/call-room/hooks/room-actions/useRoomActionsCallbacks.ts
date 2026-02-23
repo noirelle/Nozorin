@@ -20,7 +20,7 @@ interface UseRoomActionsCallbacksProps {
     trackSessionEnd: (reason: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another') => void;
     selectedCountry: string;
     toggleLocalMute: () => void;
-    initMediaManager: () => Promise<void>;
+    initMediaManager: () => Promise<boolean>;
     cleanupMedia: () => void;
     roomActionsState: UseRoomActionsStateReturn;
 }
@@ -84,7 +84,11 @@ export const useRoomActionsCallbacks = ({
         }
 
         // The user wants mic active during the search so there's no spin-up delay
-        initMediaManager().catch(err => console.error('[RoomActions] Mic start failed:', err));
+        const success = await initMediaManager();
+        if (!success) {
+            console.warn('[RoomActions] Media initialization failed, aborting search.');
+            return;
+        }
 
         manualStopRef.current = false;
         resetState();
