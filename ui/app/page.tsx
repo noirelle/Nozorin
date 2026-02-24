@@ -27,7 +27,7 @@ export default function Home() {
         setIsHistoryOpen(false);
     }, []);
 
-    const { token, ensureToken } = useUser();
+    const { token, ensureToken, user } = useUser();
 
     const {
         history,
@@ -37,7 +37,7 @@ export default function Home() {
         fetchHistory,
         fetchStats,
         clearHistory
-    } = useHistory(token, async () => null);
+    } = useHistory(token, user?.id, async () => null);
 
     const {
         incomingCall,

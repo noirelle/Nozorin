@@ -95,8 +95,8 @@ export default function Room({
 
     // 5. Chat & History — no socket prop
     const { messages, messagesEndRef, sendMessage, clearMessages } = useChat(callRoomState.partnerId);
-    const { token } = useUser();
-    const { trackSessionStart, trackSessionEnd } = useHistory(token);
+    const { token, user } = useUser();
+    const { trackSessionStart, trackSessionEnd } = useHistory(token, user?.id);
 
     // 6. Room Actions — no socket prop
     const actions = useRoomActions({

@@ -180,7 +180,9 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold text-slate-800 truncate">{session.partnerCountry || 'Unknown'}</span>
+                                                <span className="text-sm font-bold text-slate-800 truncate">
+                                                    {session.partnerUsername ? `@${session.partnerUsername}` : (session.partnerCountry || 'Unknown')}
+                                                </span>
                                                 <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(session.disconnectReason)}`}>
                                                     {getReasonLabel(session.disconnectReason)}
                                                 </span>
@@ -189,7 +191,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
                                                     <span>{formatDuration(session.duration)}</span>
                                                     <span>•</span>
-                                                    <span>{formatDate(session.connectionTime)}</span>
+                                                    <span>{formatDate(session.createdAt)}</span>
                                                 </div>
                                                 <div className="text-[9px] font-bold mt-0.5">
                                                     {session.partnerStatus?.isOnline ? (

@@ -6,6 +6,7 @@ import { removeUserFromQueues } from '../matchmaking/matchmaking.store';
 import { userMediaState } from '../media/media.store';
 import { getConnectedUser } from '../tracking/tracking.service';
 import { logger } from '../../core/logger';
+import { callService } from '../call/call.service';
 
 export const register = (io: Server, socket: Socket): void => {
     socket.on(SocketEvents.INITIATE_DIRECT_CALL, async (data: { targetUserId: string; mode: 'voice' }) => {
@@ -23,11 +24,9 @@ export const register = (io: Server, socket: Socket): void => {
         const targetSocket = io.sockets.sockets.get(targetSocketId);
         if (!targetSocket) { socket.emit(SocketEvents.CALL_ERROR, { message: 'User is offline' }); return; }
 
-        const myExistingPartnerId = activeCalls.get(socket.id);
-        if (myExistingPartnerId) {
-            io.to(myExistingPartnerId).emit(SocketEvents.CALL_ENDED, { by: socket.id });
-            activeCalls.delete(myExistingPartnerId);
-            activeCalls.delete(socket.id);
+        const existingInfo = activeCalls.get(socket.id);
+        if (existingInfo) {
+            await callService.handleEndCall(io, socket.id, { target: existingInfo.partnerId, reason: 'skip' });
         }
 
         removeUserFromQueues(socket.id);
@@ -67,15 +66,14 @@ export const register = (io: Server, socket: Socket): void => {
 
         const roomId = `direct-${socket.id}-${callerSocketId}`;
 
-        const myExistingPartnerId = activeCalls.get(socket.id);
-        if (myExistingPartnerId) {
-            io.to(myExistingPartnerId).emit(SocketEvents.CALL_ENDED, { by: 'answered-another' });
-            activeCalls.delete(myExistingPartnerId);
-            activeCalls.delete(socket.id);
+        const existingInfo = activeCalls.get(socket.id);
+        if (existingInfo) {
+            await callService.handleEndCall(io, socket.id, { target: existingInfo.partnerId, reason: 'answered-another' });
         }
 
-        activeCalls.set(socket.id, callerSocketId);
-        activeCalls.set(callerSocketId, socket.id);
+        const startTime = Date.now();
+        activeCalls.set(socket.id, { partnerId: callerSocketId, startTime });
+        activeCalls.set(callerSocketId, { partnerId: socket.id, startTime });
 
         socket.join(roomId);
         callerSocket.join(roomId);

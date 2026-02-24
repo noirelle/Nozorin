@@ -34,3 +34,5 @@ export interface UserConnectionInfo {
     country: string;
     countryCode: string;
 }
+
+export type CallDisconnectReason = 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';

@@ -10,6 +10,7 @@ services:
       - "3001:3001"
     volumes:
       - ./api:/app
+      - /app/node_modules
     command: npm run dev
     env_file:
       - ./api/.env.local
@@ -31,6 +32,7 @@ services:
       - "3002:3002"
     volumes:
       - ./socket:/app
+      - /app/node_modules
     command: npm run dev
     env_file:
       - ./socket/.env.local
@@ -74,6 +76,7 @@ services:
       - "3000:3000"
     volumes:
       - ./ui:/app
+      - /app/node_modules
     command: npm run dev
     env_file:
       - ./ui/.env.local

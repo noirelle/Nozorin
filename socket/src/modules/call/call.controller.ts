@@ -4,10 +4,11 @@ import { userService } from '../../shared/services/user.service';
 import { logger } from '../../core/logger';
 import { activeCalls, reconnectingUsers } from './call.store';
 import { callService } from './call.service';
+import { CallDisconnectReason } from '../../shared/types/socket.types';
 
 export const register = (io: Server, socket: Socket): void => {
-    socket.on(SocketEvents.END_CALL, (data: { target: string | null }, callback?: (ack: any) => void) => {
-        const success = callService.handleEndCall(io, socket.id, data);
+    socket.on(SocketEvents.END_CALL, async (data: { target: string | null, reason?: CallDisconnectReason }, callback?: (ack: any) => void) => {
+        const success = await callService.handleEndCall(io, socket.id, data);
         if (callback) callback({ success });
     });
 
@@ -31,9 +32,10 @@ export const register = (io: Server, socket: Socket): void => {
         }
 
         const currentPartnerSocketId = userService.getSocketId(rejoinInfo.partnerUserId) || rejoinInfo.partnerSocketId;
+        const startTime = rejoinInfo.startTime;
 
-        activeCalls.set(socket.id, currentPartnerSocketId);
-        activeCalls.set(currentPartnerSocketId, socket.id);
+        activeCalls.set(socket.id, { partnerId: currentPartnerSocketId, startTime });
+        activeCalls.set(currentPartnerSocketId, { partnerId: socket.id, startTime });
         reconnectingUsers.delete(userId);
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partnerUserId);

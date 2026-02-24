@@ -7,7 +7,8 @@ const router = Router();
 router.get('/active', (_req: Request, res: Response) => {
     const calls: Array<{ socketA: string; socketB: string }> = [];
     const seen = new Set<string>();
-    activeCalls.forEach((partnerA: string, socketA: string) => {
+    activeCalls.forEach((info: { partnerId: string; startTime: number }, socketA: string) => {
+        const partnerA = info.partnerId;
         if (!seen.has(socketA)) {
             seen.add(socketA);
             seen.add(partnerA);

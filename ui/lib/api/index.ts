@@ -10,6 +10,7 @@ export * from './core/handler';
 export * from './endpoints/auth';
 export * from './endpoints/friends';
 export * from './endpoints/matchmaking';
+export * from './endpoints/session';
 
 export const api = {
     get: <T>(endpoint: string, options: RequestInit = {}) =>

@@ -6,6 +6,7 @@ import userRoutes from './modules/user/user.routes';
 import friendRoutes from './modules/friend/friend.routes';
 import cookieParser from 'cookie-parser';
 import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
+import sessionRoutes from './modules/session/session.routes';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/matchmaking', matchmakingRoutes);
+app.use('/api/session', sessionRoutes);
 
 // Basic health check
 app.get('/', (req, res) => {

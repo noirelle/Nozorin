@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -7,14 +8,10 @@ import { bootstrapSocket } from './socket';
 import internalRouter from './api/router';
 import { logger } from './core/logger';
 import { initRedis } from './core/config/redis.config';
-
-// Initialize Redis
-initRedis();
+import { initDatabase } from './core/config/database.config';
 
 const app = express();
-
 const httpServer = createServer(app);
-
 const io = new Server(httpServer, {
     cors: {
         origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -38,8 +35,20 @@ app.use('/internal', internalRouter);
 
 bootstrapSocket(io);
 
-
 const PORT = parseInt(process.env.PORT || '3002', 10);
-httpServer.listen(PORT, () => {
-    logger.info({ port: PORT }, '[SERVER] nozorin_realtime listening');
-});
+
+const startServer = async () => {
+    try {
+        initRedis();
+        await initDatabase();
+
+        httpServer.listen(PORT, () => {
+            logger.info({ port: PORT }, '[SERVER] nozorin_realtime listening');
+        });
+    } catch (err) {
+        logger.error({ err }, '[SERVER] Failed to start');
+        process.exit(1);
+    }
+};
+
+startServer();

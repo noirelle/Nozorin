@@ -6,12 +6,15 @@ import { useHistoryListeners } from './useHistoryListeners';
 
 export type { SessionRecord, HistoryStats } from './useHistoryState';
 
-export const useHistory = (visitorToken: string | null, onUnauthorized?: () => void) => {
+export const useHistory = (visitorToken: string | null, userId: string | undefined, onUnauthorized?: () => void) => {
     const state = useHistoryState(onUnauthorized);
     const actions = useHistoryActions({
         visitorToken,
+        userId,
         setError: state.setError,
         setIsLoading: state.setIsLoading,
+        setHistory: state.setHistory,
+        setStats: state.setStats,
     });
     useHistoryListeners({
         setHistory: state.setHistory,

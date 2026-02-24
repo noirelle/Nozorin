@@ -34,7 +34,7 @@ export default function AppPage() {
         fetchHistory,
         fetchStats,
         clearHistory
-    } = useHistory(token, async () => null);
+    } = useHistory(token, user?.id, async () => null);
 
     // check for pending match data from landing page
     useEffect(() => {

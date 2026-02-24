@@ -20,11 +20,10 @@ export interface HistoryDataPayload {
 export interface SessionRecord {
     sessionId: string;
     partnerId: string;
-    country: string;
-    countryCode: string;
+    partnerUsername?: string;
     partnerCountry?: string;
     partnerCountryCode?: string;
-    connectionTime: number;
+    createdAt: number;
     disconnectionTime?: number;
     duration?: number;
     disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';

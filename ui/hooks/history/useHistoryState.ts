@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
     HistoryStats,
     SessionRecord,
-} from '../../lib/socket/history/history.types';
+} from '../../lib/api/endpoints/session/types';
 
 export type { SessionRecord, HistoryStats };
 

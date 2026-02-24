@@ -5,10 +5,13 @@ const router = Router();
 
 /** POST /internal/history/record — trigger session recording */
 router.post('/record', async (req: Request, res: Response) => {
-    const { userId, sessionData } = req.body as { userId: string; sessionData: Record<string, unknown> };
+    const { userId, sessionData } = req.body as { userId: string; sessionData: any };
     if (!userId || !sessionData) return res.status(400).json({ error: 'userId and sessionData required' });
     try {
-        await historyService.startSession(userId, sessionData);
+        await historyService.addHistory({
+            user_id: userId,
+            ...sessionData
+        });
         res.json({ recorded: true });
     } catch {
         res.status(500).json({ error: 'Failed to record session' });

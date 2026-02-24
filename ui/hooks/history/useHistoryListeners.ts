@@ -5,10 +5,10 @@ import { useSocketEvent, SocketEvents } from '../../lib/socket';
 import * as historyActions from '../../lib/socket/history/history.actions';
 import {
     HistoryDataPayload,
-    HistoryStats,
     HistoryErrorPayload,
     PartnerStatusChangePayload,
 } from '../../lib/socket/history/history.types';
+import { HistoryStats } from '../../lib/api/endpoints/session/types';
 import { UseHistoryStateReturn } from './useHistoryState';
 
 interface UseHistoryListenersProps {

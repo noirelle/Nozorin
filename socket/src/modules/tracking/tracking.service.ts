@@ -24,13 +24,8 @@ export const removeConnectedUser = (socketId: string): void => {
 export const cleanupUserSession = async (socketId: string): Promise<void> => {
     const session = activeSessions.get(socketId);
     if (!session) return;
-    try {
-        await historyService.endSession(session.userId, 'partner-disconnect');
-        activeSessions.delete(socketId);
-        logger.info({ userId: session.userId.substring(0, 8) }, '[TRACKING] Session cleaned up on disconnect');
-    } catch (err) {
-        logger.error({ err }, '[TRACKING] Failed to clean up session');
-    }
+    activeSessions.delete(socketId);
+    logger.info({ userId: session.userId.substring(0, 8) }, '[TRACKING] Session cleaned up on disconnect');
 };
 
 export const register = (io: Server, socket: Socket): void => {
@@ -44,27 +39,9 @@ export const register = (io: Server, socket: Socket): void => {
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
 
-        const userInfo = getConnectedUser(socket.id);
-        const partnerInfo = getConnectedUser(partnerId);
-        const partnerUserId = userService.getUserId(partnerId);
         const sessionId = uuidv4();
-
         activeSessions.set(socket.id, { userId, sessionId, partnerId, mode });
-
-        try {
-            await historyService.startSession(userId, {
-                sessionId,
-                partnerId: partnerUserId || 'unknown',
-                country: userInfo?.country,
-                countryCode: userInfo?.countryCode,
-                partnerCountry: partnerInfo?.country,
-                partnerCountryCode: partnerInfo?.countryCode,
-                mode,
-            });
-            logger.info({ sessionId: sessionId.substring(0, 8), userId: userId.substring(0, 8) }, '[TRACKING] Session started');
-        } catch (err) {
-            logger.error({ err }, '[TRACKING] Failed to start session');
-        }
+        logger.info({ sessionId: sessionId.substring(0, 8), userId: userId.substring(0, 8) }, '[TRACKING] Session tracked');
     });
 
     socket.on(SocketEvents.SESSION_END, async (data: { token: string; reason?: string }) => {
@@ -76,12 +53,7 @@ export const register = (io: Server, socket: Socket): void => {
         const session = activeSessions.get(socket.id);
         if (!session) return;
 
-        try {
-            await historyService.endSession(userId, reason);
-            activeSessions.delete(socket.id);
-            logger.info({ userId: userId.substring(0, 8), reason }, '[TRACKING] Session ended');
-        } catch (err) {
-            logger.error({ err }, '[TRACKING] Failed to end session');
-        }
+        activeSessions.delete(socket.id);
+        logger.info({ userId: userId.substring(0, 8), reason }, '[TRACKING] Session tracked end');
     });
 };

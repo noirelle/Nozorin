@@ -25,8 +25,9 @@ const tryMatch = (io: Server, queued: User): void => {
     const mediaA = userMediaState.get(queued.id) || { isMuted: false };
     const mediaB = userMediaState.get(partner.id) || { isMuted: false };
 
-    activeCalls.set(queued.id, partner.id);
-    activeCalls.set(partner.id, queued.id);
+    const startTime = Date.now();
+    activeCalls.set(queued.id, { partnerId: partner.id, startTime });
+    activeCalls.set(partner.id, { partnerId: queued.id, startTime });
 
     io.to(queued.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'offerer',
@@ -113,18 +114,10 @@ export const joinQueue = async (
     }
 
     // Safety guard: if user is already in a call, end it before re-queueing
-    const existingPartnerId = activeCalls.get(socketId);
-    if (existingPartnerId) {
-        serverIo.to(existingPartnerId).emit(SocketEvents.CALL_ENDED, { by: socketId });
-        activeCalls.delete(existingPartnerId);
-        activeCalls.delete(socketId);
-
-        const uId = userService.getUserId(socketId);
-        if (uId) reconnectingUsers.delete(uId);
-        const pId = userService.getUserId(existingPartnerId);
-        if (pId) reconnectingUsers.delete(pId);
-
-        logger.info({ socketId, partnerId: existingPartnerId }, '[MATCHMAKING] Ended orphaned call before joining queue');
+    const existingInfo = activeCalls.get(socketId);
+    if (existingInfo) {
+        await callService.handleEndCall(serverIo, socketId, { target: existingInfo.partnerId, reason: 'skip' });
+        logger.info({ socketId, partnerId: existingInfo.partnerId }, '[MATCHMAKING] Ended orphaned call (skipped) before joining queue');
     }
 
     // Fetch full profile if we have a userId
