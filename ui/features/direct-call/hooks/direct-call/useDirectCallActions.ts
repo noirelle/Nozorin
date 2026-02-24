@@ -1,8 +1,15 @@
 import { useCallback } from 'react';
-import * as directCallActions from '../../../lib/socket/direct-call/directCall.actions';
+import * as directCallActions from '../../../../lib/socket/direct-call/directCall.actions';
 import { UseDirectCallStateReturn } from './useDirectCallState';
 
-interface UseDirectCallActionsProps extends UseDirectCallStateReturn {
+interface UseDirectCallActionsProps {
+    incomingCall: UseDirectCallStateReturn['incomingCall'];
+    callTarget: UseDirectCallStateReturn['callTarget'];
+    error: UseDirectCallStateReturn['error'];
+    setIsCalling: UseDirectCallStateReturn['setIsCalling'];
+    setCallTarget: UseDirectCallStateReturn['setCallTarget'];
+    setIncomingCall: UseDirectCallStateReturn['setIncomingCall'];
+    setError: UseDirectCallStateReturn['setError'];
     onCallStarted?: () => void;
 }
 

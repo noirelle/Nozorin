@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { connectSocket, useSocketEvent } from '../../../lib/socket';
-import { SocketEvents } from '../../../lib/socket';
-import { emitUpdateMediaState } from '../../../lib/socket/media/media.actions';
+import { useEffect } from 'react';
+import type React from 'react';
+import { connectSocket } from '../../../../lib/socket';
+import { emitUpdateMediaState } from '../../../../lib/socket/media/media.actions';
 import { CallRoomState } from '@/hooks';
-import { PartnerMuteStatePayload, PartnerSignalStrengthPayload } from '../../../lib/socket/media/media.types';
+import { useRoomEffectsListeners } from './useRoomEffectsListeners';
 
 interface UseRoomEffectsProps {
     mode: 'voice';
@@ -28,7 +28,6 @@ export const useRoomEffects = ({
     callRoomState,
     setPartnerIsMuted,
     setPartnerSignalStrength,
-    initMediaManager,
     cleanupMedia,
     onConnectionChange,
     createOffer,
@@ -60,21 +59,10 @@ export const useRoomEffects = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode]);
 
-    // Partner media state listeners
-    const handlePartnerMute = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.isMuted));
-    const handlePartnerSignal = useRef((data: PartnerSignalStrengthPayload) => setPartnerSignalStrength(data.strength));
-
-    useEffect(() => { handlePartnerMute.current = (data) => setPartnerIsMuted(data.isMuted); }, [setPartnerIsMuted]);
-    useEffect(() => { handlePartnerSignal.current = (data) => setPartnerSignalStrength(data.strength); }, [setPartnerSignalStrength]);
-
-    useSocketEvent<PartnerMuteStatePayload>(
-        SocketEvents.PARTNER_MUTE_STATE,
-        useRef((data: PartnerMuteStatePayload) => handlePartnerMute.current(data)).current
-    );
-    useSocketEvent<PartnerSignalStrengthPayload>(
-        SocketEvents.PARTNER_SIGNAL_STRENGTH,
-        useRef((data: PartnerSignalStrengthPayload) => handlePartnerSignal.current(data)).current
-    );
+    useRoomEffectsListeners({
+        setPartnerIsMuted,
+        setPartnerSignalStrength,
+    });
 
     // Sync local media state with server
     useEffect(() => {

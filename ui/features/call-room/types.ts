@@ -44,4 +44,7 @@ export interface RoomLayoutProps {
     // Reconnect state
     isReconnecting?: boolean;
     reconnectCountdown?: number | null;
+
+    // Call duration
+    callDuration: string;
 }

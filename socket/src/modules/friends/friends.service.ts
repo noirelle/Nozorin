@@ -54,6 +54,11 @@ export const friendsService = {
             });
             logger.info({ userId, event: 'friend-removed' }, '[FRIEND_SERVICE] Notification sent');
         }
+    },
+
+    isUserOnline(userId: string): boolean {
+        const socketId = userService.getSocketId(userId);
+        return !!socketId;
     }
 };
 

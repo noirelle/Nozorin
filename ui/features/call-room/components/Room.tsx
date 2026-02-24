@@ -3,11 +3,12 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { emitSignalStrength } from '../../../lib/socket/matching/matching.actions';
 import { useRoomActions } from '@/hooks';
-import { useRoomEffects } from '../hooks/useRoomEffects';
+import { useRoomEffects } from '../hooks/room-effects/useRoomEffects';
 import { useWebRTC } from '@/hooks';
 import { useCallRoom } from '@/hooks';
 import { useChat } from '@/hooks';
-import { useReconnect } from '../hooks/useReconnect';
+import { useReconnect } from '../hooks/reconnect/useReconnect';
+import { useCallDuration } from '../hooks/duration/useCallDuration';
 import { useHistory, useUser } from '../../../hooks';
 import { MobileRoomLayout } from './MobileRoomLayout';
 import { DesktopRoomLayout } from './DesktopRoomLayout';
@@ -158,6 +159,8 @@ export default function Room({
         }, [setPartner]),
     });
 
+    const callDuration = useCallDuration(callRoomState.isConnected);
+
     const handleSendMessageWrapper = (text: string) => actions.handleSendMessage(text, setInputText);
 
     return (
@@ -191,6 +194,7 @@ export default function Room({
                 queuePosition={actions.matching.position}
                 isReconnecting={isReconnecting || actions.matching.status === 'RECONNECTING'}
                 reconnectCountdown={actions.matching.reconnectCountdown}
+                callDuration={callDuration}
             />
             <DesktopRoomLayout
                 callRoomState={callRoomState}
@@ -219,6 +223,7 @@ export default function Room({
                 queuePosition={actions.matching.position}
                 isReconnecting={isReconnecting || actions.matching.status === 'RECONNECTING'}
                 reconnectCountdown={actions.matching.reconnectCountdown}
+                callDuration={callDuration}
             />
             <FilterDrawer
                 isOpen={filtersOpen}

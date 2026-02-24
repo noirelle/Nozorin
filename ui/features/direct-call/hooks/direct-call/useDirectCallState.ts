@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IncomingCallPayload } from '../../../lib/socket/direct-call/directCall.types';
+import { IncomingCallPayload } from '../../../../lib/socket/direct-call/directCall.types';
 
 export interface DirectCallState {
     incomingCall: IncomingCallPayload | null;

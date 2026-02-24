@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { userMediaState } from '../media.store';
+import { userMediaState } from './media.store';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { historyService } from '../history.service';
+import { historyService } from './history.service';
 
 const router = Router();
 

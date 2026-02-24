@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useSocketEvent, SocketEvents } from '../../../lib/socket';
-import { IncomingCallPayload, CallErrorPayload } from '../../../lib/socket/direct-call/directCall.types';
+import { useSocketEvent, SocketEvents } from '../../../../lib/socket';
+import { IncomingCallPayload, CallErrorPayload } from '../../../../lib/socket/direct-call/directCall.types';
 import { UseDirectCallStateReturn } from './useDirectCallState';
 
 interface UseDirectCallListenersProps {

@@ -34,6 +34,8 @@ export const presenceService = {
 };
 
 export const register = (io: Server, socket: Socket): void => {
+    presenceService.handleConnection(io, socket);
+
     socket.on(SocketEvents.WATCH_USER_STATUS, (data: { userIds: string[] }) => {
         const { userIds } = data;
         if (!userIds || !Array.isArray(userIds)) return;

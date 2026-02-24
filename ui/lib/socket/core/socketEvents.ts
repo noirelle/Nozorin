@@ -59,6 +59,7 @@ export const SocketEvents = {
     MATCH_ESTABLISHED: 'match-established',
     SESSION_END: 'session-end',
     WATCH_USER_STATUS: 'watch-user-status',
+    UNWATCH_USER_STATUS: 'unwatch-user-status',
     PARTNER_STATUS_CHANGE: 'partner-status-change',
 
     // ── Stats ─────────────────────────────────────────────────────────────────

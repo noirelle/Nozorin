@@ -1,8 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { userService } from '../../../shared/services/user.service';
-import { presenceStore } from '../presence.store';
+import { userService } from '../../shared/services/user.service';
+import { presenceStore } from './presence.store';
+import { statsService } from '../../shared/services/stats.service';
 
 const router = Router();
+
+/** GET /internal/status/global — returns overall stats */
+router.get('/global', (_req: Request, res: Response) => {
+    res.json(statsService.getStats());
+});
 
 /** GET /internal/status/:userId — returns user online status and count */
 router.get('/:userId', async (req: Request, res: Response) => {

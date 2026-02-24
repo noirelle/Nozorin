@@ -1,20 +1,26 @@
 import { Server, Socket } from 'socket.io';
 import { initializeSocketConnection } from './initialization';
-import { register as registerPresence, handleDisconnect as disconnectPresence, presenceService } from '../../modules/presence';
-import { register as registerMatchmaking, handleDisconnect as disconnectMatchmaking, removeUserFromQueues } from '../../modules/matchmaking';
-import { register as registerCall, handleDisconnect as disconnectCall, activeCalls } from '../../modules/call';
-import { register as registerAuth } from '../../modules/auth';
-import { register as registerMedia, handleDisconnect as disconnectMedia } from '../../modules/media';
-import { register as registerSignaling } from '../../modules/signaling';
-import { register as registerChat } from '../../modules/chat';
-import { register as registerHistory } from '../../modules/history';
-import { register as registerTracking, handleDisconnect as disconnectTracking, removeConnectedUser } from '../../modules/tracking';
-import { register as registerDirectCall } from '../../modules/direct-call';
-import { register as registerFriends } from '../../modules/friends';
+import { register as registerPresence, presenceService } from '../../modules/presence/presence.service';
+import { register as registerMatchmaking, handleMatchmakingDisconnect as disconnectMatchmaking } from '../../modules/matchmaking/matchmaking.service';
+import { removeUserFromQueues } from '../../modules/matchmaking/matchmaking.store';
+import { register as registerCall } from '../../modules/call/call.controller';
+import { callService } from '../../modules/call/call.service';
+import { activeCalls } from '../../modules/call/call.store';
+import { register as registerAuth } from '../../modules/auth/auth.controller';
+import { register as registerMedia } from '../../modules/media/media.service';
+import { userMediaState } from '../../modules/media/media.store';
+import { register as registerChat } from '../../modules/chat/chat.service';
+import { register as registerHistory } from '../../modules/history/history.service';
+import { register as registerTracking, cleanupUserSession as disconnectTracking, removeConnectedUser } from '../../modules/tracking/tracking.service';
+import { register as registerDirectCall } from '../../modules/direct-call/direct-call.service';
+import { register as registerFriends } from '../../modules/friends/friends.service';
+import { register as registerSignaling } from '../../modules/signaling/signaling.service';
+import { setIo } from '../../api/emit.controller';
 import { userService } from '../../shared/services/user.service';
 import { logger } from '../../core/logger';
 
 export const handleSocketConnection = async (io: Server, socket: Socket): Promise<void> => {
+    setIo(io);
     await initializeSocketConnection(io, socket);
 
     // Domain Modules
@@ -36,11 +42,11 @@ export const handleSocketConnection = async (io: Server, socket: Socket): Promis
         const userId = userService.getUserId(socket.id);
 
         // Lifecycle Hooks
-        await disconnectTracking(io, socket);
-        await disconnectCall(io, socket);
-        await disconnectMatchmaking(io, socket.id);
-        await disconnectMedia(io, socket);
-        await disconnectPresence(io, socket);
+        await disconnectTracking(socket.id);
+        callService.handleDisconnect(io, socket.id);
+        await disconnectMatchmaking(null as any, socket.id);
+        userMediaState.delete(socket.id);
+        presenceService.handleDisconnection(io, socket);
 
         // Global Cleanup
         removeConnectedUser(socket.id);

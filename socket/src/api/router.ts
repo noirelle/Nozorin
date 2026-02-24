@@ -1,12 +1,12 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
-import matchmakingController from '../modules/matchmaking/internal/matchmaking.controller';
-import mediaController from '../modules/media/internal/media.controller';
-import historyController from '../modules/history/internal/history.controller';
-import directCallController from '../modules/direct-call/internal/direct-call.controller';
-import trackingController from '../modules/tracking/internal/tracking.controller';
-import presenceController from '../modules/presence/internal/presence.controller';
-import friendsController from '../modules/friends/internal/friends.controller';
+import matchmakingController from '../modules/matchmaking/matchmaking.controller';
+import mediaController from '../modules/media/media.controller';
+import historyController from '../modules/history/history.controller';
+import directCallController from '../modules/direct-call/direct-call.controller';
+import trackingController from '../modules/tracking/tracking.controller';
+import presenceController from '../modules/presence/presence.controller';
+import friendsController from '../modules/friends/friends.controller';
 import emitController from './emit.controller';
 
 const router = Router();

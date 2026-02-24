@@ -2,8 +2,8 @@ import { Server, Socket } from 'socket.io';
 import { getClientIp } from '../../core/utils/ip.utils';
 import { getGeoInfo } from '../../core/utils/geo.utils';
 import { userService } from '../../shared/services/user.service';
-import { addConnectedUser } from '../../modules/tracking';
-import { presenceService } from '../../modules/presence';
+import { addConnectedUser } from '../../modules/tracking/tracking.service';
+import { presenceService } from '../../modules/presence/presence.service';
 import { logger } from '../../core/logger';
 import { SocketEvents } from '../socket.events';
 

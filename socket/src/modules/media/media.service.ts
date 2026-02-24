@@ -4,6 +4,9 @@ import { userMediaState } from './media.store';
 import { logger } from '../../core/logger';
 
 export const register = (_io: unknown, socket: Socket): void => {
+    // Initialize media state on connect
+    userMediaState.set(socket.id, { isMuted: false });
+
     socket.on(SocketEvents.TOGGLE_MUTE, (data: { target: string; isMuted: boolean }) => {
         const { target, isMuted } = data;
         const current = userMediaState.get(socket.id) || { isMuted: false };

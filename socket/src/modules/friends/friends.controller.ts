@@ -1,6 +1,5 @@
-
 import { Router, Request, Response } from 'express';
-import { friendsService } from '../friends.service';
+import { friendsService } from './friends.service';
 
 const router = Router();
 
@@ -50,6 +49,20 @@ router.post('/remove', (req: Request, res: Response) => {
 
     friendsService.notifyFriendRemoved(userId, friendId);
     res.json({ notified: true });
+});
+
+/**
+ * POST /internal/friends/status
+ * Check online status for a list of friend IDs
+ */
+router.post('/status', async (req: Request, res: Response) => {
+    const { friendIds } = req.body as { friendIds: string[] };
+    if (!friendIds || !Array.isArray(friendIds)) {
+        return res.status(400).json({ error: 'friendIds array required' });
+    }
+
+    const onlineUsers = friendIds.filter(id => friendsService.isUserOnline(id));
+    res.json({ onlineUsers });
 });
 
 export default router;

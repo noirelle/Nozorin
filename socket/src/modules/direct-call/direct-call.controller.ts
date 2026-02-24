@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { activeCalls } from '../../call/call.store';
+import { activeCalls } from '../call/call.store';
 
 const router = Router();
 

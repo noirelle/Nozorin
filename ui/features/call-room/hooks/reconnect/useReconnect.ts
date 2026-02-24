@@ -1,41 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useSocketEvent, SocketEvents } from '../../../lib/socket';
-
-interface ActiveCallData {
-    roomId?: string;
-    peerId: string;
-    startedAt: number;
-    partnerProfile?: {
-        id: string;
-        username: string;
-        displayName: string;
-        avatar: string;
-        country: string;
-    };
-}
-
-export const useReconnectState = () => {
-    const [isReconnecting, setIsReconnecting] = useState(false);
-    const attemptedRef = useRef(false);
-    const activeCallRef = useRef<ActiveCallData | null>(null);
-    const reconnectStartRef = useRef<number>(0);
-    const minDisplayTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (minDisplayTimerRef.current) clearTimeout(minDisplayTimerRef.current);
-        };
-    }, []);
-
-    return {
-        isReconnecting,
-        setIsReconnecting,
-        attemptedRef,
-        activeCallRef,
-        reconnectStartRef,
-        minDisplayTimerRef,
-    };
-};
+import { useEffect, useCallback, useRef } from 'react';
+import { useReconnectState, ActiveCallData } from './useReconnectState';
+import { useReconnectListeners } from './useReconnectListeners';
 
 interface UseReconnectOptions {
     rejoinCall: (roomId?: string) => void;
@@ -78,14 +43,11 @@ export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptio
         onRestorePartnerRef.current?.(activeCall);
     }, [attemptedRef, activeCallRef, setIsReconnecting]);
 
-    // Emit rejoin once socket is identified
     const handleIdentified = useCallback(() => {
         if (attemptedRef.current || !activeCallRef.current) return;
         attemptedRef.current = true;
         rejoinCall(activeCallRef.current.roomId);
     }, [rejoinCall, attemptedRef, activeCallRef]);
-
-    useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentified);
 
     useEffect(() => {
         if (isReconnecting) reconnectStartRef.current = Date.now();
@@ -103,9 +65,11 @@ export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptio
         else minDisplayTimerRef.current = setTimeout(() => setIsReconnecting(false), remaining);
     }, [reconnectStartRef, minDisplayTimerRef, setIsReconnecting]);
 
-    useSocketEvent(SocketEvents.REJOIN_SUCCESS, clearImmediately);
-    useSocketEvent(SocketEvents.REJOIN_FAILED, clearWithMinDelay);
-    useSocketEvent(SocketEvents.CALL_ENDED, clearWithMinDelay);
+    useReconnectListeners({
+        handleIdentified,
+        clearImmediately,
+        clearWithMinDelay,
+    });
 
     return { isReconnecting };
 };

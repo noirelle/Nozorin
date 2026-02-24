@@ -20,7 +20,9 @@ export const callService = {
             logger.info({ socketId, partnerId }, '[CALL] Call ended');
             return true;
         }
-        return false;
+
+        logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found');
+        return true;
     },
 
     handleDisconnect: (io: Server, socketId: string) => {

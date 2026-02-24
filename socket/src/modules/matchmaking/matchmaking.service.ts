@@ -7,7 +7,7 @@ import { activeCalls, reconnectingUsers } from '../call/call.store';
 import { userMediaState } from '../media/media.store';
 import { User } from '../../shared/types/socket.types';
 import { statsService } from '../../shared/services/stats.service';
-import { getIo } from '../../internal/emit.controller';
+import { getIo } from '../../api/emit.controller';
 import { callService } from '../call/call.service';
 
 let heartbeatSetup = false;

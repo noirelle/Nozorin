@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { activeSessions } from '../tracking.store';
+import { activeSessions } from './tracking.store';
 
 const router = Router();
 

@@ -28,6 +28,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     queuePosition,
     isReconnecting,
     reconnectCountdown,
+    callDuration,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, partnerGender, partnerUserId, isMuted } = callRoomState;
     const { user: localUser } = useUser();
@@ -132,7 +133,8 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                             />
                                         ))}
                                     </div>
-                                    <span className="text-white font-bold tracking-[0.25em] text-[14px] uppercase opacity-90 drop-shadow-sm">Next</span>
+                                    <span className="text-white font-bold tracking-[0.2em] text-[28px] mb-1 drop-shadow-sm">{callDuration}</span>
+                                    <span className="text-white font-bold tracking-[0.25em] text-[12px] uppercase opacity-80 drop-shadow-sm">Next</span>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center">

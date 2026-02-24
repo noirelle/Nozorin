@@ -28,6 +28,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     queuePosition,
     isReconnecting,
     reconnectCountdown,
+    callDuration,
 }) => {
     const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, partnerGender, partnerUserId, isMuted } = callRoomState;
     const { user: localUser } = useUser();
@@ -112,7 +113,8 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                         />
                                     ))}
                                 </div>
-                                <span className="text-white font-bold tracking-widest text-[11px] uppercase">Skip to Next</span>
+                                <span className="text-white font-bold tracking-[0.2em] text-[20px] mb-1">{callDuration}</span>
+                                <span className="text-white font-bold tracking-widest text-[9px] uppercase opacity-80">Skip to Next</span>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center">
