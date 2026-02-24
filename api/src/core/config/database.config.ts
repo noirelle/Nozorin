@@ -11,7 +11,7 @@ export const AppDataSource = new DataSource({
     host: process.env.MYSQLHOST!,
     port: parseInt(process.env.MYSQLPORT!),
     username: process.env.MYSQLUSER!,
-    password: process.env.MYSQLPASSWORD!,
+    password: process.env.MYSQL_ROOT_PASSWORD!,
     database: process.env.MYSQL_DATABASE!,
     synchronize: true,
     logging: false,
