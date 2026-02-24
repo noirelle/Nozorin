@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { userService } from '../../../shared/services/user.service';
-import { statusStore } from '../status.store';
+import { presenceStore } from '../presence.store';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ router.get('/:userId', async (req: Request, res: Response) => {
     const { userId } = req.params;
     try {
         const status = await userService.getUserStatus(userId);
-        res.json({ userId, status, onlineCount: statusStore.count() });
+        res.json({ userId, status, onlineCount: presenceStore.count() });
     } catch {
         res.status(500).json({ error: 'Failed to fetch status' });
     }

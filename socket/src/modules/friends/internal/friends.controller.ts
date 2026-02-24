@@ -1,6 +1,6 @@
 
 import { Router, Request, Response } from 'express';
-import { friendService } from '../friend.service';
+import { friendsService } from '../friends.service';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.post('/request', (req: Request, res: Response) => {
     const { userId, senderProfile } = req.body;
     if (!userId || !senderProfile) return res.status(400).json({ error: 'userId and senderProfile required' });
 
-    friendService.notifyFriendRequest(userId, senderProfile);
+    friendsService.notifyFriendRequest(userId, senderProfile);
     res.json({ notified: true });
 });
 
@@ -24,7 +24,7 @@ router.post('/accept', (req: Request, res: Response) => {
     const { userId, requestId, friendProfile } = req.body;
     if (!userId || !requestId || !friendProfile) return res.status(400).json({ error: 'userId, requestId and friendProfile required' });
 
-    friendService.notifyRequestAccepted(userId, requestId, friendProfile);
+    friendsService.notifyRequestAccepted(userId, requestId, friendProfile);
     res.json({ notified: true });
 });
 
@@ -36,7 +36,7 @@ router.post('/decline', (req: Request, res: Response) => {
     const { userId, requestId } = req.body;
     if (!userId || !requestId) return res.status(400).json({ error: 'userId and requestId required' });
 
-    friendService.notifyRequestDeclined(userId, requestId);
+    friendsService.notifyRequestDeclined(userId, requestId);
     res.json({ notified: true });
 });
 
@@ -48,7 +48,7 @@ router.post('/remove', (req: Request, res: Response) => {
     const { userId, friendId } = req.body;
     if (!userId || !friendId) return res.status(400).json({ error: 'userId and friendId required' });
 
-    friendService.notifyFriendRemoved(userId, friendId);
+    friendsService.notifyFriendRemoved(userId, friendId);
     res.json({ notified: true });
 });
 

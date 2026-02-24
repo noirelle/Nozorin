@@ -9,7 +9,7 @@ export const setIo = (io: import('socket.io').Server): void => {
     _ioInstance = io;
 };
 
-export const friendService = {
+export const friendsService = {
     async notifyFriendRequest(userId: string, senderProfile: any) {
         if (!_ioInstance) return;
         const socketId = userService.getSocketId(userId);
@@ -55,4 +55,8 @@ export const friendService = {
             logger.info({ userId, event: 'friend-removed' }, '[FRIEND_SERVICE] Notification sent');
         }
     }
+};
+
+export const register = (io: import('socket.io').Server, _socket: import('socket.io').Socket): void => {
+    setIo(io);
 };

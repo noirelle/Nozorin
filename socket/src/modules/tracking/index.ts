@@ -6,3 +6,7 @@ export { cleanupUserSession, addConnectedUser, getConnectedUser, removeConnected
 export const register = (io: Server, socket: Socket): void => {
     registerTracking(io, socket);
 };
+
+export const handleDisconnect = async (io: Server, socket: Socket): Promise<void> => {
+    await cleanupUserSession(socket.id);
+};

@@ -9,3 +9,7 @@ export const register = (io: Server, socket: Socket): void => {
     userMediaState.set(socket.id, { isMuted: false });
     registerMediaEvents(io, socket);
 };
+
+export const handleDisconnect = async (io: Server, socket: Socket): Promise<void> => {
+    userMediaState.delete(socket.id);
+};

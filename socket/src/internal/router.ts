@@ -3,10 +3,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import matchmakingController from '../modules/matchmaking/internal/matchmaking.controller';
 import mediaController from '../modules/media/internal/media.controller';
 import historyController from '../modules/history/internal/history.controller';
-import directCallController from '../modules/directCall/internal/directCall.controller';
+import directCallController from '../modules/direct-call/internal/direct-call.controller';
 import trackingController from '../modules/tracking/internal/tracking.controller';
-import statusController from '../modules/status/internal/status.controller';
-import friendController from '../modules/friend/internal/friend.controller';
+import presenceController from '../modules/presence/internal/presence.controller';
+import friendsController from '../modules/friends/internal/friends.controller';
 import emitController from './emit.controller';
 
 const router = Router();
@@ -28,8 +28,8 @@ router.use('/media', mediaController);
 router.use('/history', historyController);
 router.use('/calls', directCallController);
 router.use('/tracking', trackingController);
-router.use('/status', statusController);
-router.use('/friends', friendController);
+router.use('/status', presenceController);
+router.use('/friends', friendsController);
 router.use('/', emitController);
 
 export default router;

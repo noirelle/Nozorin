@@ -1,7 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { userService } from '../../shared/services/user.service';
-import { activeCalls, removeUserFromQueues } from '../matchmaking/matchmaking.store';
+import { activeCalls } from '../call/call.store';
+import { removeUserFromQueues } from '../matchmaking/matchmaking.store';
 import { userMediaState } from '../media/media.store';
 import { getConnectedUser } from '../tracking/tracking.service';
 import { logger } from '../../core/logger';

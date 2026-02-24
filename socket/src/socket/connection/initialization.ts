@@ -3,7 +3,7 @@ import { getClientIp } from '../../core/utils/ip.utils';
 import { getGeoInfo } from '../../core/utils/geo.utils';
 import { userService } from '../../shared/services/user.service';
 import { addConnectedUser } from '../../modules/tracking';
-import { statusService } from '../../modules/status/status.service';
+import { presenceService } from '../../modules/presence';
 import { logger } from '../../core/logger';
 import { SocketEvents } from '../socket.events';
 
@@ -16,7 +16,7 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
     const countryCode = geo?.country_code || 'UN';
 
     addConnectedUser(socket.id, { country, countryCode });
-    statusService.handleConnection(io, socket);
+    presenceService.handleConnection(io, socket);
 
     // Auto-register if auth middleware parsed a token
     if (socket.data.user?.userId) {

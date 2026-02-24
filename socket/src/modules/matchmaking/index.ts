@@ -1,9 +1,13 @@
 import { Server, Socket } from 'socket.io';
 import { register as registerMatchmaking, handleMatchmakingDisconnect } from './matchmaking.service';
-import { activeCalls, voiceQueue, removeUserFromQueues } from './matchmaking.store';
+import { voiceQueue, removeUserFromQueues } from './matchmaking.store';
 
-export { activeCalls, voiceQueue, removeUserFromQueues, handleMatchmakingDisconnect };
+export { voiceQueue, removeUserFromQueues };
 
 export const register = (io: Server, socket: Socket): void => {
     registerMatchmaking(io, socket);
+};
+
+export const handleDisconnect = async (io: Server, socketId: string): Promise<void> => {
+    handleMatchmakingDisconnect(null as any, socketId);
 };

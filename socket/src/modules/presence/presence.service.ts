@@ -2,10 +2,10 @@ import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { userService } from '../../shared/services/user.service';
 import { statsService } from '../../shared/services/stats.service';
-import { statusStore } from './status.store';
+import { presenceStore } from './presence.store';
 import { logger } from '../../core/logger';
 
-export const statusService = {
+export const presenceService = {
     /** Broadcast a user's status to all watching clients */
     async broadcastUserStatus(io: Server, userId: string): Promise<void> {
         if (!userId || userId === 'unknown') return;
@@ -13,13 +13,13 @@ export const statusService = {
             const status = await userService.getUserStatus(userId);
             io.to(`status:${userId}`).emit(SocketEvents.PARTNER_STATUS_CHANGE, { userId, status });
         } catch (err) {
-            logger.error({ err, userId }, '[STATUS] Failed to broadcast status');
+            logger.error({ err, userId }, '[PRESENCE] Failed to broadcast status');
         }
     },
 
     handleConnection(io: Server, socket: Socket): void {
-        statusStore.add(socket.id);
-        statsService.setOnlineUsers(statusStore.count());
+        presenceStore.add(socket.id);
+        statsService.setOnlineUsers(presenceStore.count());
         statsService.incrementTotalConnections();
         const stats = statsService.getStats();
         socket.emit(SocketEvents.STATS_UPDATE, stats);
@@ -27,8 +27,8 @@ export const statusService = {
     },
 
     handleDisconnection(io: Server, socket: Socket): void {
-        statusStore.remove(socket.id);
-        statsService.setOnlineUsers(statusStore.count());
+        presenceStore.remove(socket.id);
+        statsService.setOnlineUsers(presenceStore.count());
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
 };

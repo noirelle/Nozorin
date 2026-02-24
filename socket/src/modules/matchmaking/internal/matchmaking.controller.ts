@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { voiceQueue, voiceBuckets, activeCalls, removeUserFromQueues } from '../matchmaking.store';
+import { voiceQueue, voiceBuckets, removeUserFromQueues } from '../matchmaking.store';
+import { activeCalls } from '../../call/call.store';
 import { userService } from '../../../shared/services/user.service';
 import * as matchmakingService from '../matchmaking.service';
 
