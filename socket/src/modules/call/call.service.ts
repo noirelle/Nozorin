@@ -15,14 +15,11 @@ export const callService = {
         if (partnerId) {
             const partnerInfo = activeCalls.get(partnerId);
 
-            // Record history if we have start time
-            if (info?.startTime) {
-                const duration = Math.floor((Date.now() - info.startTime) / 1000);
-                await callService.reportHistory(socketId, partnerId, duration, reason);
-            }
+            // Capture data for history before deleting state
+            const startTime = info?.startTime;
+            const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
-            io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
-            // ...
+            // Delete state immediately to prevent re-entry
             activeCalls.delete(partnerId);
             activeCalls.delete(socketId);
 
@@ -30,6 +27,16 @@ export const callService = {
             if (userId) reconnectingUsers.delete(userId);
             const partnerUserId = userService.getUserId(partnerId);
             if (partnerUserId) reconnectingUsers.delete(partnerUserId);
+
+            // Notify partner
+            io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
+
+            // Record history if we have start time
+            if (startTime) {
+                const reason1 = reason;
+                const reason2: CallDisconnectReason = reason === 'skip' ? 'partner-skip' : 'partner-disconnect';
+                await callService.reportHistory(socketId, partnerId, duration, reason1, reason2);
+            }
 
             logger.info({ socketId, partnerId, reason }, '[CALL] Call ended');
             return true;
@@ -58,14 +65,18 @@ export const callService = {
             logger.info({ socketId, userId, partnerId }, '[CALL] Partner disconnected, starting grace period');
         } else if (partnerId) {
             // No chance to reconnect, end it and record
-            if (info?.startTime) {
-                const duration = Math.floor((Date.now() - info.startTime) / 1000);
-                await callService.reportHistory(socketId, partnerId, duration, 'partner-disconnect');
-            }
+            const startTime = info?.startTime;
+            const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
-            io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason: 'partner-disconnect' });
+            // Delete state immediately
             activeCalls.delete(partnerId);
             activeCalls.delete(socketId);
+
+            io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason: 'partner-disconnect' });
+
+            if (startTime) {
+                await callService.reportHistory(socketId, partnerId, duration, 'user-action', 'partner-disconnect');
+            }
         }
     },
 
@@ -77,25 +88,33 @@ export const callService = {
 
                 const activeInfo = activeCalls.get(info.partnerSocketId);
                 if (activeInfo) {
-                    const duration = activeInfo.startTime ? Math.floor((now - activeInfo.startTime) / 1000) : 0;
+                    const startTime = activeInfo.startTime;
+                    const duration = startTime ? Math.floor((now - startTime) / 1000) : 0;
+
                     // We don't have the original socketId easily here, but we can use info.partnerSocketId's partner
                     const originalSocketId = [...activeCalls.entries()].find(([k, v]) => v.partnerId === info.partnerSocketId)?.[0];
-                    if (originalSocketId) {
-                        await callService.reportHistory(originalSocketId, info.partnerSocketId, duration, 'partner-disconnect');
-                    }
-                }
 
-                const partnerSocket = io.sockets.sockets.get(info.partnerSocketId);
-                if (partnerSocket) {
-                    partnerSocket.emit(SocketEvents.CALL_ENDED, { reason: 'partner-disconnect' });
+                    // Clear state before async ops
                     activeCalls.delete(info.partnerSocketId);
+                    if (originalSocketId) {
+                        activeCalls.delete(originalSocketId);
+                    }
+
+                    const partnerSocket = io.sockets.sockets.get(info.partnerSocketId);
+                    if (partnerSocket) {
+                        partnerSocket.emit(SocketEvents.CALL_ENDED, { reason: 'partner-disconnect' });
+                    }
+
+                    if (originalSocketId && startTime) {
+                        await callService.reportHistory(originalSocketId, info.partnerSocketId, duration, 'timeout', 'partner-disconnect');
+                    }
                 }
                 logger.info({ userId }, '[CALL] Reconnection grace period expired');
             }
         }
     },
 
-    reportHistory: async (userId1: string, userId2: string, duration: number, reason: CallDisconnectReason = 'skip') => {
+    reportHistory: async (userId1: string, userId2: string, duration: number, reason1: CallDisconnectReason = 'skip', reason2?: CallDisconnectReason) => {
         const u1 = userService.getUserId(userId1);
         const u2 = userService.getUserId(userId2);
         if (!u1 || !u2) return;
@@ -103,7 +122,10 @@ export const callService = {
         const p1 = await userService.getUserProfile(u1);
         const p2 = await userService.getUserProfile(u2);
 
-        const save = async (uid: string, partner: any) => {
+        // If reason2 is not provided, we might want to derive it or use reason1 for both
+        const finalReason2 = reason2 || (reason1 === 'skip' ? 'partner-skip' : reason1);
+
+        const save = async (uid: string, partner: any, r: CallDisconnectReason) => {
             await historyService.addHistory({
                 user_id: uid,
                 partner_id: partner.id,
@@ -113,11 +135,11 @@ export const callService = {
                 partner_country_code: partner.countryCode,
                 duration,
                 mode: 'voice',
-                reason
+                reason: r
             });
         };
 
-        if (u1 && u1 !== 'unknown' && p2) await save(u1, { ...p2, id: u2 });
-        if (u2 && u2 !== 'unknown' && p1) await save(u2, { ...p1, id: u1 });
+        if (u1 && u1 !== 'unknown' && p2) await save(u1, { ...p2, id: u2 }, reason1);
+        if (u2 && u2 !== 'unknown' && p1) await save(u2, { ...p1, id: u1 }, finalReason2);
     }
 };

@@ -33,10 +33,12 @@ const getReasonLabel = (reason?: SessionRecord['disconnectReason']): string => {
     switch (reason) {
         case 'user-action': return 'You ended';
         case 'partner-disconnect': return 'Partner left';
-        case 'skip': return 'Skipped';
+        case 'partner-skip': return 'Partner skipped';
+        case 'skip': return 'You skipped';
         case 'network': return 'Network issue';
         case 'error': return 'Error';
-        case 'answered-another': return "Answered another user's call";
+        case 'answered-another': return "Answered another";
+        case 'timeout': return "Timeout";
         default: return 'Ended';
     }
 };
@@ -44,10 +46,12 @@ const getReasonLabel = (reason?: SessionRecord['disconnectReason']): string => {
 const getReasonColor = (reason?: SessionRecord['disconnectReason']): string => {
     switch (reason) {
         case 'user-action': return 'text-blue-500';
-        case 'partner-disconnect': return 'text-orange-500';
+        case 'partner-disconnect':
+        case 'partner-skip': return 'text-orange-500';
         case 'skip': return 'text-yellow-500';
         case 'network':
         case 'error': return 'text-red-500';
+        case 'timeout': return 'text-slate-500';
         default: return 'text-slate-400';
     }
 };

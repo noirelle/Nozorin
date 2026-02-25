@@ -26,7 +26,7 @@ export interface SessionRecord {
     createdAt: number;
     disconnectionTime?: number;
     duration?: number;
-    disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
+    disconnectReason?: 'user-action' | 'partner-disconnect' | 'partner-skip' | 'error' | 'skip' | 'network' | 'answered-another' | 'timeout';
     mode: 'chat' | 'voice';
     partnerStatus?: {
         isOnline: boolean;
@@ -55,7 +55,7 @@ export interface MatchEstablishedPayload {
 
 export interface SessionEndPayload {
     token: string;
-    reason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
+    reason?: 'user-action' | 'partner-disconnect' | 'partner-skip' | 'error' | 'skip' | 'network' | 'answered-another' | 'timeout';
 }
 
 export interface WatchUserStatusPayload {
