@@ -6,10 +6,22 @@ export class Friend {
     id!: string;
 
     @Column('uuid')
-    userId!: string;
+    user_id!: string;
 
     @Column('uuid')
-    friendId!: string;
+    friend_id!: string;
+
+    @Column({ nullable: true })
+    friend_username!: string;
+
+    @Column({ nullable: true })
+    friend_avatar!: string;
+
+    @Column({ nullable: true })
+    friend_country!: string;
+
+    @Column({ nullable: true })
+    friend_country_code!: string;
 
     @Column({ type: 'bigint' })
     created_at!: number;

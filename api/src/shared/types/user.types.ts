@@ -17,6 +17,7 @@ export interface UserProfile {
     is_claimed: boolean;
     created_at: number;
     country?: string;
+    countryCode?: string;
     city?: string;
     region?: string;
     lat?: number;

@@ -19,7 +19,7 @@ class FriendService {
 
         // Check if already friends
         const isFriend = await this.friendRepository.findOne({
-            where: { userId: senderId, friendId: receiverId }
+            where: { user_id: senderId, friend_id: receiverId }
         });
         if (isFriend) {
             throw new Error('Already friends');
@@ -28,13 +28,13 @@ class FriendService {
         // Check for existing pending request
         const existingRequest = await this.requestRepository.findOne({
             where: [
-                { senderId, receiverId, status: 'pending' },
-                { senderId: receiverId, receiverId: senderId, status: 'pending' }
+                { sender_id: senderId, receiver_id: receiverId, status: 'pending' },
+                { sender_id: receiverId, receiver_id: senderId, status: 'pending' }
             ]
         });
 
         if (existingRequest) {
-            if (existingRequest.senderId === senderId) {
+            if (existingRequest.sender_id === senderId) {
                 throw new Error('Friend request already sent');
             } else {
                 // They already sent a request to us - auto accept or return error
@@ -42,16 +42,26 @@ class FriendService {
             }
         }
 
+        const senderProfile = await userService.getUserProfile(senderId);
+        const receiverProfile = await userService.getUserProfile(receiverId);
+
         const request = this.requestRepository.create({
             id: uuidv4(),
-            senderId,
-            receiverId,
+            sender_id: senderId,
+            receiver_id: receiverId,
+            sender_username: senderProfile?.username,
+            sender_avatar: senderProfile?.avatar,
+            sender_country: senderProfile?.country,
+            sender_country_code: senderProfile?.countryCode,
+            receiver_username: receiverProfile?.username,
+            receiver_avatar: receiverProfile?.avatar,
+            receiver_country: receiverProfile?.country,
+            receiver_country_code: receiverProfile?.countryCode,
             status: 'pending',
             created_at: Date.now()
         });
 
         const savedRequest = await this.requestRepository.save(request);
-        const senderProfile = await userService.getUserProfile(senderId);
 
         // Notify receiver via socket service
         await friendsClient.notifyRequest({
@@ -67,7 +77,7 @@ class FriendService {
      */
     async acceptRequest(receiverId: string, requestId: string) {
         const request = await this.requestRepository.findOne({
-            where: { id: requestId, receiverId, status: 'pending' }
+            where: { id: requestId, receiver_id: receiverId, status: 'pending' }
         });
 
         if (!request) {
@@ -77,33 +87,42 @@ class FriendService {
         request.status = 'accepted';
         await this.requestRepository.save(request);
 
+        const senderProfile = await userService.getUserProfile(request.sender_id);
+        const receiverProfile = await userService.getUserProfile(request.receiver_id);
+
         // Create bidirectional friend entries
         const friend1 = this.friendRepository.create({
             id: uuidv4(),
-            userId: request.senderId,
-            friendId: request.receiverId,
+            user_id: request.sender_id,
+            friend_id: request.receiver_id,
+            friend_username: receiverProfile?.username,
+            friend_avatar: receiverProfile?.avatar,
+            friend_country: receiverProfile?.country,
+            friend_country_code: receiverProfile?.countryCode,
             created_at: Date.now()
         });
 
         const friend2 = this.friendRepository.create({
             id: uuidv4(),
-            userId: request.receiverId,
-            friendId: request.senderId,
+            user_id: request.receiver_id,
+            friend_id: request.sender_id,
+            friend_username: senderProfile?.username,
+            friend_avatar: senderProfile?.avatar,
+            friend_country: senderProfile?.country,
+            friend_country_code: senderProfile?.countryCode,
             created_at: Date.now()
         });
 
         await this.friendRepository.save([friend1, friend2]);
 
-        const receiverProfile = await userService.getUserProfile(receiverId);
-
         // Notify sender via socket service
         await friendsClient.notifyAccept({
-            userId: request.senderId,
+            userId: request.sender_id,
             requestId: request.id,
             friendProfile: receiverProfile
         });
 
-        return { request, senderId: request.senderId };
+        return { request, senderId: request.sender_id };
     }
 
     /**
@@ -111,7 +130,7 @@ class FriendService {
      */
     async declineRequest(receiverId: string, requestId: string) {
         const request = await this.requestRepository.findOne({
-            where: { id: requestId, receiverId, status: 'pending' }
+            where: { id: requestId, receiver_id: receiverId, status: 'pending' }
         });
 
         if (!request) {
@@ -123,7 +142,7 @@ class FriendService {
 
         // Notify sender via socket service
         await friendsClient.notifyDecline({
-            userId: request.senderId,
+            userId: request.sender_id,
             requestId: request.id
         });
 
@@ -135,8 +154,8 @@ class FriendService {
      */
     async removeFriend(userId: string, friendId: string) {
         // Delete bidirectional entries
-        const res1 = await this.friendRepository.delete({ userId, friendId });
-        const res2 = await this.friendRepository.delete({ userId: friendId, friendId: userId });
+        const res1 = await this.friendRepository.delete({ user_id: userId, friend_id: friendId });
+        const res2 = await this.friendRepository.delete({ user_id: friendId, friend_id: userId });
 
         const affected = (res1.affected || 0) > 0 || (res2.affected || 0) > 0;
 
@@ -156,21 +175,21 @@ class FriendService {
      */
     async getFriends(userId: string) {
         const friends = await this.friendRepository.find({
-            where: { userId }
+            where: { user_id: userId }
         });
 
-        const friendIds = friends.map(f => f.friendId);
+        const friendIds = friends.map(f => f.friend_id);
         if (friendIds.length === 0) return [];
-
-        const profiles = await Promise.all(
-            friendIds.map(id => userService.getUserProfile(id))
-        );
 
         const statuses = await userService.getUserStatuses(friendIds);
 
-        return profiles.filter(p => p !== null).map(profile => ({
-            ...profile,
-            status: statuses[profile!.id] || { isOnline: false, lastSeen: 0 }
+        return friends.map(friend => ({
+            id: friend.friend_id,
+            username: friend.friend_username,
+            avatar: friend.friend_avatar,
+            country: friend.friend_country,
+            countryCode: friend.friend_country_code,
+            status: statuses[friend.friend_id] || { isOnline: false, lastSeen: 0 }
         }));
     }
 
@@ -180,26 +199,34 @@ class FriendService {
     async getPendingRequests(userId: string) {
         const requests = await this.requestRepository.find({
             where: [
-                { receiverId: userId, status: 'pending' },
-                { senderId: userId, status: 'pending' }
+                { receiver_id: userId, status: 'pending' },
+                { sender_id: userId, status: 'pending' }
             ],
             order: { created_at: 'DESC' }
         });
 
         if (requests.length === 0) return [];
 
-        const profiles = await Promise.all(
-            requests.map(r => {
-                const targetId = r.senderId === userId ? r.receiverId : r.senderId;
-                return userService.getUserProfile(targetId);
-            })
-        );
-
-        return requests.map((req, index) => ({
-            ...req,
-            profile: profiles[index],
-            type: req.senderId === userId ? 'sent' : 'received'
-        }));
+        return requests.map((req) => {
+            const isSender = req.sender_id === userId;
+            return {
+                ...req,
+                profile: isSender ? {
+                    id: req.receiver_id,
+                    username: req.receiver_username,
+                    avatar: req.receiver_avatar,
+                    country: req.receiver_country,
+                    countryCode: req.receiver_country_code
+                } : {
+                    id: req.sender_id,
+                    username: req.sender_username,
+                    avatar: req.sender_avatar,
+                    country: req.sender_country,
+                    countryCode: req.sender_country_code
+                },
+                type: isSender ? 'sent' : 'received'
+            };
+        });
     }
 }
 

@@ -8,14 +8,14 @@ export const friendController = {
      */
     async sendRequest(req: Request, res: Response) {
         const userId = (req as any).user.id;
-        const { receiverId } = req.body;
+        const { friend_id } = req.params;
 
-        if (!receiverId) {
-            return res.status(400).json(errorResponse('receiverId is required'));
+        if (!friend_id) {
+            return res.status(400).json(errorResponse('friend_id is required'));
         }
 
         try {
-            const request = await friendService.sendRequest(userId, receiverId);
+            const request = await friendService.sendRequest(userId, friend_id);
             return res.status(201).json(successResponse(request, 'Friend request sent'));
         } catch (error: any) {
             console.error('[FRIEND] Error sending request:', error.message);
@@ -28,14 +28,14 @@ export const friendController = {
      */
     async acceptRequest(req: Request, res: Response) {
         const userId = (req as any).user.id;
-        const { requestId } = req.body;
+        const { request_id } = req.params;
 
-        if (!requestId) {
-            return res.status(400).json(errorResponse('requestId is required'));
+        if (!request_id) {
+            return res.status(400).json(errorResponse('request_id is required'));
         }
 
         try {
-            const { request } = await friendService.acceptRequest(userId, requestId);
+            const { request } = await friendService.acceptRequest(userId, request_id);
             return res.status(200).json(successResponse({ request }, 'Friend request accepted'));
         } catch (error: any) {
             console.error('[FRIEND] Error accepting request:', error.message);
@@ -48,14 +48,14 @@ export const friendController = {
      */
     async declineRequest(req: Request, res: Response) {
         const userId = (req as any).user.id;
-        const { requestId } = req.body;
+        const { request_id } = req.params;
 
-        if (!requestId) {
-            return res.status(400).json(errorResponse('requestId is required'));
+        if (!request_id) {
+            return res.status(400).json(errorResponse('request_id is required'));
         }
 
         try {
-            const request = await friendService.declineRequest(userId, requestId);
+            const request = await friendService.declineRequest(userId, request_id);
             return res.status(200).json(successResponse({ request }, 'Friend request declined'));
         } catch (error: any) {
             console.error('[FRIEND] Error declining request:', error.message);
@@ -68,14 +68,14 @@ export const friendController = {
      */
     async removeFriend(req: Request, res: Response) {
         const userId = (req as any).user.id;
-        const { friendId } = req.body;
+        const { friend_id } = req.params;
 
-        if (!friendId) {
-            return res.status(400).json(errorResponse('friendId is required'));
+        if (!friend_id) {
+            return res.status(400).json(errorResponse('friend_id is required'));
         }
 
         try {
-            const success = await friendService.removeFriend(userId, friendId);
+            const success = await friendService.removeFriend(userId, friend_id);
             if (success) {
                 return res.status(200).json(successResponse(null, 'Friend removed'));
             } else {

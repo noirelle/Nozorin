@@ -6,10 +6,34 @@ export class FriendRequest {
     id!: string;
 
     @Column('uuid')
-    senderId!: string;
+    sender_id!: string;
 
     @Column('uuid')
-    receiverId!: string;
+    receiver_id!: string;
+
+    @Column({ nullable: true })
+    sender_username!: string;
+
+    @Column({ nullable: true })
+    sender_avatar!: string;
+
+    @Column({ nullable: true })
+    sender_country!: string;
+
+    @Column({ nullable: true })
+    sender_country_code!: string;
+
+    @Column({ nullable: true })
+    receiver_username!: string;
+
+    @Column({ nullable: true })
+    receiver_avatar!: string;
+
+    @Column({ nullable: true })
+    receiver_country!: string;
+
+    @Column({ nullable: true })
+    receiver_country_code!: string;
 
     @Column({
         type: 'enum',
