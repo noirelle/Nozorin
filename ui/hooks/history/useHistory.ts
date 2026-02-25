@@ -30,7 +30,6 @@ export const useHistory = (visitorToken: string | null, userId: string | undefin
         isLoading: state.isLoading,
         error: state.error,
         fetchHistory: actions.fetchHistory,
-        fetchStats: actions.fetchStats,
         clearHistory: actions.clearHistory,
         trackSessionStart: actions.trackSessionStart,
         trackSessionEnd: actions.trackSessionEnd,

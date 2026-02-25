@@ -15,18 +15,18 @@ interface UseHistoryActionsProps {
 }
 
 export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading, setHistory, setStats }: UseHistoryActionsProps) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-    const fetchHistory = useCallback(async (limit: number = 20) => {
+    const fetchHistory = useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/session/history/list/${userId}`);
+            const res = await fetch(`/api/session/history/${userId}`);
             if (!res.ok) throw new Error('Failed to fetch history');
             const result = await res.json();
             if (result.status === 'success') {
-                setHistory(result.data);
+                setHistory(result.data.history);
+                setStats(result.data.stats);
             } else {
                 throw new Error(result.message || 'Failed to fetch history');
             }
@@ -35,29 +35,21 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
         } finally {
             setIsLoading(false);
         }
-    }, [userId, setError, setIsLoading, setHistory]);
-
-    const fetchStats = useCallback(async () => {
-        if (!userId) return;
-        try {
-            const res = await fetch(`/api/session/history/stats/${userId}`);
-            if (!res.ok) throw new Error('Failed to fetch stats');
-            const result = await res.json();
-            if (result.status === 'success') {
-                setStats(result.data);
-            }
-        } catch (err) {
-            setError('Failed to load stats');
-        }
-    }, [userId, setError, setStats]);
+    }, [userId, setError, setIsLoading, setHistory, setStats]);
 
     const clearHistory = useCallback(async () => {
         if (!userId) return;
         try {
-            await fetch(`/api/session/history/delete/${userId}`, { method: 'DELETE' });
-            setHistory([]);
-            setStats(null);
-            historyActions.emitClearHistory(visitorToken || '');
+            const res = await fetch(`/api/session/history/${userId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete history');
+            const result = await res.json();
+            if (result.status === 'success') {
+                setHistory([]);
+                setStats(null);
+                historyActions.emitClearHistory(visitorToken || '');
+            } else {
+                throw new Error(result.message || 'Failed to delete history');
+            }
         } catch (err) {
             setError('Failed to clear history');
         }
@@ -73,5 +65,5 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
         historyActions.emitSessionEnd(visitorToken, reason);
     }, [visitorToken]);
 
-    return { fetchHistory, fetchStats, clearHistory, trackSessionStart, trackSessionEnd };
+    return { fetchHistory, clearHistory, trackSessionStart, trackSessionEnd };
 };

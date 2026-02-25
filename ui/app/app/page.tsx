@@ -32,7 +32,6 @@ export default function AppPage() {
         isLoading,
         error,
         fetchHistory,
-        fetchStats,
         clearHistory
     } = useHistory(token, user?.id, async () => null);
 
@@ -225,10 +224,7 @@ export default function AppPage() {
                 isLoading={isLoading}
                 error={error}
                 onClearHistory={clearHistory}
-                onRefresh={() => {
-                    fetchHistory();
-                    fetchStats();
-                }}
+                onRefresh={fetchHistory}
                 onCall={(targetId: string) => initiateCall(targetId, 'voice')}
                 onAddFriend={handleAddFriend}
                 friends={friends}

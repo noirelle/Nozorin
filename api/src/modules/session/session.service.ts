@@ -6,11 +6,11 @@ export const sessionService = {
         const repository = AppDataSource.getRepository(CallHistory);
         const records = await repository.find({
             where: { user_id: userId },
-            order: { created_at: 'DESC' },
-            take: 20
+            order: { created_at: 'DESC' }
         });
 
-        return records.map(record => ({
+        // Limit to latest 20 for the list, but use all for stats
+        const history = records.slice(0, 20).map(record => ({
             sessionId: record.id,
             partnerId: record.partner_id,
             partnerUsername: record.partner_username,
@@ -21,26 +21,24 @@ export const sessionService = {
             createdAt: record.created_at.getTime(),
             disconnectReason: record.reason
         }));
-    },
-
-    async clearHistory(userId: string) {
-        const repository = AppDataSource.getRepository(CallHistory);
-        await repository.delete({ user_id: userId });
-    },
-
-    async getStats(userId: string) {
-        const repository = AppDataSource.getRepository(CallHistory);
-        const records = await repository.find({ where: { user_id: userId } });
 
         const totalDuration = records.reduce((acc, curr) => acc + curr.duration, 0);
         const countriesConnected = [...new Set(records.map(r => r.partner_country).filter(c => !!c))];
         const averageDuration = records.length > 0 ? Math.floor(totalDuration / records.length) : 0;
 
         return {
-            totalSessions: records.length,
-            totalDuration,
-            averageDuration,
-            countriesConnected
+            history,
+            stats: {
+                totalSessions: records.length,
+                totalDuration,
+                averageDuration,
+                countriesConnected
+            }
         };
+    },
+
+    async deleteHistory(userId: string) {
+        const repository = AppDataSource.getRepository(CallHistory);
+        await repository.delete({ user_id: userId });
     }
 };

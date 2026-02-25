@@ -35,7 +35,6 @@ export default function Home() {
         isLoading,
         error,
         fetchHistory,
-        fetchStats,
         clearHistory
     } = useHistory(token, user?.id, async () => null);
 
@@ -90,10 +89,7 @@ export default function Home() {
                 isLoading={isLoading}
                 error={error}
                 onClearHistory={clearHistory}
-                onRefresh={() => {
-                    fetchHistory();
-                    fetchStats();
-                }}
+                onRefresh={fetchHistory}
                 onCall={(targetId: string) => initiateCall(targetId, 'voice')}
                 onAddFriend={() => { }}
                 friends={[]}
