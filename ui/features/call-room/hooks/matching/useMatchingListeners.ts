@@ -20,7 +20,6 @@ interface UseMatchingListenersProps {
     handlePartnerReconnected: (data: PartnerReconnectedPayload) => void;
     handleRejoinSuccess: (data: RejoinSuccessPayload) => void;
     handleRejoinFailed: (data: { reason: string }) => void;
-    handleIdentified: () => void;
 }
 
 export const useMatchingListeners = ({
@@ -33,7 +32,6 @@ export const useMatchingListeners = ({
     handlePartnerReconnected,
     handleRejoinSuccess,
     handleRejoinFailed,
-    handleIdentified,
 }: UseMatchingListenersProps) => {
     useSocketEvent<WaitingForMatchPayload>(SocketEvents.WAITING_FOR_MATCH, handleWaitingForMatch);
     useSocketEvent<PrepareMatchPayload>(SocketEvents.PREPARE_MATCH, handlePrepareMatch);
@@ -44,5 +42,4 @@ export const useMatchingListeners = ({
     useSocketEvent<PartnerReconnectedPayload>(SocketEvents.PARTNER_RECONNECTED, handlePartnerReconnected);
     useSocketEvent<RejoinSuccessPayload>(SocketEvents.REJOIN_SUCCESS, handleRejoinSuccess);
     useSocketEvent<{ reason: string }>(SocketEvents.REJOIN_FAILED, handleRejoinFailed);
-    useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentified);
 };

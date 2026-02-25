@@ -36,7 +36,6 @@ export const useMatching = (props: UseMatchingProps) => {
         handlePartnerReconnected: useCallback(actions.buildHandlePartnerReconnected(), [actions.buildHandlePartnerReconnected]),
         handleRejoinSuccess: useCallback(actions.buildHandleRejoinSuccess(), [actions.buildHandleRejoinSuccess]),
         handleRejoinFailed: useCallback(actions.buildHandleRejoinFailed(), [actions.buildHandleRejoinFailed]),
-        handleIdentified: useCallback(actions.buildHandleIdentified(), [actions.buildHandleIdentified]),
     });
 
     return {

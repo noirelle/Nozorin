@@ -45,9 +45,6 @@ export const useMatchingActions = ({
     callbacks,
 }: UseMatchingActionsProps) => {
     const { user, isChecking } = useUser();
-    const statusRef = useRef(status);
-    useEffect(() => { statusRef.current = status; }, [status]);
-
     const isJoiningRef = useRef(false);
     const lastOptionsRef = useRef<{ preferredCountry?: string; userId?: string; peerId?: string } | undefined>(undefined);
 
@@ -302,13 +299,6 @@ export const useMatchingActions = ({
         emitMatchReady();
     }, [setStatus]);
 
-    const buildHandleIdentified = useCallback(() => () => {
-        if (statusRef.current === 'FINDING') {
-            console.log('[Matching] Socket identified while finding, re-triggering search...');
-            startSearch(lastOptionsRef.current);
-        }
-    }, [startSearch, statusRef]);
-
     return {
         startSearch,
         stopSearch,
@@ -326,6 +316,5 @@ export const useMatchingActions = ({
         buildHandleRejoinFailed,
         buildHandleWaitingForMatch,
         buildHandlePrepareMatch,
-        buildHandleIdentified,
     };
 };
