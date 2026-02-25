@@ -4,6 +4,7 @@ export interface SessionRecord {
     partnerUsername?: string;
     partnerCountry?: string;
     partnerCountryCode?: string;
+    partnerAvatar?: string;
     createdAt: number;
     disconnectionTime?: number;
     duration?: number;

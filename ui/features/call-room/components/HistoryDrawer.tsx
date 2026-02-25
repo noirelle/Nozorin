@@ -169,7 +169,9 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="relative shrink-0">
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                                                {session.partnerCountryCode ? (
+                                                {session.partnerAvatar ? (
+                                                    <img src={session.partnerAvatar} alt={session.partnerUsername} className="w-full h-full object-cover" />
+                                                ) : session.partnerCountryCode ? (
                                                     <ReactCountryFlag countryCode={session.partnerCountryCode} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <span className="text-xs text-slate-400">?</span>

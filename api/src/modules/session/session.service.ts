@@ -21,6 +21,7 @@ export const sessionService = {
             partnerUsername: record.partner_username,
             partnerCountry: record.partner_country,
             partnerCountryCode: record.partner_country_code,
+            partnerAvatar: record.partner_avatar,
             duration: record.duration,
             mode: record.mode,
             createdAt: record.created_at.getTime(),
