@@ -7,7 +7,7 @@ export interface SessionRecord {
     createdAt: number;
     disconnectionTime?: number;
     duration?: number;
-    disconnectReason?: 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
+    disconnectReason?: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another';
     mode: 'chat' | 'voice';
     partnerStatus?: {
         isOnline: boolean;

@@ -9,15 +9,23 @@ const API_URL = process.env.API_SERVICE_URL || 'http://nozorin_api:3001';
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
-const userToSocket = new Map<string, string>(); // userId → socketId (authoritative socket)
+const userToSockets = new Map<string, Set<string>>(); // userId → Set of socketIds
 
 export const userService = {
-    /** Associate socketId with a userId. Returns the previous socketId if any. */
+    /** Associate socketId with a userId. Returns the previous primary socketId if any. */
     setUserForSocket(socketId: string, userId: string): string | null {
-        const existingSocketId = userToSocket.get(userId) || null;
+        const existingSockets = userToSockets.get(userId);
+        const primarySocketId = existingSockets && existingSockets.size > 0 ? Array.from(existingSockets)[0] : null;
+
         socketToUser.set(socketId, userId);
-        userToSocket.set(userId, socketId);
-        return existingSocketId !== socketId ? existingSocketId : null;
+
+        if (!existingSockets) {
+            userToSockets.set(userId, new Set([socketId]));
+        } else {
+            existingSockets.add(socketId);
+        }
+
+        return primarySocketId;
     },
 
     getUserId(socketId: string): string | null {
@@ -25,15 +33,26 @@ export const userService = {
     },
 
     getSocketId(userId: string): string | null {
-        return userToSocket.get(userId) || null;
+        const sockets = userToSockets.get(userId);
+        return (sockets && sockets.size > 0) ? Array.from(sockets)[0] : null;
     },
 
-    removeSocket(socketId: string): void {
+    /** Removes socket and returns true if user has NO MORE sockets left */
+    removeSocket(socketId: string): boolean {
         const userId = socketToUser.get(socketId);
-        if (userId && userToSocket.get(userId) === socketId) {
-            userToSocket.delete(userId);
+        if (userId) {
+            const sockets = userToSockets.get(userId);
+            if (sockets) {
+                sockets.delete(socketId);
+                if (sockets.size === 0) {
+                    userToSockets.delete(userId);
+                    socketToUser.delete(socketId);
+                    return true; // Last socket gone
+                }
+            }
         }
         socketToUser.delete(socketId);
+        return false;
     },
 
     /** Register/activate a user in the API service */
@@ -42,6 +61,15 @@ export const userService = {
             await fetch(`${API_URL}/api/users/${userId}/register`, { method: 'POST' });
         } catch (err) {
             logger.warn({ err, userId }, '[USER-SERVICE] Failed to register user in API');
+        }
+    },
+
+    /** Deactivate user in API (set offline) */
+    async deactivateUser(userId: string): Promise<void> {
+        try {
+            await fetch(`${API_URL}/api/users/${userId}/deactivate`, { method: 'POST' });
+        } catch (err) {
+            logger.warn({ err, userId }, '[USER-SERVICE] Failed to deactivate user in API');
         }
     },
 

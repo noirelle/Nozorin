@@ -49,13 +49,6 @@ export const handleSocketConnection = async (io: Server, socket: Socket): Promis
         presenceService.handleDisconnection(io, socket);
 
         // Global Cleanup
-        removeConnectedUser(socket.id);
-        userService.removeSocket(socket.id);
-
-        if (userId) {
-            await presenceService.broadcastUserStatus(io, userId);
-        }
-
         logger.info({ activeCalls: activeCalls.size }, '[DISCONNECT] Cleanup complete');
     });
 };

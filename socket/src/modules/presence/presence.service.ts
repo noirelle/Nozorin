@@ -26,10 +26,20 @@ export const presenceService = {
         io.emit(SocketEvents.STATS_UPDATE, stats);
     },
 
-    handleDisconnection(io: Server, socket: Socket): void {
+    async handleDisconnection(io: Server, socket: Socket): Promise<void> {
+        const userId = userService.getUserId(socket.id);
+
         presenceStore.remove(socket.id);
+        const isLastSocket = userService.removeSocket(socket.id);
+
         statsService.setOnlineUsers(presenceStore.count());
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
+
+        if (userId && isLastSocket) {
+            // Last socket for this user disconnected
+            await userService.deactivateUser(userId);
+            await this.broadcastUserStatus(io, userId);
+        }
     },
 };
 

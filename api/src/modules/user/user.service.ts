@@ -84,7 +84,7 @@ class UserService {
     }
 
     /**
-     * Register a user (make them 'known' to the system)
+     * Set user as active/registered
      */
     async registerUser(userId: string) {
         const redis = getRedisClient();
@@ -92,6 +92,8 @@ class UserService {
             try {
                 // Set a key to indicate user existence, matching JWT expiry (30 days)
                 await redis.set(`user:exists:${userId}`, '1', 'EX', 30 * 24 * 60 * 60);
+                // Also mark as online
+                await this.updateUserStatus(userId, true);
             } catch (error) {
                 console.error('[USER] Redis error registering user:', error);
             }
@@ -111,8 +113,23 @@ class UserService {
                 console.error('[USER] Redis error checking user existence:', error);
             }
         }
-
         return false;
+    }
+
+    /**
+     * Deactivate user (set offline and update last active)
+     */
+    async deactivateUser(userId: string) {
+        console.log(`[USER] Deactivating user: ${userId}`);
+        await this.updateUserStatus(userId, false);
+
+        try {
+            await this.userRepository.update(userId, {
+                last_active_at: Date.now()
+            });
+        } catch (error) {
+            console.error('[USER] DB error updating last_active_at:', error);
+        }
     }
 
 
