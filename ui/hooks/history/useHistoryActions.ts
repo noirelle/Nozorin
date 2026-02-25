@@ -27,6 +27,12 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
             if (result.status === 'success') {
                 setHistory(result.data.history);
                 setStats(result.data.stats);
+
+                // Watch for real-time status updates of partners
+                const partnerIds = [...new Set(result.data.history.map((s: any) => s.partnerId).filter((id: string) => id && id !== 'unknown'))] as string[];
+                if (partnerIds.length > 0) {
+                    historyActions.emitWatchUserStatus(partnerIds);
+                }
             } else {
                 throw new Error(result.message || 'Failed to fetch history');
             }
