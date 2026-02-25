@@ -66,16 +66,20 @@ export const historyService = {
     }
 };
 
-export const register = (_io: unknown, socket: Socket): void => {
+export const register = (io: any, socket: Socket): void => {
     socket.on(SocketEvents.GET_HISTORY, async (data: { token: string; limit?: number }) => {
         const { token, limit = 15 } = data;
-        if (!token) { socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Token required' }); return; }
+        let userId = token ? getUserIdFromToken(token) : null;
 
-        const userId = getUserIdFromToken(token);
-        if (!userId) { socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Invalid token' }); return; }
+        // Fallback to session-based userId if token is invalid/expired
+        if (!userId) {
+            userId = userService.getUserId(socket.id);
+        }
 
-        const isRegistered = await userService.isUserRegistered(userId);
-        if (!isRegistered) { socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Invalid token' }); return; }
+        if (!userId) {
+            socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Invalid or expired token' });
+            return;
+        }
 
         try {
             const history = await historyService.getHistory(userId, limit);
@@ -97,7 +101,6 @@ export const register = (_io: unknown, socket: Socket): void => {
             }));
 
             socket.emit(SocketEvents.HISTORY_DATA, { history: enhanced });
-            logger.info({ userId: userId.substring(0, 8), count: history.length }, '[HISTORY] Sent history');
         } catch (err) {
             logger.error({ err }, '[HISTORY] Failed to retrieve history');
             socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Failed to retrieve history' });
@@ -106,11 +109,17 @@ export const register = (_io: unknown, socket: Socket): void => {
 
     socket.on(SocketEvents.GET_HISTORY_STATS, async (data: { token: string }) => {
         const { token } = data;
-        if (!token) { socket.emit(SocketEvents.HISTORY_STATS_ERROR, { message: 'Token required' }); return; }
-        const userId = getUserIdFromToken(token);
-        if (!userId) { socket.emit(SocketEvents.HISTORY_STATS_ERROR, { message: 'Invalid token' }); return; }
-        const isRegistered = await userService.isUserRegistered(userId);
-        if (!isRegistered) { socket.emit(SocketEvents.HISTORY_STATS_ERROR, { message: 'Invalid token' }); return; }
+        let userId = token ? getUserIdFromToken(token) : null;
+
+        if (!userId) {
+            userId = userService.getUserId(socket.id);
+        }
+
+        if (!userId) {
+            socket.emit(SocketEvents.HISTORY_STATS_ERROR, { message: 'Invalid or expired token' });
+            return;
+        }
+
         try {
             const stats = await historyService.getHistoryStats(userId);
             socket.emit(SocketEvents.HISTORY_STATS, stats);
@@ -122,11 +131,17 @@ export const register = (_io: unknown, socket: Socket): void => {
 
     socket.on(SocketEvents.CLEAR_HISTORY, async (data: { token: string }) => {
         const { token } = data;
-        if (!token) { socket.emit(SocketEvents.HISTORY_CLEAR_ERROR, { message: 'Token required' }); return; }
-        const userId = getUserIdFromToken(token);
-        if (!userId) { socket.emit(SocketEvents.HISTORY_CLEAR_ERROR, { message: 'Invalid token' }); return; }
-        const isRegistered = await userService.isUserRegistered(userId);
-        if (!isRegistered) { socket.emit(SocketEvents.HISTORY_CLEAR_ERROR, { message: 'Invalid token' }); return; }
+        let userId = token ? getUserIdFromToken(token) : null;
+
+        if (!userId) {
+            userId = userService.getUserId(socket.id);
+        }
+
+        if (!userId) {
+            socket.emit(SocketEvents.HISTORY_CLEAR_ERROR, { message: 'Invalid or expired token' });
+            return;
+        }
+
         try {
             await historyService.clearHistory(userId);
             socket.emit(SocketEvents.HISTORY_CLEARED);

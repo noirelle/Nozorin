@@ -46,7 +46,6 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
             if (result.status === 'success') {
                 setHistory([]);
                 setStats(null);
-                historyActions.emitClearHistory(visitorToken || '');
             } else {
                 throw new Error(result.message || 'Failed to delete history');
             }
