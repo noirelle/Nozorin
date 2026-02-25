@@ -3,16 +3,18 @@ import { session } from '@/lib/api/endpoints/session';
 
 export async function GET(
     req: Request,
-    { params }: { params: { userId: string } }
+    { params }: { params: Promise<{ userId: string }> }
 ) {
+    const { userId } = await params;
     const headers = getProxyHeaders(req);
-    return handleApiRequest(() => session.getHistory(params.userId, headers));
+    return handleApiRequest(() => session.getHistory(userId, headers));
 }
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { userId: string } }
+    { params }: { params: Promise<{ userId: string }> }
 ) {
+    const { userId } = await params;
     const headers = getProxyHeaders(req);
-    return handleApiRequest(() => session.deleteHistory(params.userId, headers));
+    return handleApiRequest(() => session.deleteHistory(userId, headers));
 }
