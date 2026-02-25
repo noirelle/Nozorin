@@ -12,7 +12,7 @@ export const register = (io: Server, socket: Socket): void => {
         if (callback) callback({ success });
     });
 
-    socket.on(SocketEvents.REJOIN_CALL, async (data: { roomId?: string }) => {
+    socket.on(SocketEvents.REJOIN_CALL, async (data: { room_id?: string }) => {
         const userId = userService.getUserId(socket.id);
         if (!userId) {
             socket.emit(SocketEvents.REJOIN_FAILED, { reason: 'user-not-identified' });
@@ -25,37 +25,37 @@ export const register = (io: Server, socket: Socket): void => {
             return;
         }
 
-        if (Date.now() > rejoinInfo.expiresAt) {
+        if (Date.now() > rejoinInfo.expires_at) {
             reconnectingUsers.delete(userId);
             socket.emit(SocketEvents.REJOIN_FAILED, { reason: 'session-expired' });
             return;
         }
 
-        const currentPartnerSocketId = userService.getSocketId(rejoinInfo.partnerUserId) || rejoinInfo.partnerSocketId;
-        const startTime = rejoinInfo.startTime;
+        const currentPartnerSocketId = userService.getSocketId(rejoinInfo.partner_user_id) || rejoinInfo.partner_socket_id;
+        const startTime = rejoinInfo.start_time;
 
-        activeCalls.set(socket.id, { partnerId: currentPartnerSocketId, startTime });
-        activeCalls.set(currentPartnerSocketId, { partnerId: socket.id, startTime });
+        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId, start_time: startTime });
+        activeCalls.set(currentPartnerSocketId, { partner_id: socket.id, start_time: startTime });
         reconnectingUsers.delete(userId);
 
-        const partnerProfile = await userService.getUserProfile(rejoinInfo.partnerUserId);
+        const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
 
         socket.emit(SocketEvents.REJOIN_SUCCESS, {
-            partnerId: currentPartnerSocketId,
-            partnerUserId: rejoinInfo.partnerUserId,
-            partnerUsername: partnerProfile?.username,
-            partnerAvatar: partnerProfile?.avatar,
-            partnerGender: partnerProfile?.gender,
-            partnerCountry: partnerProfile?.country,
-            partnerCountryCode: partnerProfile?.countryCode,
-            roomId: rejoinInfo.roomId
+            partner_id: currentPartnerSocketId,
+            partner_user_id: rejoinInfo.partner_user_id,
+            partner_username: partnerProfile?.username,
+            partner_avatar: partnerProfile?.avatar,
+            partner_gender: partnerProfile?.gender,
+            partner_country: partnerProfile?.country,
+            partner_country_code: partnerProfile?.country_code,
+            room_id: rejoinInfo.room_id
         });
 
         io.to(currentPartnerSocketId).emit(SocketEvents.PARTNER_RECONNECTED, {
-            newSocketId: socket.id
+            new_socket_id: socket.id
         });
 
-        logger.info({ socketId: socket.id, userId, partnerId: rejoinInfo.partnerSocketId }, '[CALL] Call rejoined successfully');
+        logger.info({ socketId: socket.id, user_id: userId, partner_id: rejoinInfo.partner_socket_id }, '[CALL] Call rejoined successfully');
     });
 
     socket.on(SocketEvents.CANCEL_RECONNECT, () => {
@@ -63,11 +63,11 @@ export const register = (io: Server, socket: Socket): void => {
         if (userId) {
             const info = reconnectingUsers.get(userId);
             if (info) {
-                io.to(info.partnerSocketId).emit(SocketEvents.CALL_ENDED, { reason: 'partner-cancelled' });
-                activeCalls.delete(info.partnerSocketId);
+                io.to(info.partner_socket_id).emit(SocketEvents.CALL_ENDED, { reason: 'partner-cancelled' });
+                activeCalls.delete(info.partner_socket_id);
                 reconnectingUsers.delete(userId);
             }
-            logger.info({ socketId: socket.id, userId }, '[CALL] Reconnection cancelled');
+            logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Reconnection cancelled');
         }
     });
 };

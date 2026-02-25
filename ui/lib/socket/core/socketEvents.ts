@@ -68,6 +68,8 @@ export const SocketEvents = {
     // ── Friends ───────────────────────────────────────────────────────────────
     FRIEND_REQUEST_RECEIVED: 'friend-request-received',
     FRIEND_REQUEST_ACCEPTED: 'friend-request-accepted',
+    FRIEND_REQUEST_DECLINED: 'friend-request-declined',
+    FRIEND_REMOVED: 'friend-removed',
 
     // ── Direct Call ───────────────────────────────────────────────────────────
     INITIATE_DIRECT_CALL: 'initiate-direct-call',

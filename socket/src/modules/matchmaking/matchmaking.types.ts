@@ -1,8 +1,8 @@
 export interface JoinQueuePayload {
-    socketId: string;
-    userId: string;
+    socket_id: string;
+    user_id: string;
     mode: 'voice';
     preferences?: Record<string, unknown>;
     country?: string;
-    countryCode?: string;
+    country_code?: string;
 }

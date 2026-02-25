@@ -40,17 +40,17 @@ export const useRoomEffects = ({
 
     // Notify parent about connection state changes
     useEffect(() => {
-        onConnectionChange(callRoomState.isConnected);
-    }, [callRoomState.isConnected, onConnectionChange]);
+        onConnectionChange(callRoomState.is_connected);
+    }, [callRoomState.is_connected, onConnectionChange]);
 
     // Deferred WebRTC offer for rejoin — fires once media is ready
     useEffect(() => {
         const partnerId = pendingRejoinPartnerRef.current;
-        if (!partnerId || !callRoomState.isMediaReady) return;
+        if (!partnerId || !callRoomState.is_media_ready) return;
         pendingRejoinPartnerRef.current = null;
         console.log('[Room] Media ready — creating deferred WebRTC offer for rejoin.');
         createOffer(partnerId);
-    }, [callRoomState.isMediaReady, createOffer, pendingRejoinPartnerRef]);
+    }, [callRoomState.is_media_ready, createOffer, pendingRejoinPartnerRef]);
 
     // Initialization & Cleanup
     useEffect(() => {
@@ -66,20 +66,20 @@ export const useRoomEffects = ({
 
     // Sync local media state with server
     useEffect(() => {
-        if (!callRoomState.isMediaReady) return;
-        emitUpdateMediaState(callRoomState.isMuted);
-    }, [callRoomState.isMediaReady, callRoomState.isMuted]);
+        if (!callRoomState.is_media_ready) return;
+        emitUpdateMediaState(callRoomState.is_muted);
+    }, [callRoomState.is_media_ready, callRoomState.is_muted]);
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') handleUserStop();
             else if (e.key === 'ArrowRight') {
-                if (callRoomState.isConnected || callRoomState.isSearching) handleNext();
+                if (callRoomState.is_connected || callRoomState.is_searching) handleNext();
                 else findMatch();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleUserStop, handleNext, findMatch, callRoomState.isConnected, callRoomState.isSearching]);
+    }, [handleUserStop, handleNext, findMatch, callRoomState.is_connected, callRoomState.is_searching]);
 };

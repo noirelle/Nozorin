@@ -1,4 +1,4 @@
 export interface ActiveCallInfo {
-    socketId: string;
-    partnerId: string;
+    socket_id: string;
+    partner_id: string;
 }

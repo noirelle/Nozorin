@@ -2,11 +2,11 @@ import { apiRequest } from '../core/apiRequest';
 
 export const matchmaking = {
     joinQueue: (data: {
-        userId: string;
+        user_id: string;
         mode: 'voice';
-        preferences?: { language?: string; selectedCountry?: string; minRating?: number };
-        session?: { peerId?: string; connectionId?: string };
-        requestId?: string;
+        preferences?: { language?: string; selected_country?: string; min_rating?: number };
+        session?: { peer_id?: string; connection_id?: string };
+        request_id?: string;
     }, headers?: HeadersInit) =>
         apiRequest<void>('/api/matchmaking/join', {
             method: 'POST',

@@ -23,6 +23,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     onAddFriend,
     friends = [],
     pendingRequests = [],
+    sentRequests = [],
     selectedCountry,
     matchmakingStatus,
     queuePosition,
@@ -30,7 +31,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     reconnectCountdown,
     callDuration,
 }) => {
-    const { isConnected, isSearching, partnerCountry, partnerCountryCode, partnerUsername, partnerAvatar, partnerGender, partnerUserId, isMuted } = callRoomState;
+    const { is_connected, is_searching, partner_country, partner_country_code, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
     const { user: localUser } = useUser();
 
     return (
@@ -74,9 +75,9 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                         </div>
                         <div className="space-y-1">
                             <h4 className="text-lg font-bold text-[#5C4E50]">{localUser?.username || 'Alex'} (You)</h4>
-                            <div className={`flex items-center justify-center gap-1.5 transition-colors ${isMuted ? 'text-rose-400' : 'text-emerald-500'}`}>
-                                <div className={`w-1.5 h-1.5 rounded-full bg-current ${!isMuted && 'animate-pulse'}`} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{isMuted ? 'Muted' : 'Speaking'}</span>
+                            <div className={`flex items-center justify-center gap-1.5 transition-colors ${is_muted ? 'text-rose-400' : 'text-emerald-500'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full bg-current ${!is_muted && 'animate-pulse'}`} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{is_muted ? 'Muted' : 'Speaking'}</span>
                             </div>
                         </div>
                     </div>
@@ -84,7 +85,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                     {/* Center: Connect / Action Circle (Balanced Dominance) */}
                     <div className="shrink-0 relative">
                         {/* Subtle Pulse layers */}
-                        {!isConnected && (
+                        {!is_connected && (
                             <div className="absolute inset-0">
                                 <div className="absolute inset-[-15%] rounded-full bg-[#FFB7CE] animate-ping opacity-5" style={{ animationDuration: '5s' }} />
                                 <div className="absolute inset-[-8%] rounded-full bg-[#FFB7CE] animate-pulse opacity-5 shadow-[0_0_30px_rgba(255,183,206,0.05)]" />
@@ -92,21 +93,21 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                         )}
 
                         <button
-                            onClick={isConnected ? onNext : (isSearching ? onStop : onNext)}
-                            disabled={callRoomState.permissionDenied}
+                            onClick={is_connected ? onNext : (is_searching ? onStop : onNext)}
+                            disabled={callRoomState.permission_denied}
                             className={`
                                 relative w-64 h-64 rounded-full flex flex-col items-center justify-center transition-all duration-700
                                 shadow-[0_30px_60px_-15px_rgba(255,183,206,0.35),inset_0_4px_16px_rgba(255,255,255,0.4)]
                                 group disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale-[0.5]
-                                ${!callRoomState.permissionDenied ? 'active:scale-95' : ''}
-                                ${isConnected
+                                ${!callRoomState.permission_denied ? 'active:scale-95' : ''}
+                                ${is_connected
                                     ? 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597] border-[8px] border-white/20'
                                     : 'bg-gradient-to-br from-[#FFC2D1] to-[#FF8BA7] border-[8px] border-white'}
                             `}
                         >
                             <div className="absolute inset-0 rounded-full shadow-[inset_0_-12px_32px_rgba(0,0,0,0.02)] pointer-events-none" />
 
-                            {isSearching ? (
+                            {is_searching ? (
                                 <div className="flex flex-col items-center">
                                     <div className="relative w-16 h-16 mb-6">
                                         <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
@@ -119,7 +120,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                         {matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Connecting' : (queuePosition ? `POS: ${queuePosition}` : 'Scanner')}
                                     </span>
                                 </div>
-                            ) : isConnected ? (
+                            ) : is_connected ? (
                                 <div className="flex flex-col items-center animate-in zoom-in duration-700 px-8 text-center">
                                     <div className="flex items-end gap-1.5 h-12 mb-6">
                                         {[1, 2, 3, 4, 5, 4, 3, 2, 1].map((h, i) => (
@@ -139,7 +140,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                             ) : (
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6 border border-white/30 group-hover:scale-110 transition-transform duration-500 shadow-sm">
-                                        {callRoomState.permissionDenied ? (
+                                        {callRoomState.permission_denied ? (
                                             <svg className="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
                                                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z" />
                                             </svg>
@@ -150,7 +151,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                         )}
                                     </div>
                                     <span className="text-white font-bold tracking-[0.2em] text-[14px] uppercase drop-shadow-sm">
-                                        {callRoomState.permissionDenied ? 'Blocked' : 'Tune In'}
+                                        {callRoomState.permission_denied ? 'Blocked' : 'Tune In'}
                                     </span>
                                 </div>
                             )}
@@ -179,12 +180,12 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                     </div>
                                 </div>
                             </div>
-                        ) : (isConnected || isSearching) ? (
+                        ) : (is_connected || is_searching) ? (
                             <div className="flex flex-col items-center text-center animate-in fade-in slide-in-from-right-6 duration-700">
                                 <div className="relative mb-4 group">
                                     <div className="w-32 h-32 rounded-full overflow-hidden bg-white p-1 border-4 border-white shadow-[0_8px_20px_rgba(255,183,206,0.12)] flex items-center justify-center transition-all duration-500 group-hover:shadow-[0_12px_30px_rgba(255,183,206,0.2)] group-hover:scale-[1.02]">
-                                        {isConnected ? (
-                                            <img src={partnerAvatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Partner&backgroundColor=transparent`} alt="Partner" className="w-full h-full object-cover" />
+                                        {is_connected ? (
+                                            <img src={partner_avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Partner&backgroundColor=transparent`} alt="Partner" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="flex items-center gap-1.5 opacity-60">
                                                 <div className="w-2 h-2 bg-[#FF8BA7] rounded-full animate-bounce [animation-delay:-0.3s]" />
@@ -193,52 +194,54 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    {isConnected && (
+                                    {is_connected && (
                                         <div className="absolute bottom-1 right-1 w-7 h-7 bg-green-400 border-4 border-white rounded-full shadow-sm" />
                                     )}
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-center gap-2">
-                                        <h4 className={`text-lg font-bold tracking-tight transition-colors ${isConnected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
-                                            {isConnected ? (partnerUsername || 'Stranger') : (matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Initializing...' : 'Scanning...')}
+                                        <h4 className={`text-lg font-bold tracking-tight transition-colors ${is_connected ? 'text-[#5C4E50]' : 'text-[#A58E92]'}`}>
+                                            {is_connected ? (partner_username || 'Stranger') : (matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Initializing...' : 'Scanning...')}
                                         </h4>
-                                        {isConnected && partnerGender && (
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${partnerGender === 'male' ? 'bg-blue-50 text-blue-500' : partnerGender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>
-                                                {partnerGender === 'male' ? '♂' : partnerGender === 'female' ? '♀' : partnerGender}
+                                        {is_connected && partner_gender && (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider ${partner_gender === 'male' ? 'bg-blue-50 text-blue-500' : partner_gender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>
+                                                {partner_gender === 'male' ? '♂' : partner_gender === 'female' ? '♀' : partner_gender}
                                             </span>
                                         )}
-                                        {isConnected && partnerCountryCode && (
-                                            <ReactCountryFlag countryCode={partnerCountryCode} svg className="w-5 h-4 rounded-sm object-cover" />
+                                        {is_connected && partner_country_code && (
+                                            <ReactCountryFlag countryCode={partner_country_code} svg className="w-5 h-4 rounded-sm object-cover" />
                                         )}
                                     </div>
-                                    <div className={`flex items-center justify-center gap-1.5 transition-all ${isConnected ? 'text-emerald-500' : 'text-[#A58E92] opacity-60 font-medium'}`}>
-                                        {isConnected ? (
+                                    <div className={`flex items-center justify-center gap-1.5 transition-all ${is_connected ? 'text-emerald-500' : 'text-[#A58E92] opacity-60 font-medium'}`}>
+                                        {is_connected ? (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{partnerCountry || 'Connected'}</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{partner_country || 'Connected'}</span>
                                             </>
                                         ) : (
                                             <span className="text-[10px] font-bold uppercase tracking-[0.1em]">Frequency Search</span>
                                         )}
                                     </div>
 
-                                    {isConnected && partnerUserId && (
+                                    {is_connected && partner_user_id && (
                                         <button
-                                            onClick={() => onAddFriend && onAddFriend(partnerUserId)}
+                                            onClick={() => onAddFriend && onAddFriend(partner_user_id)}
                                             disabled={
-                                                friends.some(f => f.id === partnerUserId) ||
-                                                pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
+                                                callRoomState.friendship_status === 'friends' ||
+                                                friends.some(f => f.id === partner_user_id) ||
+                                                pendingRequests?.some(r => r.user?.id === partner_user_id) ||
+                                                sentRequests?.some(r => r.user?.id === partner_user_id)
                                             }
-                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${friends.some(f => f.id === partnerUserId)
+                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
                                                 ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
+                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
                                                     ? 'bg-slate-400 cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'
                                                 }`}
                                         >
-                                            {friends.some(f => f.id === partnerUserId)
+                                            {(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
                                                 ? 'FRIENDS'
-                                                : pendingRequests?.some(r => r.senderId === partnerUserId || r.receiverId === partnerUserId)
+                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
                                                     ? 'PENDING'
                                                     : 'ADD FRIEND'}
                                         </button>
@@ -260,7 +263,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
 
                 {/* Floating Bottom Toolbar (Centered & Proportional) */}
                 <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] w-full max-w-xl px-4 flex flex-col gap-4">
-                    {callRoomState.permissionDenied && (
+                    {callRoomState.permission_denied && (
                         <div className="bg-rose-50 border border-rose-100 px-6 py-3 rounded-2xl flex items-center justify-center gap-3 animate-in slide-in-from-bottom-4 duration-500 shadow-sm self-center">
                             <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -291,12 +294,12 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                 className={`
                                     w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500
                                     border-[6px] border-white shadow-[0_12px_24px_rgba(255,183,206,0.25)] relative z-10
-                                    ${isMuted
+                                    ${is_muted
                                         ? 'bg-rose-500 text-white shadow-rose-200'
                                         : 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597] text-white hover:scale-105 active:scale-95 group'}
                                 `}
                             >
-                                {isMuted ? (
+                                {is_muted ? (
                                     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3l18 18" />
@@ -348,7 +351,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                         <ChatBox
                             messages={messages}
                             onSendMessage={onSendMessage}
-                            isConnected={isConnected}
+                            isConnected={is_connected}
                             minimal={true}
                             showScrollbar={true}
                             theme="light"

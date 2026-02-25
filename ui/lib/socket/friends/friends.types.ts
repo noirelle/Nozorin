@@ -6,7 +6,7 @@ export interface FriendRequestReceivedPayload {
 }
 
 export interface FriendRequestAcceptedPayload {
-    requestId: string;
+    request_id: string;
     friend: {
         id: string;
         [key: string]: unknown;

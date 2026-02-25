@@ -7,15 +7,15 @@ export const reconnectingUsers = realReconnectingUsers;
 /** Master FIFO list for voice matching */
 export const voiceQueue: User[] = [];
 
-/** Bucketed queues by countryCode */
+/** Bucketed queues by country_code */
 export const voiceBuckets = new Map<string, User[]>();
 
-export const removeUserFromQueues = (socketId: string, countryCode?: string): void => {
+export const removeUserFromQueues = (socketId: string, country_code?: string): void => {
     const voiceIdx = voiceQueue.findIndex(u => u.id === socketId);
     if (voiceIdx !== -1) voiceQueue.splice(voiceIdx, 1);
 
-    if (countryCode) {
-        const bucket = voiceBuckets.get(countryCode);
+    if (country_code) {
+        const bucket = voiceBuckets.get(country_code);
         if (bucket) {
             const idx = bucket.findIndex(u => u.id === socketId);
             if (idx !== -1) bucket.splice(idx, 1);
@@ -28,10 +28,10 @@ export const removeUserFromQueues = (socketId: string, countryCode?: string): vo
     }
 };
 
-export const removeUserFromQueuesByUserId = (userId: string): void => {
+export const removeUserFromQueuesByUserId = (user_id: string): void => {
     // Remove from main queue
     for (let i = voiceQueue.length - 1; i >= 0; i--) {
-        if (voiceQueue[i].userId === userId) {
+        if (voiceQueue[i].user_id === user_id) {
             voiceQueue.splice(i, 1);
         }
     }
@@ -39,7 +39,7 @@ export const removeUserFromQueuesByUserId = (userId: string): void => {
     // Remove from buckets
     voiceBuckets.forEach(bucket => {
         for (let i = bucket.length - 1; i >= 0; i--) {
-            if (bucket[i].userId === userId) {
+            if (bucket[i].user_id === user_id) {
                 bucket.splice(i, 1);
             }
         }

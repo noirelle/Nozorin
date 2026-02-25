@@ -1,1 +1,1 @@
-export interface MediaStatePayload { isMuted?: boolean; }
+export interface MediaStatePayload { is_muted?: boolean; }

@@ -11,7 +11,9 @@ export const authController = {
     async guestLogin(req: Request, res: Response) {
         console.log('[AUTH] guestLogin request received');
         try {
-            const { gender, agreed, sessionId, footprint, deviceId } = req.body;
+            const { gender, agreed, sessionId, footprint, deviceId, device_id, session_id } = req.body;
+            const cleanDeviceId = device_id || deviceId;
+            const cleanSessionId = session_id || sessionId;
 
             // robust IP extraction
             const cleanIp = getClientIp(req);
@@ -24,14 +26,14 @@ export const authController = {
             }
 
             // 1. Check for existing unclaimed guest profile to prevent ghosting/spam
-            let user = await userService.findExistingGuest(cleanIp, deviceId, footprint);
+            let user = await userService.findExistingGuest(cleanIp, cleanDeviceId, footprint);
 
             if (user) {
                 console.log(`[AUTH] Reusing existing guest profile: ${user.id}`);
                 // Refresh activity on reuse
                 user.last_active_at = Date.now();
                 // Always update device_id to current one (even if changed) to ensure account retention
-                if (deviceId) user.device_id = deviceId;
+                if (cleanDeviceId) user.device_id = cleanDeviceId;
                 await userService.saveUserProfile(user); // Persist the updated last_active_at and device_id
             } else {
                 // 2. Create new guest user if none found
@@ -39,7 +41,7 @@ export const authController = {
                     gender,
                     agreed,
                     ip: cleanIp,
-                    deviceId,
+                    device_id: cleanDeviceId,
                     footprint,
                     fingerprint: footprint // Map footprint from request to fingerprint field
                 };

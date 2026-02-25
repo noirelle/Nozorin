@@ -4,8 +4,8 @@ export interface GuestRegistrationRequest {
     username: string;
     gender: string;
     agreed: boolean;
-    sessionId: string;
-    deviceId: string;
+    session_id: string;
+    device_id: string;
     footprint?: any;
 }
 

@@ -18,27 +18,27 @@ export interface HistoryDataPayload {
 }
 
 export interface SessionRecord {
-    sessionId: string;
-    partnerId: string;
-    partnerUsername?: string;
-    partnerCountry?: string;
-    partnerCountryCode?: string;
-    createdAt: number;
-    disconnectionTime?: number;
+    session_id: string;
+    partner_id: string;
+    partner_username?: string;
+    partner_country?: string;
+    partner_country_code?: string;
+    created_at: number;
+    disconnection_time?: number;
     duration?: number;
-    disconnectReason?: 'user-action' | 'partner-disconnect' | 'partner-skip' | 'error' | 'skip' | 'network' | 'answered-another' | 'timeout';
+    disconnect_reason?: 'user-action' | 'partner-disconnect' | 'partner-skip' | 'error' | 'skip' | 'network' | 'answered-another' | 'timeout';
     mode: 'chat' | 'voice';
-    partnerStatus?: {
-        isOnline: boolean;
-        lastSeen: number;
+    partner_status?: {
+        is_online: boolean;
+        last_seen: number;
     };
 }
 
 export interface HistoryStats {
-    totalSessions: number;
-    totalDuration: number;
-    averageDuration: number;
-    countriesConnected: string[];
+    total_sessions: number;
+    total_duration: number;
+    average_duration: number;
+    countries_connected: string[];
 }
 
 export interface HistoryErrorPayload {
@@ -49,7 +49,7 @@ export interface HistoryErrorPayload {
 
 export interface MatchEstablishedPayload {
     token: string;
-    partnerId: string;
+    partner_id: string;
     mode: 'chat' | 'voice';
 }
 
@@ -59,13 +59,13 @@ export interface SessionEndPayload {
 }
 
 export interface WatchUserStatusPayload {
-    userIds: string[];
+    user_ids: string[];
 }
 
 export interface PartnerStatusChangePayload {
-    userId: string;
+    user_id: string;
     status: {
-        isOnline: boolean;
-        lastSeen: number;
+        is_online: boolean;
+        last_seen: number;
     };
 }

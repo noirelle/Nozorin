@@ -9,8 +9,8 @@ import { User } from './user.entity';
 const STATUS_TTL = 3600; // 1 hour for status if not updated
 
 export interface UserStatus {
-    isOnline: boolean;
-    lastSeen: number;
+    is_online: boolean;
+    last_seen: number;
 }
 
 class UserService {
@@ -36,8 +36,8 @@ class UserService {
      */
     async updateUserStatus(userId: string, isOnline: boolean) {
         const status: UserStatus = {
-            isOnline,
-            lastSeen: Date.now()
+            is_online: isOnline,
+            last_seen: Date.now()
         };
 
         const redis = getRedisClient();
@@ -80,7 +80,7 @@ class UserService {
             }
         }
 
-        return { isOnline: false, lastSeen: 0 };
+        return { is_online: false, last_seen: 0 };
     }
 
     /**
@@ -136,11 +136,11 @@ class UserService {
     /**
      * Resolve location from IP
      */
-    async resolveLocation(ip: string): Promise<{ country?: string; city?: string; region?: string; lat?: number; lon?: number; timezone?: string }> {
+    async resolveLocation(ip: string): Promise<{ country_code?: string; city?: string; region?: string; lat?: number; lon?: number; timezone?: string }> {
         const geo = await getGeoInfo(ip);
         if (geo) {
             return {
-                country: geo.country_code,
+                country_code: geo.country_code,
                 city: geo.city,
                 region: geo.subdivision,
                 lat: geo.latitude,
@@ -184,6 +184,7 @@ class UserService {
                         is_claimed: data.is_claimed === 'true',
                         created_at: parseInt(data.created_at || '0'),
                         country: data.country,
+                        country_code: data.country_code,
                         city: data.city,
                         region: data.region,
                         lat: data.lat ? parseFloat(data.lat) : undefined,
@@ -258,7 +259,7 @@ class UserService {
                     // Safety: Ensure we aren't hijacking an ACTIVE session from another device
                     // (e.g. if fingerprint collision occurred, which is rare but possible)
                     const status = await this.getUserStatus(user.id);
-                    if (!status.isOnline) {
+                    if (!status.is_online) {
                         console.log(`[USER] Recovery successful for ${user.id}`);
                         return user as UserProfile;
                     } else {
@@ -307,7 +308,7 @@ class UserService {
             created_at: Date.now(),
             last_active_at: Date.now(),
             last_ip: ip,
-            device_id: data.deviceId,
+            device_id: data.device_id,
             ...location,
             fingerprint: data.fingerprint
         };
@@ -353,6 +354,7 @@ class UserService {
                 is_claimed: userProfile.is_claimed.toString(),
                 created_at: userProfile.created_at.toString(),
                 ...(userProfile.country && { country: userProfile.country }),
+                ...(userProfile.country_code && { country_code: userProfile.country_code }),
                 ...(userProfile.city && { city: userProfile.city }),
                 ...(userProfile.region && { region: userProfile.region }),
                 ...(userProfile.lat && { lat: userProfile.lat.toString() }),

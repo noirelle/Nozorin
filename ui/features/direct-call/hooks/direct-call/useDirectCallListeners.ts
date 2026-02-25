@@ -17,7 +17,7 @@ export const useDirectCallListeners = ({
     setError,
 }: UseDirectCallListenersProps) => {
     const handleIncomingCall = useCallback((data: IncomingCallPayload) => {
-        console.log('[DirectCall] Incoming call from:', data.fromUserId);
+        console.log('[DirectCall] Incoming call from:', data.from_user_id);
         setError(null);
         setIncomingCall(data);
     }, [setError, setIncomingCall]);

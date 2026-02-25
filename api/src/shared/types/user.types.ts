@@ -2,8 +2,8 @@ export interface CreateUserDto {
     gender: 'male' | 'female' | 'other';
     agreed: boolean;
     ip: string;
-    deviceId: string;
-    sessionId?: string;
+    device_id: string;
+    session_id?: string;
     footprint?: any; // The raw footprint data from client (if stored separately)
     fingerprint?: string; // The specific fingerprint hash
 }
@@ -17,7 +17,7 @@ export interface UserProfile {
     is_claimed: boolean;
     created_at: number;
     country?: string;
-    countryCode?: string;
+    country_code?: string;
     city?: string;
     region?: string;
     lat?: number;

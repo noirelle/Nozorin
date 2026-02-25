@@ -16,9 +16,9 @@ export const authService = {
 
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
-        logger.info({ socketId: socket.id, userId: userId.substring(0, 8) }, '[AUTH] User identified');
+        logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
         await presenceService.broadcastUserStatus(io, userId);
-        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { userId });
+        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
         return userId;
     },
 
@@ -32,7 +32,7 @@ export const authService = {
 
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
-        socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, userId });
+        socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, user_id: userId });
     },
 
     forceReconnect: async (io: Server, socket: Socket, token: string) => {
@@ -48,6 +48,6 @@ export const authService = {
         }
         await userService.registerUser(userId);
         await presenceService.broadcastUserStatus(io, userId);
-        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { userId });
+        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
     }
 };

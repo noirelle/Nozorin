@@ -52,11 +52,11 @@ class FriendService {
             sender_username: senderProfile?.username,
             sender_avatar: senderProfile?.avatar,
             sender_country: senderProfile?.country,
-            sender_country_code: senderProfile?.countryCode,
+            sender_country_code: senderProfile?.country_code,
             receiver_username: receiverProfile?.username,
             receiver_avatar: receiverProfile?.avatar,
             receiver_country: receiverProfile?.country,
-            receiver_country_code: receiverProfile?.countryCode,
+            receiver_country_code: receiverProfile?.country_code,
             status: 'pending',
             created_at: Date.now()
         });
@@ -98,7 +98,7 @@ class FriendService {
             friend_username: receiverProfile?.username,
             friend_avatar: receiverProfile?.avatar,
             friend_country: receiverProfile?.country,
-            friend_country_code: receiverProfile?.countryCode,
+            friend_country_code: receiverProfile?.country_code,
             created_at: Date.now()
         });
 
@@ -109,7 +109,7 @@ class FriendService {
             friend_username: senderProfile?.username,
             friend_avatar: senderProfile?.avatar,
             friend_country: senderProfile?.country,
-            friend_country_code: senderProfile?.countryCode,
+            friend_country_code: senderProfile?.country_code,
             created_at: Date.now()
         });
 
@@ -122,7 +122,10 @@ class FriendService {
             friendProfile: receiverProfile
         });
 
-        return { request, senderId: request.sender_id };
+        return {
+            request_id: request.id,
+            status: request.status
+        };
     }
 
     /**
@@ -146,7 +149,10 @@ class FriendService {
             requestId: request.id
         });
 
-        return savedRequest;
+        return {
+            request_id: savedRequest.id,
+            status: savedRequest.status
+        };
     }
 
     /**
@@ -188,45 +194,90 @@ class FriendService {
             username: friend.friend_username,
             avatar: friend.friend_avatar,
             country: friend.friend_country,
-            countryCode: friend.friend_country_code,
-            status: statuses[friend.friend_id] || { isOnline: false, lastSeen: 0 }
+            country_code: friend.friend_country_code,
+            ...(statuses[friend.friend_id] || { is_online: false, last_seen: 0 })
         }));
     }
 
     /**
-     * Get pending requests for a user
+     * Get received pending requests for a user
      */
-    async getPendingRequests(userId: string) {
+    async getReceivedRequests(userId: string) {
         const requests = await this.requestRepository.find({
-            where: [
-                { receiver_id: userId, status: 'pending' },
-                { sender_id: userId, status: 'pending' }
-            ],
+            where: { receiver_id: userId, status: 'pending' },
             order: { created_at: 'DESC' }
         });
 
         if (requests.length === 0) return [];
 
-        return requests.map((req) => {
-            const isSender = req.sender_id === userId;
-            return {
-                ...req,
-                profile: isSender ? {
-                    id: req.receiver_id,
-                    username: req.receiver_username,
-                    avatar: req.receiver_avatar,
-                    country: req.receiver_country,
-                    countryCode: req.receiver_country_code
-                } : {
-                    id: req.sender_id,
-                    username: req.sender_username,
-                    avatar: req.sender_avatar,
-                    country: req.sender_country,
-                    countryCode: req.sender_country_code
-                },
-                type: isSender ? 'sent' : 'received'
-            };
+        const senderIds = requests.map(r => r.sender_id);
+        const senders = await AppDataSource.getRepository('User').findByIds(senderIds);
+        const senderMap = new Map(senders.map((u: any) => [u.id, u]));
+
+        return requests.map((req) => ({
+            id: req.id,
+            created_at: req.created_at,
+            type: 'received',
+            user: {
+                id: req.sender_id,
+                username: senderMap.get(req.sender_id)?.username || req.sender_username,
+                avatar: senderMap.get(req.sender_id)?.avatar || req.sender_avatar,
+                country: senderMap.get(req.sender_id)?.country || req.sender_country,
+                country_code: senderMap.get(req.sender_id)?.country_code || req.sender_country_code
+            }
+        }));
+    }
+
+    /**
+     * Get sent pending requests for a user
+     */
+    async getSentRequests(userId: string) {
+        const requests = await this.requestRepository.find({
+            where: { sender_id: userId, status: 'pending' },
+            order: { created_at: 'DESC' }
         });
+
+        if (requests.length === 0) return [];
+
+        const receiverIds = requests.map(r => r.receiver_id);
+        const receivers = await AppDataSource.getRepository('User').findByIds(receiverIds);
+        const receiverMap = new Map(receivers.map((u: any) => [u.id, u]));
+
+        return requests.map((req) => ({
+            id: req.id,
+            created_at: req.created_at,
+            type: 'sent',
+            user: {
+                id: req.receiver_id,
+                username: receiverMap.get(req.receiver_id)?.username || req.receiver_username,
+                avatar: receiverMap.get(req.receiver_id)?.avatar || req.receiver_avatar,
+                country: receiverMap.get(req.receiver_id)?.country || req.receiver_country,
+                country_code: receiverMap.get(req.receiver_id)?.country_code || req.receiver_country_code
+            }
+        }));
+    }
+
+    /**
+     * Check friendship status between two users
+     */
+    async getFriendshipStatus(userId: string, targetId: string): Promise<'friends' | 'pending_sent' | 'pending_received' | 'none'> {
+        const friendship = await this.friendRepository.findOne({
+            where: { user_id: userId, friend_id: targetId }
+        });
+        if (friendship) return 'friends';
+
+        const request = await this.requestRepository.findOne({
+            where: [
+                { sender_id: userId, receiver_id: targetId, status: 'pending' },
+                { sender_id: targetId, receiver_id: userId, status: 'pending' }
+            ]
+        });
+
+        if (request) {
+            return request.sender_id === userId ? 'pending_sent' : 'pending_received';
+        }
+
+        return 'none';
     }
 }
 

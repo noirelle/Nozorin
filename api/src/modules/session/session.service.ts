@@ -16,30 +16,30 @@ export const sessionService = {
 
         // Limit to latest 20 for the list, but use all for stats
         const history = records.slice(0, 20).map(record => ({
-            sessionId: record.id,
-            partnerId: record.partner_id,
-            partnerUsername: record.partner_username,
-            partnerCountry: record.partner_country,
-            partnerCountryCode: record.partner_country_code,
-            partnerAvatar: record.partner_avatar,
+            session_id: record.id,
+            partner_id: record.partner_id,
+            partner_username: record.partner_username,
+            partner_country: record.partner_country,
+            partner_country_code: record.partner_country_code,
+            partner_avatar: record.partner_avatar,
             duration: record.duration,
             mode: record.mode,
-            createdAt: record.created_at.getTime(),
-            disconnectReason: record.reason,
-            partnerStatus: record.partner_id ? statuses[record.partner_id] : { isOnline: false, lastSeen: 0 }
+            created_at: record.created_at.getTime(),
+            disconnect_reason: record.reason,
+            partner_status: record.partner_id ? statuses[record.partner_id] : { is_online: false, last_seen: 0 }
         }));
 
-        const totalDuration = records.reduce((acc, curr) => acc + curr.duration, 0);
-        const countriesConnected = [...new Set(records.map(r => r.partner_country).filter(c => !!c))];
-        const averageDuration = records.length > 0 ? Math.floor(totalDuration / records.length) : 0;
+        const total_duration = records.reduce((acc, curr) => acc + curr.duration, 0);
+        const countries_connected = [...new Set(records.map(r => r.partner_country).filter(c => !!c))];
+        const average_duration = records.length > 0 ? Math.floor(total_duration / records.length) : 0;
 
         return {
             history,
             stats: {
-                totalSessions: records.length,
-                totalDuration,
-                averageDuration,
-                countriesConnected
+                total_sessions: records.length,
+                total_duration,
+                average_duration,
+                countries_connected
             }
         };
     },

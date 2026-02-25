@@ -12,15 +12,15 @@ const socketToUser = new Map<string, string>(); // socketId → userId
 const userToSockets = new Map<string, Set<string>>(); // userId → Set of socketIds
 
 export const userService = {
-    /** Associate socketId with a userId. Returns the previous primary socketId if any. */
-    setUserForSocket(socketId: string, userId: string): string | null {
-        const existingSockets = userToSockets.get(userId);
+    /** Associate socketId with a user_id. Returns the previous primary socketId if any. */
+    setUserForSocket(socketId: string, user_id: string): string | null {
+        const existingSockets = userToSockets.get(user_id);
         const primarySocketId = existingSockets && existingSockets.size > 0 ? Array.from(existingSockets)[0] : null;
 
-        socketToUser.set(socketId, userId);
+        socketToUser.set(socketId, user_id);
 
         if (!existingSockets) {
-            userToSockets.set(userId, new Set([socketId]));
+            userToSockets.set(user_id, new Set([socketId]));
         } else {
             existingSockets.add(socketId);
         }
@@ -56,20 +56,20 @@ export const userService = {
     },
 
     /** Register/activate a user in the API service */
-    async registerUser(userId: string): Promise<void> {
+    async registerUser(user_id: string): Promise<void> {
         try {
-            await fetch(`${API_URL}/api/users/${userId}/register`, { method: 'POST' });
+            await fetch(`${API_URL}/api/users/${user_id}/register`, { method: 'POST' });
         } catch (err) {
-            logger.warn({ err, userId }, '[USER-SERVICE] Failed to register user in API');
+            logger.warn({ err, user_id }, '[USER-SERVICE] Failed to register user in API');
         }
     },
 
     /** Deactivate user in API (set offline) */
-    async deactivateUser(userId: string): Promise<void> {
+    async deactivateUser(user_id: string): Promise<void> {
         try {
-            await fetch(`${API_URL}/api/users/${userId}/deactivate`, { method: 'POST' });
+            await fetch(`${API_URL}/api/users/${user_id}/deactivate`, { method: 'POST' });
         } catch (err) {
-            logger.warn({ err, userId }, '[USER-SERVICE] Failed to deactivate user in API');
+            logger.warn({ err, user_id }, '[USER-SERVICE] Failed to deactivate user in API');
         }
     },
 
@@ -79,18 +79,18 @@ export const userService = {
             const res = await fetch(`${API_URL}/api/users/${userId}/status`);
             return await res.json();
         } catch {
-            return { isOnline: false, lastSeen: 0 };
+            return { is_online: false, last_seen: 0 };
         }
     },
 
     /** Fetch statuses for multiple users */
-    async getUserStatuses(userIds: string[]): Promise<Record<string, unknown>> {
-        if (!userIds.length) return {};
+    async getUserStatuses(user_ids: string[]): Promise<Record<string, unknown>> {
+        if (!user_ids.length) return {};
         try {
             const res = await fetch(`${API_URL}/api/users/statuses`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userIds }),
+                body: JSON.stringify({ user_ids }),
             });
             return await res.json();
         } catch {
@@ -115,7 +115,7 @@ export const userService = {
         avatar: string;
         gender: string;
         country?: string;
-        countryCode?: string;
+        country_code?: string;
     } | null> {
         // Priority 1: Fetch from Redis (cached by API on /join or /me)
         const redis = getRedisClient();
@@ -128,7 +128,7 @@ export const userService = {
                         avatar: data.avatar,
                         gender: data.gender,
                         country: data.country,
-                        countryCode: data.country_code || data.countryCode // Handle both naming conventions
+                        country_code: data.country_code
                     };
                 }
             } catch (error) {
@@ -145,4 +145,23 @@ export const userService = {
             return null;
         }
     },
-};
+
+    /** Fetch friendship status between two users */
+    async getFriendshipStatus(user_id: string, target_id: string): Promise<string> {
+        try {
+            const res = await fetch(`${API_URL}/api/friends/${target_id}/status`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // This will be used if API is behind gateway or needs auth
+                    // For internal calls, we might need a bypass
+                }
+            });
+            const json = await res.json();
+            return json.data?.status || 'none';
+        } catch (error) {
+            logger.warn({ error, user_id, target_id }, '[USER-SERVICE] Error fetching friendship status');
+            return 'none';
+        }
+    }
+}

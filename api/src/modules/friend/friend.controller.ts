@@ -35,8 +35,8 @@ export const friendController = {
         }
 
         try {
-            const { request } = await friendService.acceptRequest(userId, request_id);
-            return res.status(200).json(successResponse({ request }, 'Friend request accepted'));
+            const result = await friendService.acceptRequest(userId, request_id);
+            return res.status(200).json(successResponse(result, 'Friend request accepted'));
         } catch (error: any) {
             console.error('[FRIEND] Error accepting request:', error.message);
             return res.status(400).json(errorResponse(error.message));
@@ -55,8 +55,8 @@ export const friendController = {
         }
 
         try {
-            const request = await friendService.declineRequest(userId, request_id);
-            return res.status(200).json(successResponse({ request }, 'Friend request declined'));
+            const result = await friendService.declineRequest(userId, request_id);
+            return res.status(200).json(successResponse(result, 'Friend request declined'));
         } catch (error: any) {
             console.error('[FRIEND] Error declining request:', error.message);
             return res.status(400).json(errorResponse(error.message));
@@ -102,17 +102,49 @@ export const friendController = {
         }
     },
 
+
     /**
-     * Get pending requests
+     * Get received friend requests
      */
-    async getPendingRequests(req: Request, res: Response) {
+    async getReceivedRequests(req: Request, res: Response) {
         const userId = (req as any).user.id;
 
         try {
-            const requests = await friendService.getPendingRequests(userId);
-            return res.status(200).json(successResponse(requests, 'Pending requests retrieved successfully'));
+            const requests = await friendService.getReceivedRequests(userId);
+            return res.status(200).json(successResponse(requests));
         } catch (error: any) {
-            console.error('[FRIEND] Error getting pending requests:', error.message);
+            console.error('[FRIEND] Error getting received requests:', error.message);
+            return res.status(500).json(errorResponse('Failed to fetch received requests'));
+        }
+    },
+
+    /**
+     * Get sent friend requests
+     */
+    async getSentRequests(req: Request, res: Response) {
+        const userId = (req as any).user.id;
+
+        try {
+            const requests = await friendService.getSentRequests(userId);
+            return res.status(200).json(successResponse(requests));
+        } catch (error: any) {
+            console.error('[FRIEND] Error getting sent requests:', error.message);
+            return res.status(500).json(errorResponse('Failed to fetch sent requests'));
+        }
+    },
+
+    /**
+     * Get friendship status with a specific user
+     */
+    async getStatus(req: Request, res: Response) {
+        const userId = (req as any).user.id;
+        const { friend_id } = req.params;
+
+        try {
+            const status = await friendService.getFriendshipStatus(userId, friend_id);
+            return res.status(200).json(successResponse({ status }, 'Friendship status retrieved'));
+        } catch (error: any) {
+            console.error('[FRIEND] Error getting status:', error.message);
             return res.status(500).json(errorResponse('Internal server error', error));
         }
     }

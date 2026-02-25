@@ -34,14 +34,14 @@ export const useDirectCallActions = ({
     const acceptCall = useCallback(() => {
         if (!incomingCall) return;
         onCallStarted?.();
-        directCallActions.emitRespondToCall(incomingCall.fromSocketId, true, incomingCall.mode);
+        directCallActions.emitRespondToCall(incomingCall.from_socket_id, true, incomingCall.mode);
         setIncomingCall(null);
     }, [incomingCall, onCallStarted, setIncomingCall]);
 
     const declineCall = useCallback(() => {
         if (!incomingCall) return;
         onCallStarted?.();
-        directCallActions.emitRespondToCall(incomingCall.fromSocketId, false, incomingCall.mode);
+        directCallActions.emitRespondToCall(incomingCall.from_socket_id, false, incomingCall.mode);
         setIncomingCall(null);
     }, [incomingCall, onCallStarted, setIncomingCall]);
 

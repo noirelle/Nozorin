@@ -32,12 +32,12 @@ export function emitClearHistory(token: string): void {
 
 export function emitMatchEstablished(
     token: string,
-    partnerId: string,
+    partner_id: string,
     mode: 'chat' | 'voice'
 ): void {
     const socket = getSocketClient();
     if (!socket) return void console.warn('[Socket] Client not ready, cannot emit match-established');
-    const payload: MatchEstablishedPayload = { token, partnerId, mode };
+    const payload: MatchEstablishedPayload = { token, partner_id, mode };
     socket.emit(SocketEvents.MATCH_ESTABLISHED, payload);
 }
 
@@ -51,9 +51,9 @@ export function emitSessionEnd(
     socket.emit(SocketEvents.SESSION_END, payload);
 }
 
-export function emitWatchUserStatus(userIds: string[]): void {
+export function emitWatchUserStatus(user_ids: string[]): void {
     const socket = getSocketClient();
     if (!socket) return void console.warn('[Socket] Client not ready, cannot emit watch-user-status');
-    const payload: WatchUserStatusPayload = { userIds };
+    const payload: WatchUserStatusPayload = { user_ids };
     socket.emit(SocketEvents.WATCH_USER_STATUS, payload);
 }

@@ -24,10 +24,10 @@ export function emitEndCall(target: string | null): void {
     });
 }
 
-export function emitRejoinCall(roomId?: string): void {
+export function emitRejoinCall(room_id?: string): void {
     const socket = getSocketClient();
     if (!socket) return void console.warn('[Socket] Client not ready, cannot emit rejoin-call');
-    const payload: RejoinCallPayload = { roomId };
+    const payload: RejoinCallPayload = { room_id };
     socket.emit(SocketEvents.REJOIN_CALL, payload);
 }
 

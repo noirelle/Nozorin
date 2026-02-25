@@ -44,11 +44,11 @@ export default function SocialProof() {
 
                         <div className="grid grid-cols-2 gap-8 mb-10">
                             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-100/50">
-                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.totalConnections)}</div>
+                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.total_connections)}</div>
                                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Connections</div>
                             </div>
                             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-100/50">
-                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.matchesToday)}</div>
+                                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-2">{formatLargeNumber(stats.matches_today)}</div>
                                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wide">Pairs Matched Today</div>
                             </div>
                         </div>

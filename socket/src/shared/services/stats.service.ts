@@ -62,9 +62,9 @@ export const statsService = {
 
     getStats() {
         return {
-            totalConnections,
-            peopleOnline,
-            matchesToday
+            total_connections: totalConnections,
+            people_online: peopleOnline,
+            matches_today: matchesToday
         };
     },
 };

@@ -11,6 +11,7 @@ import { getSocketClient } from '@/lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
+import { FriendRequestNotification } from '@/features/friends/components/FriendRequestNotification';
 
 export default function AppPage() {
     const router = useRouter();
@@ -18,6 +19,7 @@ export default function AppPage() {
     const [isFriendsOpen, setIsFriendsOpen] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
+    const [friendRequestNotif, setFriendRequestNotif] = useState<any>(null);
 
     const handleCloseHistory = useCallback(() => {
         setIsHistoryOpen(false);
@@ -69,11 +71,15 @@ export default function AppPage() {
     const {
         friends,
         pendingRequests,
+        sentRequests,
         sendRequest,
         acceptRequest,
         declineRequest,
         removeFriend,
-        isLoading: isLoadingFriendsData
+        isLoading: isLoadingFriendsData,
+        fetchFriends,
+        fetchPendingRequests,
+        fetchSentRequests
     } = useFriends(token);
 
     const handleAddFriend = useCallback(async (targetId: string) => {
@@ -101,8 +107,40 @@ export default function AppPage() {
         console.error('[App] Socket authentication error:', error);
     }, []);
 
+    const handleFriendRequestReceived = useCallback((data: any) => {
+        console.log('[App] Friend request received:', data);
+        setFriendRequestNotif({
+            ...data.profile,
+            countryCode: data.profile.country_code
+        });
+        // If drawer is open, refresh the list
+        if (isFriendsOpen) {
+            fetchPendingRequests();
+            fetchSentRequests();
+        }
+    }, [isFriendsOpen, fetchPendingRequests]);
+
+    const handleFriendRequestAccepted = useCallback((data: any) => {
+        console.log('[App] Friend request accepted:', data);
+        setFriendRequestNotif({ ...data.friend, isAcceptance: true });
+
+        // Refresh lists
+        fetchFriends();
+        fetchPendingRequests();
+        fetchSentRequests();
+    }, [fetchFriends, fetchPendingRequests, fetchSentRequests]);
+
+    const handleFriendRemoved = useCallback((data: any) => {
+        console.log('[App] Friend removed:', data);
+        // Refresh lists
+        fetchFriends();
+    }, [fetchFriends]);
+
     useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
     useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentifySuccess);
+    useSocketEvent(SocketEvents.FRIEND_REQUEST_RECEIVED, handleFriendRequestReceived);
+    useSocketEvent(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
+    useSocketEvent(SocketEvents.FRIEND_REMOVED, handleFriendRemoved);
 
     // Connect socket with token and identify
     useEffect(() => {
@@ -207,12 +245,18 @@ export default function AppPage() {
                 mode="voice"
                 onLeave={handleLeave}
                 onNavigateToHistory={handleNavigateToHistory}
-                onNavigateToFriends={() => setIsFriendsOpen(true)}
+                onNavigateToFriends={() => {
+                    setIsFriendsOpen(true);
+                    fetchFriends();
+                    fetchPendingRequests();
+                    fetchSentRequests();
+                }}
                 initialMatchData={directMatchData}
                 onConnectionChange={setIsConnected}
                 onAddFriend={handleAddFriend}
                 friends={friends}
                 pendingRequests={pendingRequests}
+                sentRequests={sentRequests}
             />
 
             {/* Global Overlays */}
@@ -229,6 +273,7 @@ export default function AppPage() {
                 onAddFriend={handleAddFriend}
                 friends={friends}
                 pendingRequests={pendingRequests}
+                sentRequests={sentRequests}
                 isConnected={isConnected}
             />
 
@@ -237,6 +282,7 @@ export default function AppPage() {
                 onClose={() => setIsFriendsOpen(false)}
                 friends={friends}
                 pendingRequests={pendingRequests}
+                sentRequests={sentRequests}
                 onAcceptRequest={acceptRequest}
                 onDeclineRequest={declineRequest}
                 onRemoveFriend={removeFriend}
@@ -250,8 +296,8 @@ export default function AppPage() {
 
             {incomingCall && (
                 <IncomingCallOverlay
-                    fromCountry={incomingCall.fromCountry}
-                    fromCountryCode={incomingCall.fromCountryCode}
+                    from_country={incomingCall.from_country}
+                    from_country_code={incomingCall.from_country_code}
                     mode={incomingCall.mode}
                     onAccept={performAcceptCall}
                     onDecline={performDeclineCall}
@@ -263,6 +309,21 @@ export default function AppPage() {
                 <OutgoingCallOverlay
                     onCancel={cancelCall}
                     error={callError}
+                />
+            )}
+
+            {friendRequestNotif && (
+                <FriendRequestNotification
+                    profile={friendRequestNotif}
+                    isAcceptance={friendRequestNotif.isAcceptance}
+                    onView={() => {
+                        setFriendRequestNotif(null);
+                        setIsFriendsOpen(true);
+                        fetchFriends();
+                        fetchPendingRequests();
+                        fetchSentRequests();
+                    }}
+                    onClose={() => setFriendRequestNotif(null)}
                 />
             )}
 

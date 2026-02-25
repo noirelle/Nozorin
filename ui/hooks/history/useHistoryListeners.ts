@@ -29,13 +29,13 @@ export const useHistoryListeners = ({
     const handleHistoryData = useCallback((data: HistoryDataPayload) => {
         setHistory(data.history);
         setIsLoading(false);
-        const partnerIds = [...new Set(data.history.map(s => s.partnerId).filter(id => id && id !== 'unknown'))];
-        if (partnerIds.length > 0) historyActions.emitWatchUserStatus(partnerIds);
+        const partner_ids = [...new Set(data.history.map(s => s.partner_id).filter(id => id && id !== 'unknown'))];
+        if (partner_ids.length > 0) historyActions.emitWatchUserStatus(partner_ids);
     }, [setHistory, setIsLoading]);
 
     const handlePartnerStatusChange = useCallback((data: PartnerStatusChangePayload) => {
         setHistory(prev => prev.map(session =>
-            session.partnerId === data.userId ? { ...session, partnerStatus: data.status } : session
+            session.partner_id === data.user_id ? { ...session, partner_status: data.status } : session
         ));
     }, [setHistory]);
 

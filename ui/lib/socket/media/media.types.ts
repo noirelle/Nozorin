@@ -1,16 +1,16 @@
 // ── Media State ───────────────────────────────────────────────────────────────
 
 export interface UpdateMediaStatePayload {
-    isMuted: boolean;
+    is_muted: boolean;
 }
 
 export interface ToggleMutePayload {
     target: string;
-    isMuted: boolean;
+    is_muted: boolean;
 }
 
 export interface PartnerMuteStatePayload {
-    isMuted: boolean;
+    is_muted: boolean;
 }
 
 export interface PartnerSignalStrengthPayload {

@@ -10,6 +10,9 @@ export const friends = {
     getRequests: (headers?: HeadersInit) =>
         api.get<FriendRequest[]>('/api/friends/requests', { headers }),
 
+    getSentRequests: (headers?: HeadersInit) =>
+        api.get<FriendRequest[]>('/api/friends/sent', { headers }),
+
     sendRequest: (friendId: string, headers?: HeadersInit) =>
         api.post(`/api/friends/${friendId}/request`, {}, { headers }),
 

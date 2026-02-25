@@ -29,7 +29,7 @@ const formatDate = (timestamp: number): string => {
     return date.toLocaleDateString();
 };
 
-const getReasonLabel = (reason?: SessionRecord['disconnectReason']): string => {
+const getReasonLabel = (reason?: SessionRecord['disconnect_reason']): string => {
     switch (reason) {
         case 'user-action': return 'You ended';
         case 'partner-disconnect': return 'Partner left';
@@ -43,7 +43,7 @@ const getReasonLabel = (reason?: SessionRecord['disconnectReason']): string => {
     }
 };
 
-const getReasonColor = (reason?: SessionRecord['disconnectReason']): string => {
+const getReasonColor = (reason?: SessionRecord['disconnect_reason']): string => {
     switch (reason) {
         case 'user-action': return 'text-blue-500';
         case 'partner-disconnect':
@@ -82,6 +82,7 @@ interface HistoryDrawerProps {
     onAddFriend: (targetUserId: string) => void;
     friends: any[];
     pendingRequests: any[];
+    sentRequests: any[];
     isConnected: boolean;
 }
 
@@ -98,6 +99,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
     onAddFriend,
     friends,
     pendingRequests,
+    sentRequests,
     isConnected,
 }) => {
     const hasLoadedRef = useRef(false);
@@ -167,46 +169,46 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                         <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2 px-2">
                             {history.map((session) => (
                                 <div
-                                    key={session.sessionId}
+                                    key={session.session_id}
                                     className="p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-colors flex items-center justify-between gap-3 shadow-sm"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className="relative shrink-0">
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                                                {session.partnerAvatar ? (
-                                                    <img src={session.partnerAvatar} alt={session.partnerUsername} className="w-full h-full object-cover" />
-                                                ) : session.partnerCountryCode ? (
-                                                    <ReactCountryFlag countryCode={session.partnerCountryCode} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                {session.partner_avatar ? (
+                                                    <img src={session.partner_avatar} alt={session.partner_username} className="w-full h-full object-cover" />
+                                                ) : session.partner_country_code ? (
+                                                    <ReactCountryFlag countryCode={session.partner_country_code} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <span className="text-xs text-slate-400">?</span>
                                                 )}
                                             </div>
                                             {/* Online Status Dot */}
-                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${session.partnerStatus?.isOnline ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
+                                            <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${session.partner_status?.is_online ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-slate-800 truncate">
-                                                    {session.partnerUsername ? `@${session.partnerUsername}` : (session.partnerCountry || 'Unknown')}
+                                                    {session.partner_username ? `@${session.partner_username}` : (session.partner_country || 'Unknown')}
                                                 </span>
-                                                <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(session.disconnectReason)}`}>
-                                                    {getReasonLabel(session.disconnectReason)}
+                                                <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(session.disconnect_reason)}`}>
+                                                    {getReasonLabel(session.disconnect_reason)}
                                                 </span>
                                             </div>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
                                                     <span>{formatDuration(session.duration)}</span>
                                                     <span>•</span>
-                                                    <span>{formatDate(session.createdAt)}</span>
+                                                    <span>{formatDate(session.created_at)}</span>
                                                 </div>
                                                 <div className="text-[9px] font-bold mt-0.5">
-                                                    {session.partnerStatus?.isOnline ? (
+                                                    {session.partner_status?.is_online ? (
                                                         <span className="text-green-500 flex items-center gap-1">
                                                             <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />
                                                             Active now
                                                         </span>
                                                     ) : (
-                                                        <span className="text-slate-400">Last seen: {formatLastActive(session.partnerStatus?.lastSeen || 0)}</span>
+                                                        <span className="text-slate-400">Last seen: {formatLastActive(session.partner_status?.last_seen || 0)}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -214,11 +216,26 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0">
-                                        {session.partnerId &&
-                                            !friends.some(f => f.id === session.partnerId) &&
-                                            !pendingRequests.some(r => r.senderId === session.partnerId || r.receiverId === session.partnerId) && (
+                                        {session.partner_id && (
+                                            friends.some(f => f.id === session.partner_id) ? (
+                                                <span className="px-2 py-1 rounded-lg bg-emerald-50 text-[9px] font-bold text-emerald-600 uppercase tracking-tight">Friends</span>
+                                            ) : (pendingRequests.some(r => r.user?.id === session.partner_id) || sentRequests.some(r => r.user?.id === session.partner_id)) ? (
+                                                <div className="flex flex-col items-end">
+                                                    <span className="px-2 py-1 rounded-lg bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-tight">
+                                                        {sentRequests.some(r => r.user?.id === session.partner_id) ? 'Requested' : 'Pending'}
+                                                    </span>
+                                                    {pendingRequests.some(r => r.user?.id === session.partner_id) && (
+                                                        <button
+                                                            onClick={() => onRefresh()} // Go to friends drawer to accept
+                                                            className="text-[8px] font-bold text-[#FF0055] hover:underline mt-0.5"
+                                                        >
+                                                            Accept in Circle
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
                                                 <button
-                                                    onClick={() => session.partnerId && onAddFriend(session.partnerId)}
+                                                    onClick={() => session.partner_id && onAddFriend(session.partner_id)}
                                                     title="Add Friend"
                                                     className="w-9 h-9 rounded-full border border-slate-100 bg-slate-50 text-slate-400 hover:bg-pink-50 hover:text-[#FF0055] hover:border-pink-100 flex items-center justify-center transition-all"
                                                 >
@@ -226,11 +243,12 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                                                     </svg>
                                                 </button>
-                                            )}
+                                            )
+                                        )}
 
-                                        {session.partnerStatus?.isOnline && (
+                                        {session.partner_status?.is_online && (
                                             <button
-                                                onClick={() => session.partnerId && onCall(session.partnerId)}
+                                                onClick={() => session.partner_id && onCall(session.partner_id)}
                                                 disabled={isConnected}
                                                 title={isConnected ? 'Already in a call' : 'Call user'}
                                                 className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all shrink-0 ${isConnected
@@ -255,7 +273,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                     <div className="mt-4 px-2 shrink-0 flex justify-between items-center">
                         {stats && (
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                {stats.totalSessions} Sessions
+                                {stats.total_sessions} Sessions
                             </span>
                         )}
                         <button

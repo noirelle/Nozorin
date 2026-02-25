@@ -46,7 +46,7 @@ export const useMatchingActions = ({
 }: UseMatchingActionsProps) => {
     const { user, isChecking } = useUser();
     const isJoiningRef = useRef(false);
-    const lastOptionsRef = useRef<{ preferredCountry?: string; userId?: string; peerId?: string } | undefined>(undefined);
+    const lastOptionsRef = useRef<{ preferred_country?: string; user_id?: string; peer_id?: string } | undefined>(undefined);
 
     // Keep callbacks and user/checking state stable for async loops
     const callbacksRef = useRef(callbacks);
@@ -78,9 +78,9 @@ export const useMatchingActions = ({
     }, []);
 
     const startSearch = useCallback(async (options?: {
-        preferredCountry?: string;
-        userId?: string;
-        peerId?: string;
+        preferred_country?: string;
+        user_id?: string;
+        peer_id?: string;
         isRetry?: boolean;
     }) => {
         if (isJoiningRef.current) {
@@ -88,7 +88,7 @@ export const useMatchingActions = ({
             return;
         }
 
-        console.log(`[Matching] Starting search flow, preference: ${options?.preferredCountry || 'None'}`);
+        console.log(`[Matching] Starting search flow, preference: ${options?.preferred_country || 'None'}`);
         lastOptionsRef.current = options;
         setStatus('CONNECTING');
         isJoiningRef.current = true;
@@ -96,7 +96,7 @@ export const useMatchingActions = ({
         try {
             // 0. Ensure user is identified (especially after quick reload)
             const userAvailable = await waitForUser();
-            const effectiveUserId = options?.userId || userRef.current?.id;
+            const effectiveUserId = options?.user_id || userRef.current?.id;
 
             if (!effectiveUserId) {
                 console.error('[Matching] Aborting: No user ID available. userAvailable:', userAvailable);
@@ -123,11 +123,11 @@ export const useMatchingActions = ({
             // 2. Call the join queue API
             const requestId = Math.random().toString(36).substring(7);
             const joinPromise = matchmaking.joinQueue({
-                userId: effectiveUserId,
+                user_id: effectiveUserId,
                 mode: 'voice' as const,
-                preferences: { selectedCountry: options?.preferredCountry || 'GLOBAL' },
-                session: { peerId: options?.peerId, connectionId: undefined },
-                requestId,
+                preferences: { selected_country: options?.preferred_country || 'GLOBAL' },
+                session: { peer_id: options?.peer_id, connection_id: undefined },
+                request_id: requestId,
             });
 
             // Add a safety timeout for the API call
@@ -184,10 +184,10 @@ export const useMatchingActions = ({
         emitEndCall(partnerId);
     }, [setStatus]);
 
-    const rejoinCall = useCallback((roomId?: string) => {
+    const rejoinCall = useCallback((room_id?: string) => {
         console.log('[Matching] Attempting to rejoin call...');
         setStatus('RECONNECTING');
-        emitRejoinCall(roomId);
+        emitRejoinCall(room_id);
     }, [setStatus]);
 
     const cancelReconnect = useCallback(() => {
@@ -198,12 +198,12 @@ export const useMatchingActions = ({
         try { localStorage.removeItem('nz_active_call'); } catch { }
     }, [clearReconnectTimer, setStatus]);
 
-    const skipToNext = useCallback((preferredCountry?: string) => {
+    const skipToNext = useCallback((preferred_country?: string) => {
         if (isSkipping) return;
         console.log('[Matching] Skipping to next...');
         setIsSkipping(true);
         if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
-        startSearch({ preferredCountry });
+        startSearch({ preferred_country });
         skipTimerRef.current = setTimeout(() => { setIsSkipping(false); skipTimerRef.current = null; }, 2000);
     }, [isSkipping, startSearch, setIsSkipping, skipTimerRef]);
 
@@ -251,9 +251,9 @@ export const useMatchingActions = ({
     }, [clearReconnectTimer, setStatus, setPosition]);
 
     const buildHandlePartnerReconnecting = useCallback(() => (data: PartnerReconnectingPayload) => {
-        console.log(`[Matching] Partner reconnecting... timeout: ${data.timeoutMs}ms`);
+        console.log(`[Matching] Partner reconnecting... timeout: ${data.timeout_ms}ms`);
         setStatus('RECONNECTING');
-        const totalSeconds = Math.ceil(data.timeoutMs / 1000);
+        const totalSeconds = Math.ceil(data.timeout_ms / 1000);
         setReconnectCountdown(totalSeconds);
         if (reconnectTimerRef.current) clearInterval(reconnectTimerRef.current);
         reconnectTimerRef.current = setInterval(() => {

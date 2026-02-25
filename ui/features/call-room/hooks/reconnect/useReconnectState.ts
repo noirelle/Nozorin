@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 export interface ActiveCallData {
-    roomId?: string;
+    room_id?: string;
     peerId: string;
     startedAt: number;
     partnerProfile?: {

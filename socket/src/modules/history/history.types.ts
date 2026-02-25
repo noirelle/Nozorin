@@ -1,10 +1,10 @@
 export interface HistorySession {
-    sessionId: string;
-    partnerId?: string;
+    session_id: string;
+    partner_id?: string;
     country?: string;
-    countryCode?: string;
-    partnerCountry?: string;
-    partnerCountryCode?: string;
+    country_code?: string;
+    partner_country?: string;
+    partner_country_code?: string;
     mode: 'chat' | 'voice';
 }
 

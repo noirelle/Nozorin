@@ -3,7 +3,7 @@ import { useReconnectState, ActiveCallData } from './useReconnectState';
 import { useReconnectListeners } from './useReconnectListeners';
 
 interface UseReconnectOptions {
-    rejoinCall: (roomId?: string) => void;
+    rejoinCall: (room_id?: string) => void;
     onRestorePartner?: (data: ActiveCallData) => void;
 }
 
@@ -46,7 +46,7 @@ export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptio
     const handleIdentified = useCallback(() => {
         if (attemptedRef.current || !activeCallRef.current) return;
         attemptedRef.current = true;
-        rejoinCall(activeCallRef.current.roomId);
+        rejoinCall(activeCallRef.current.room_id);
     }, [rejoinCall, attemptedRef, activeCallRef]);
 
     useEffect(() => {

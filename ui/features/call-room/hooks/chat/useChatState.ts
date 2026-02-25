@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 export interface Message {
-    senderId: string;
+    sender_id: string;
     isSelf: boolean;
     message: string;
     timestamp: string;

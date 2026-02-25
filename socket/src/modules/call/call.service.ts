@@ -9,14 +9,14 @@ import { CallDisconnectReason } from '../../shared/types/socket.types';
 export const callService = {
     handleEndCall: async (io: Server, socketId: string, data: { target: string | null; reason?: CallDisconnectReason }) => {
         const info = activeCalls.get(socketId);
-        const partnerId = data?.target || info?.partnerId;
+        const partnerId = data?.target || info?.partner_id;
         const reason: CallDisconnectReason = data?.reason || 'skip';
 
         if (partnerId) {
             const partnerInfo = activeCalls.get(partnerId);
 
             // Capture data for history before deleting state
-            const startTime = info?.startTime;
+            const startTime = info?.start_time;
             const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
             // Delete state immediately to prevent re-entry
@@ -48,24 +48,24 @@ export const callService = {
 
     handleDisconnect: async (io: Server, socketId: string) => {
         const info = activeCalls.get(socketId);
-        const partnerId = info?.partnerId;
+        const partnerId = info?.partner_id;
         const userId = userService.getUserId(socketId);
 
         if (partnerId && userId) {
             const partnerUserId = userService.getUserId(partnerId);
             reconnectingUsers.set(userId, {
-                partnerSocketId: partnerId,
-                partnerUserId: partnerUserId || 'unknown',
-                roomId: `match-${socketId}-${partnerId}`,
-                startTime: info.startTime,
-                expiresAt: Date.now() + 30000
+                partner_socket_id: partnerId,
+                partner_user_id: partnerUserId || 'unknown',
+                room_id: `match-${socketId}-${partnerId}`,
+                start_time: info.start_time,
+                expires_at: Date.now() + 30000
             });
 
             io.to(partnerId).emit(SocketEvents.PARTNER_RECONNECTING, { timeoutMs: 30000 });
             logger.info({ socketId, userId, partnerId }, '[CALL] Partner disconnected, starting grace period');
         } else if (partnerId) {
             // No chance to reconnect, end it and record
-            const startTime = info?.startTime;
+            const startTime = info?.start_time;
             const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
             // Delete state immediately
@@ -83,30 +83,30 @@ export const callService = {
     cleanupExpiredSessions: async (io: Server) => {
         const now = Date.now();
         for (const [userId, info] of reconnectingUsers.entries()) {
-            if (now > info.expiresAt) {
+            if (now > info.expires_at) {
                 reconnectingUsers.delete(userId);
 
-                const activeInfo = activeCalls.get(info.partnerSocketId);
+                const activeInfo = activeCalls.get(info.partner_socket_id);
                 if (activeInfo) {
-                    const startTime = activeInfo.startTime;
+                    const startTime = activeInfo.start_time;
                     const duration = startTime ? Math.floor((now - startTime) / 1000) : 0;
 
-                    // We don't have the original socketId easily here, but we can use info.partnerSocketId's partner
-                    const originalSocketId = [...activeCalls.entries()].find(([k, v]) => v.partnerId === info.partnerSocketId)?.[0];
+                    // We don't have the original socketId easily here, but we can use info.partner_socket_id's partner
+                    const originalSocketId = [...activeCalls.entries()].find(([k, v]) => v.partner_id === info.partner_socket_id)?.[0];
 
                     // Clear state before async ops
-                    activeCalls.delete(info.partnerSocketId);
+                    activeCalls.delete(info.partner_socket_id);
                     if (originalSocketId) {
                         activeCalls.delete(originalSocketId);
                     }
 
-                    const partnerSocket = io.sockets.sockets.get(info.partnerSocketId);
+                    const partnerSocket = io.sockets.sockets.get(info.partner_socket_id);
                     if (partnerSocket) {
                         partnerSocket.emit(SocketEvents.CALL_ENDED, { reason: 'partner-disconnect' });
                     }
 
                     if (originalSocketId && startTime) {
-                        await callService.reportHistory(originalSocketId, info.partnerSocketId, duration, 'timeout', 'partner-disconnect');
+                        await callService.reportHistory(originalSocketId, info.partner_socket_id, duration, 'timeout', 'partner-disconnect');
                     }
                 }
                 logger.info({ userId }, '[CALL] Reconnection grace period expired');
@@ -132,7 +132,7 @@ export const callService = {
                 partner_username: partner.username,
                 partner_avatar: partner.avatar,
                 partner_country: partner.country,
-                partner_country_code: partner.countryCode,
+                partner_country_code: partner.country_code,
                 duration,
                 mode: 'voice',
                 reason: r

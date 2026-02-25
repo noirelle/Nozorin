@@ -24,6 +24,7 @@ interface RoomProps {
     onAddFriend: (targetId: string) => void;
     friends: any[];
     pendingRequests: any[];
+    sentRequests: any[];
 }
 
 export default function Room({
@@ -35,7 +36,8 @@ export default function Room({
     initialMatchData,
     onAddFriend,
     friends,
-    pendingRequests
+    pendingRequests,
+    sentRequests
 }: RoomProps) {
     // 1. Core State
     const {
@@ -88,13 +90,13 @@ export default function Room({
             if (state === 'failed') actionsRef.current?.handleStop();
         },
         onSignalQuality: (quality) => {
-            const partnerId = callRoomState.partnerId;
-            if (partnerId) emitSignalStrength(partnerId, quality);
+            const partner_id = callRoomState.partner_id;
+            if (partner_id) emitSignalStrength(partner_id, quality);
         },
     });
 
     // 5. Chat & History — no socket prop
-    const { messages, messagesEndRef, sendMessage, clearMessages } = useChat(callRoomState.partnerId);
+    const { messages, messagesEndRef, sendMessage, clearMessages } = useChat(callRoomState.partner_id);
     const { token, user } = useUser();
     const { trackSessionStart, trackSessionEnd } = useHistory(token, user?.id);
 
@@ -117,6 +119,7 @@ export default function Room({
         initMediaManager,
         cleanupMedia,
         setHasPromptedForPermission,
+        isDirectCall: !!initialMatchData,
     });
 
     actionsRef.current = actions;
@@ -153,13 +156,13 @@ export default function Room({
                     pp.username || '',
                     pp.avatar || '',
                     pp.gender || '',
-                    pp.userId || null
+                    pp.user_id || null
                 );
             }
         }, [setPartner]),
     });
 
-    const callDuration = useCallDuration(callRoomState.isConnected);
+    const callDuration = useCallDuration(callRoomState.is_connected);
 
     const handleSendMessageWrapper = (text: string) => actions.handleSendMessage(text, setInputText);
 

@@ -12,15 +12,15 @@ const router = Router();
  * Resolves socketId from this service's own in-memory registry.
  */
 router.post('/join', async (req: Request, res: Response) => {
-    const { userId, mode, preferences, peerId, requestId } = req.body as {
-        userId: string;
+    const { user_id: userId, mode, preferences, peer_id: peerId, request_id: requestId } = req.body as {
+        user_id: string;
         mode: string;
-        preferences?: { selectedCountry?: string; language?: string; minRating?: number };
-        peerId?: string;
-        requestId?: string;
+        preferences?: { selected_country?: string; language?: string; min_rating?: number };
+        peer_id?: string;
+        request_id?: string;
     };
 
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
 
     const socketId = userService.getSocketId(userId);
     if (!socketId) {
@@ -39,11 +39,11 @@ router.post('/join', async (req: Request, res: Response) => {
 
     await matchmakingService.joinQueue(null, {
         socketId,
-        userId,
+        user_id: userId,
         mode: mode as 'voice',
         preferences,
-        peerId,
-        requestId,
+        peer_id: peerId,
+        request_id: requestId,
     });
 
     res.json({ queued: true, queueLength: voiceQueue.length });
@@ -51,11 +51,11 @@ router.post('/join', async (req: Request, res: Response) => {
 
 /**
  * POST /internal/queue/leave
- * Body: { userId }
+ * Body: { user_id }
  */
 router.post('/leave', (req: Request, res: Response) => {
-    const { userId } = req.body as { userId: string };
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const { user_id: userId } = req.body as { user_id: string };
+    if (!userId) return res.status(400).json({ error: 'user_id required' });
 
     const socketId = userService.getSocketId(userId);
     if (socketId) {

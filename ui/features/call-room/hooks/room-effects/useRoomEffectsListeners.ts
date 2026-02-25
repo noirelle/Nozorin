@@ -12,10 +12,10 @@ export const useRoomEffectsListeners = ({
     setPartnerSignalStrength,
 }: UseRoomEffectsListenersProps) => {
     // Partner media state listeners
-    const handlePartnerMute = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.isMuted));
+    const handlePartnerMute = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.is_muted));
     const handlePartnerSignal = useRef((data: PartnerSignalStrengthPayload) => setPartnerSignalStrength(data.strength));
 
-    useEffect(() => { handlePartnerMute.current = (data) => setPartnerIsMuted(data.isMuted); }, [setPartnerIsMuted]);
+    useEffect(() => { handlePartnerMute.current = (data) => setPartnerIsMuted(data.is_muted); }, [setPartnerIsMuted]);
     useEffect(() => { handlePartnerSignal.current = (data) => setPartnerSignalStrength(data.strength); }, [setPartnerSignalStrength]);
 
     useSocketEvent<PartnerMuteStatePayload>(

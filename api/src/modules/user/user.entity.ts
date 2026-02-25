@@ -27,6 +27,9 @@ export class User {
     country!: string;
 
     @Column({ nullable: true })
+    country_code!: string;
+
+    @Column({ nullable: true })
     city!: string;
 
     @Column({ nullable: true })

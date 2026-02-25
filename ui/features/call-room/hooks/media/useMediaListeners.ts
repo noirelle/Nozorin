@@ -22,10 +22,10 @@ export const useMediaListeners = ({
     findMatch,
 }: UseMediaListenersProps) => {
     // Keep handlers stable via refs to avoid re-registering socket listeners
-    const handlePartnerMuteRef = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.isMuted));
+    const handlePartnerMuteRef = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.is_muted));
     const handlePartnerSignalRef = useRef((data: PartnerSignalStrengthPayload) => setPartnerSignalStrength(data.strength));
 
-    useEffect(() => { handlePartnerMuteRef.current = (data) => setPartnerIsMuted(data.isMuted); }, [setPartnerIsMuted]);
+    useEffect(() => { handlePartnerMuteRef.current = (data) => setPartnerIsMuted(data.is_muted); }, [setPartnerIsMuted]);
     useEffect(() => { handlePartnerSignalRef.current = (data) => setPartnerSignalStrength(data.strength); }, [setPartnerSignalStrength]);
 
     useSocketEvent<PartnerMuteStatePayload>(
@@ -39,20 +39,20 @@ export const useMediaListeners = ({
 
     // Sync local mute state with server whenever media state changes
     useEffect(() => {
-        if (!callRoomState.isMediaReady) return;
-        emitUpdateMediaState(callRoomState.isMuted);
-    }, [callRoomState.isMediaReady, callRoomState.isMuted]);
+        if (!callRoomState.is_media_ready) return;
+        emitUpdateMediaState(callRoomState.is_muted);
+    }, [callRoomState.is_media_ready, callRoomState.is_muted]);
 
     // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') handleUserStop();
             else if (e.key === 'ArrowRight') {
-                if (callRoomState.isConnected || callRoomState.isSearching) handleNext();
+                if (callRoomState.is_connected || callRoomState.is_searching) handleNext();
                 else findMatch();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleUserStop, handleNext, findMatch, callRoomState.isConnected, callRoomState.isSearching]);
+    }, [handleUserStop, handleNext, findMatch, callRoomState.is_connected, callRoomState.is_searching]);
 };

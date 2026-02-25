@@ -1,4 +1,4 @@
 export interface StatusUpdatePayload {
-    userId: string;
+    user_id: string;
     status: unknown;
 }

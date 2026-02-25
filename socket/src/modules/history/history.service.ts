@@ -27,10 +27,10 @@ export const historyService = {
         const countriesConnected = [...new Set(records.map((r: CallHistory) => r.partner_country).filter((c: string | null): c is string => !!c))];
 
         return {
-            totalSessions,
-            totalDuration,
-            averageDuration,
-            countriesConnected
+            total_sessions: totalSessions,
+            total_duration: totalDuration,
+            average_duration: averageDuration,
+            countries_connected: countriesConnected
         };
     },
 
@@ -60,7 +60,7 @@ export const historyService = {
 
             return newRecord;
         } catch (err) {
-            logger.error({ err, userId: (data as any).user_id }, '[HISTORY] Failed to add history record');
+            logger.error({ err, user_id: (data as any).user_id }, '[HISTORY] Failed to add history record');
             return null;
         }
     }
@@ -83,21 +83,21 @@ export const register = (io: any, socket: Socket): void => {
 
         try {
             const history = await historyService.getHistory(userId, limit);
-            const partnerIds = [...new Set(history.map((s: CallHistory) => s.partner_id).filter((id): id is string => !!(id && id !== 'unknown')))];
-            const statuses = await userService.getUserStatuses(partnerIds);
+            const partner_ids = [...new Set(history.map((s: CallHistory) => s.partner_id).filter((id): id is string => !!(id && id !== 'unknown')))];
+            const statuses = await userService.getUserStatuses(partner_ids);
 
             const enhanced = history.map((s: CallHistory) => ({
-                sessionId: s.id,
-                partnerId: s.partner_id,
-                partnerUsername: s.partner_username,
-                partnerAvatar: s.partner_avatar,
-                partnerCountry: s.partner_country,
-                partnerCountryCode: s.partner_country_code,
+                session_id: s.id,
+                partner_id: s.partner_id,
+                partner_username: s.partner_username,
+                partner_avatar: s.partner_avatar,
+                partner_country: s.partner_country,
+                partner_country_code: s.partner_country_code,
                 duration: s.duration,
                 mode: s.mode,
-                createdAt: s.created_at ? new Date(s.created_at).getTime() : 0,
-                disconnectReason: s.reason,
-                partnerStatus: s.partner_id && s.partner_id !== 'unknown' ? statuses[s.partner_id] : { isOnline: false, lastSeen: 0 },
+                created_at: s.created_at ? new Date(s.created_at).getTime() : 0,
+                disconnect_reason: s.reason,
+                partner_status: s.partner_id && s.partner_id !== 'unknown' ? statuses[s.partner_id] : { is_online: false, last_seen: 0 },
             }));
 
             socket.emit(SocketEvents.HISTORY_DATA, { history: enhanced });
@@ -145,7 +145,7 @@ export const register = (io: any, socket: Socket): void => {
         try {
             await historyService.clearHistory(userId);
             socket.emit(SocketEvents.HISTORY_CLEARED);
-            logger.info({ userId: userId.substring(0, 8) }, '[HISTORY] Cleared');
+            logger.info({ user_id: userId.substring(0, 8) }, '[HISTORY] Cleared');
         } catch (err) {
             logger.error({ err }, '[HISTORY] Failed to clear');
             socket.emit(SocketEvents.HISTORY_CLEAR_ERROR, { message: 'Failed to clear history' });

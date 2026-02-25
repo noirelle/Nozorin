@@ -29,8 +29,10 @@ export const useUserActions = ({ token, user, login, logout, setToken, setChecke
                 });
                 setChecked(true);
                 if (!apiError && userData) {
-                    login(currentToken, userData as UserProfile);
-                    return currentToken;
+                    // Pull the absolute latest token from the store, in case it was refreshed during the request
+                    const finalToken = (typeof window !== 'undefined' ? localStorage.getItem('nz_token') : null) || currentToken;
+                    login(finalToken, userData as UserProfile);
+                    return finalToken;
                 } else {
                     logout();
                     return null;

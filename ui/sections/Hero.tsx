@@ -60,7 +60,7 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => v
                         </div>
                     </div>
                     <div>
-                        <span className="text-gray-900 font-bold block">{formatNumber(stats.peopleOnline)} People Online</span>
+                        <span className="text-gray-900 font-bold block">{formatNumber(stats.people_online)} People Online</span>
                         <span className="text-xs text-green-500 font-bold flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                             Live Now

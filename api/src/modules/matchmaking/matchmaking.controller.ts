@@ -6,10 +6,12 @@ import { getUserFromRequest } from '../../core/middleware/auth.middleware';
 
 export const matchmakingController = {
     async joinQueue(req: Request, res: Response) {
-        const authUserId = (req as any).user.id;
-        const { userId, mode, preferences, session, requestId } = req.body;
+        const authUserId = (req as any).user.userId || (req as any).user.id;
+        const { user_id, userId, mode, preferences, session, requestId } = req.body;
+        const targetUserId = user_id || userId;
 
-        if (userId !== authUserId) {
+        if (targetUserId !== authUserId) {
+            console.error(`[MATCH] User ID mismatch error. Body userId: ${targetUserId} vs Auth userId: ${authUserId}. req.user:`, (req as any).user);
             return res.status(403).json(errorResponse('User ID mismatch'));
         }
 
@@ -25,7 +27,7 @@ export const matchmakingController = {
             }
 
             const socketResponse = await matchmakingService.joinQueue({
-                userId: authUserId,
+                userId: targetUserId,
                 mode,
                 preferences,
                 peerId: session?.peerId,
@@ -64,7 +66,7 @@ export const matchmakingController = {
                 });
             }
 
-            const socketResponse = await matchmakingService.leaveQueue({ userId: user.id });
+            const socketResponse = await matchmakingService.leaveQueue({ userId: user.userId || user.id });
 
             if (!socketResponse.success) {
                 return res.status(400).json(errorResponse(socketResponse.error || 'Socket service error'));

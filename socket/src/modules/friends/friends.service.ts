@@ -10,55 +10,55 @@ export const setIo = (io: import('socket.io').Server): void => {
 };
 
 export const friendsService = {
-    async notifyFriendRequest(userId: string, senderProfile: any) {
+    async notifyFriendRequest(user_id: string, sender_profile: any) {
         if (!_ioInstance) return;
-        const socketId = userService.getSocketId(userId);
-        if (socketId) {
-            _ioInstance.to(socketId).emit('friend-request-received', {
-                profile: senderProfile,
+        const socket_id = userService.getSocketId(user_id);
+        if (socket_id) {
+            _ioInstance.to(socket_id).emit('friend-request-received', {
+                profile: sender_profile,
                 type: 'received'
             });
-            logger.info({ userId, event: 'friend-request-received' }, '[FRIEND_SERVICE] Notification sent');
+            logger.info({ user_id, event: 'friend-request-received' }, '[FRIEND_SERVICE] Notification sent');
         }
     },
 
-    async notifyRequestAccepted(userId: string, requestId: string, friendProfile: any) {
+    async notifyRequestAccepted(user_id: string, request_id: string, friend_profile: any) {
         if (!_ioInstance) return;
-        const socketId = userService.getSocketId(userId);
-        if (socketId) {
-            _ioInstance.to(socketId).emit('friend-request-accepted', {
-                requestId,
-                friend: friendProfile
+        const socket_id = userService.getSocketId(user_id);
+        if (socket_id) {
+            _ioInstance.to(socket_id).emit('friend-request-accepted', {
+                request_id,
+                friend: friend_profile
             });
-            logger.info({ userId, event: 'friend-request-accepted' }, '[FRIEND_SERVICE] Notification sent');
+            logger.info({ user_id, event: 'friend-request-accepted' }, '[FRIEND_SERVICE] Notification sent');
         }
     },
 
-    async notifyRequestDeclined(userId: string, requestId: string) {
+    async notifyRequestDeclined(user_id: string, request_id: string) {
         if (!_ioInstance) return;
-        const socketId = userService.getSocketId(userId);
-        if (socketId) {
-            _ioInstance.to(socketId).emit('friend-request-declined', {
-                requestId
+        const socket_id = userService.getSocketId(user_id);
+        if (socket_id) {
+            _ioInstance.to(socket_id).emit('friend-request-declined', {
+                request_id
             });
-            logger.info({ userId, event: 'friend-request-declined' }, '[FRIEND_SERVICE] Notification sent');
+            logger.info({ user_id, event: 'friend-request-declined' }, '[FRIEND_SERVICE] Notification sent');
         }
     },
 
-    async notifyFriendRemoved(userId: string, friendId: string) {
+    async notifyFriendRemoved(user_id: string, friend_id: string) {
         if (!_ioInstance) return;
-        const socketId = userService.getSocketId(userId);
-        if (socketId) {
-            _ioInstance.to(socketId).emit('friend-removed', {
-                friendId
+        const socket_id = userService.getSocketId(user_id);
+        if (socket_id) {
+            _ioInstance.to(socket_id).emit('friend-removed', {
+                friend_id
             });
-            logger.info({ userId, event: 'friend-removed' }, '[FRIEND_SERVICE] Notification sent');
+            logger.info({ user_id, event: 'friend-removed' }, '[FRIEND_SERVICE] Notification sent');
         }
     },
 
-    isUserOnline(userId: string): boolean {
-        const socketId = userService.getSocketId(userId);
-        return !!socketId;
+    isUserOnline(user_id: string): boolean {
+        const socket_id = userService.getSocketId(user_id);
+        return !!socket_id;
     }
 };
 

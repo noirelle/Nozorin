@@ -14,7 +14,7 @@ export const useChatActions = ({ partnerId, setMessages, setShowChat }: UseChatA
         if (!partnerId) return;
         const socket = getSocketClient();
         const msg: Message = {
-            senderId: socket?.id || 'me',
+            sender_id: socket?.id || 'me',
             isSelf: true,
             message: text,
             timestamp: new Date().toISOString(),

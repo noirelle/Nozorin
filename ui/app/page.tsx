@@ -94,13 +94,14 @@ export default function Home() {
                 onAddFriend={() => { }}
                 friends={[]}
                 pendingRequests={[]}
+                sentRequests={[]}
                 isConnected={false}
             />
 
             {incomingCall && (
                 <IncomingCallOverlay
-                    fromCountry={incomingCall.fromCountry}
-                    fromCountryCode={incomingCall.fromCountryCode}
+                    from_country={incomingCall.from_country}
+                    from_country_code={incomingCall.from_country_code}
                     mode={incomingCall.mode}
                     onAccept={performAcceptCall}
                     onDecline={performDeclineCall}

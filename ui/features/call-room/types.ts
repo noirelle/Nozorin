@@ -28,6 +28,7 @@ export interface RoomLayoutProps {
     onAddFriend?: (targetId: string) => void;
     friends?: any[];
     pendingRequests?: any[];
+    sentRequests?: any[];
 
     // Mobile specific
     mobileLayout?: 'overlay' | 'split';

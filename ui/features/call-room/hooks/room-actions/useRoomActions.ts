@@ -9,7 +9,7 @@ interface UseRoomActionsProps {
     callRoomState: CallRoomState;
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
-    setPartner: (id: string | null, country?: string, countryCode?: string, username?: string, avatar?: string, gender?: string, userId?: string | null) => void;
+    setPartner: (id: string | null, country?: string, country_code?: string, username?: string, avatar?: string, gender?: string, user_id?: string | null) => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     initMediaManager: () => Promise<boolean>;
@@ -22,6 +22,7 @@ interface UseRoomActionsProps {
     trackSessionEnd: (reason: 'user-action' | 'partner-disconnect' | 'error' | 'skip' | 'network' | 'answered-another') => void;
     selectedCountry: string;
     toggleLocalMute: () => void;
+    isDirectCall?: boolean;
 }
 
 export const useRoomActions = (props: UseRoomActionsProps) => {
@@ -44,6 +45,10 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         roomActionsState.endCallRef.current = matching.endCall;
     }, [matching, roomActionsState.startSearchRef, roomActionsState.stopSearchRef, roomActionsState.endCallRef]);
 
+    useEffect(() => {
+        roomActionsState.setIsDirectCall(!!props.isDirectCall);
+    }, [props.isDirectCall, roomActionsState.setIsDirectCall]);
+
     return {
         handleStop: callbacks.handleStop,
         findMatch: callbacks.findMatch,
@@ -53,6 +58,7 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         handleToggleMute: callbacks.handleToggleMute,
         partnerIsMuted: roomActionsState.partnerIsMuted,
         setPartnerIsMuted: roomActionsState.setPartnerIsMuted,
+        isDirectCall: roomActionsState.isDirectCall,
         pendingRejoinPartnerRef: roomActionsState.pendingRejoinPartnerRef,
         matching,
         onMatchFound: callbacks.onMatchFound,

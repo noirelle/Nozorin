@@ -1,6 +1,6 @@
 export interface TrackingSessionData {
-    userId: string;
-    sessionId: string;
-    partnerId: string;
+    user_id: string;
+    session_id: string;
+    partner_id: string;
     mode: 'chat' | 'voice';
 }

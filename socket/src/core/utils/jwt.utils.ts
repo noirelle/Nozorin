@@ -33,6 +33,6 @@ export const verifyRefreshToken = (token: string): RefreshTokenPayload | null =>
 };
 
 export const getUserIdFromToken = (token: string): string | null => {
-    const payload = verifyVisitorToken(token);
-    return payload?.userId || null;
+    const payload = verifyVisitorToken(token) as any;
+    return payload?.userId || payload?.user_id || null;
 };

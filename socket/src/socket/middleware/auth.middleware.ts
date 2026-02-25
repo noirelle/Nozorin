@@ -5,8 +5,8 @@ import { logger } from '../../core/logger';
 export interface AuthenticatedSocket extends Socket {
     data: {
         user?: {
-            userId: string;
-            userType: string;
+            user_id: string;
+            user_type: string;
         };
         isGuest?: boolean;
         [key: string]: unknown;
@@ -23,13 +23,13 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: Error) => void
 
     const visitorPayload = verifyVisitorToken(token as string);
     if (visitorPayload) {
-        socket.data.user = { userId: visitorPayload.userId, userType: visitorPayload.userType };
+        socket.data.user = { user_id: visitorPayload.userId, user_type: visitorPayload.userType };
         return next();
     }
 
     const refreshPayload = verifyRefreshToken(token as string);
     if (refreshPayload) {
-        socket.data.user = { userId: refreshPayload.userId, userType: 'authenticated' };
+        socket.data.user = { user_id: refreshPayload.userId, user_type: 'authenticated' };
         return next();
     }
 

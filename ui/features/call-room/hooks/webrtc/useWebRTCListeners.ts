@@ -22,7 +22,7 @@ export const useWebRTCListeners = ({
     peerConnectionRef,
 }: UseWebRTCListenersProps) => {
     const onOfferReceived = useCallback((data: OfferReceivedPayload) => {
-        handleOffer(data.sdp, data.callerId);
+        handleOffer(data.sdp, data.caller_id);
     }, [handleOffer]);
 
     const onAnswerReceived = useCallback((data: AnswerReceivedPayload) => {

@@ -1,23 +1,23 @@
 // ── Direct Call ───────────────────────────────────────────────────────────────
 
 export interface InitiateDirectCallPayload {
-    targetUserId: string;
+    target_user_id: string;
     mode: 'voice';
 }
 
 export interface IncomingCallPayload {
-    fromUserId: string;
-    fromSocketId: string;
-    fromUsername: string;
-    fromAvatar: string;
-    fromGender: string;
-    fromCountry: string;
-    fromCountryCode: string;
+    from_user_id: string;
+    from_socket_id: string;
+    from_username: string;
+    from_avatar: string;
+    from_gender: string;
+    from_country: string;
+    from_country_code: string;
     mode: 'voice';
 }
 
 export interface RespondToCallPayload {
-    callerSocketId: string;
+    caller_socket_id: string;
     accepted: boolean;
     mode: 'voice';
 }
@@ -27,5 +27,5 @@ export interface CallErrorPayload {
 }
 
 export interface CancelCallPayload {
-    targetUserId: string;
+    target_user_id: string;
 }

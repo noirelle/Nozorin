@@ -6,7 +6,7 @@ export interface SendMessagePayload {
 }
 
 export interface ReceiveMessagePayload {
-    senderId: string;
+    sender_id: string;
     message: string;
     timestamp: string;
 }

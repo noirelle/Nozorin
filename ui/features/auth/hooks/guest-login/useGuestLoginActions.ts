@@ -61,8 +61,8 @@ export const useGuestLoginActions = ({ setIsRegistering, setError }: UseGuestLog
 
                 const { error: guestError, data: guestData } = await api.post<GuestRegistrationResponse, GuestRegistrationRequest>('/api/auth/guest', {
                     ...data,
-                    sessionId: sessionId as string, // Cast because getSessionId can return null but unlikely if logic holds
-                    deviceId,
+                    session_id: sessionId as string,
+                    device_id: deviceId,
                     footprint: fingerprint
                 });
 

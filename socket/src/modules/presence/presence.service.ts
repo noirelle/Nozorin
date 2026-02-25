@@ -11,7 +11,7 @@ export const presenceService = {
         if (!userId || userId === 'unknown') return;
         try {
             const status = await userService.getUserStatus(userId);
-            io.to(`status:${userId}`).emit(SocketEvents.PARTNER_STATUS_CHANGE, { userId, status });
+            io.to(`status:${userId}`).emit(SocketEvents.PARTNER_STATUS_CHANGE, { user_id: userId, status });
         } catch (err) {
             logger.error({ err, userId }, '[PRESENCE] Failed to broadcast status');
         }
@@ -46,17 +46,17 @@ export const presenceService = {
 export const register = (io: Server, socket: Socket): void => {
     presenceService.handleConnection(io, socket);
 
-    socket.on(SocketEvents.WATCH_USER_STATUS, (data: { userIds: string[] }) => {
-        const { userIds } = data;
-        if (!userIds || !Array.isArray(userIds)) return;
-        userIds.forEach(uid => {
+    socket.on(SocketEvents.WATCH_USER_STATUS, (data: { user_ids: string[] }) => {
+        const { user_ids } = data;
+        if (!user_ids || !Array.isArray(user_ids)) return;
+        user_ids.forEach(uid => {
             if (uid && uid !== 'unknown') socket.join(`status:${uid}`);
         });
     });
 
-    socket.on(SocketEvents.UNWATCH_USER_STATUS, (data: { userIds: string[] }) => {
-        const { userIds } = data;
-        if (!userIds || !Array.isArray(userIds)) return;
-        userIds.forEach(uid => { if (uid) socket.leave(`status:${uid}`); });
+    socket.on(SocketEvents.UNWATCH_USER_STATUS, (data: { user_ids: string[] }) => {
+        const { user_ids } = data;
+        if (!user_ids || !Array.isArray(user_ids)) return;
+        user_ids.forEach(uid => { if (uid) socket.leave(`status:${uid}`); });
     });
 };

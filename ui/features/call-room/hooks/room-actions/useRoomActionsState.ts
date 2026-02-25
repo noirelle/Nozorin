@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 
 export const useRoomActionsState = () => {
     const [partnerIsMuted, setPartnerIsMuted] = useState(false);
+    const [isDirectCall, setIsDirectCall] = useState(false);
 
     const manualStopRef = useRef(false);
     const pendingRejoinPartnerRef = useRef<string | null>(null);
@@ -9,7 +10,7 @@ export const useRoomActionsState = () => {
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Stable ref-forwarded matching action handles
-    const startSearchRef = useRef<(options?: { preferredCountry?: string; userId?: string; peerId?: string }) => Promise<void>>(() => Promise.resolve());
+    const startSearchRef = useRef<(options?: { preferred_country?: string; user_id?: string; peer_id?: string }) => Promise<void>>(() => Promise.resolve());
     const stopSearchRef = useRef<() => void>(() => { });
     const endCallRef = useRef<(id: string | null) => void>(() => { });
 
@@ -24,6 +25,8 @@ export const useRoomActionsState = () => {
     return {
         partnerIsMuted,
         setPartnerIsMuted,
+        isDirectCall,
+        setIsDirectCall,
         manualStopRef,
         pendingRejoinPartnerRef,
         nextTimeoutRef,

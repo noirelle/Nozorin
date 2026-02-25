@@ -7,7 +7,7 @@ export const register = (_io: unknown, socket: Socket): void => {
         const { target, message } = data;
         logger.debug({ socketId: socket.id, target }, '[CHAT] Message sent');
         socket.to(target).emit(SocketEvents.RECEIVE_MESSAGE, {
-            senderId: socket.id,
+            sender_id: socket.id,
             message,
             timestamp: new Date().toISOString(),
         });

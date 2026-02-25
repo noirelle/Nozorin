@@ -14,51 +14,64 @@ let heartbeatSetup = false;
 
 // ── Matching logic ────────────────────────────────────────────────────────────
 
-const tryMatch = (io: Server, queued: User): void => {
+const tryMatch = async (io: Server, queued: User): Promise<void> => {
     const idx = voiceQueue.findIndex(u => u.id !== queued.id);
     if (idx === -1) return;
 
     const partner = voiceQueue.splice(idx, 1)[0];
     removeUserFromQueues(queued.id);
 
-    const roomId = `match-${queued.id}-${partner.id}`;
-    const mediaA = userMediaState.get(queued.id) || { isMuted: false };
-    const mediaB = userMediaState.get(partner.id) || { isMuted: false };
+    // Fetch friendship status if both have user_id
+    let friendshipStatus = 'none';
+    if (queued.user_id !== 'unknown' && partner.user_id !== 'unknown') {
+        friendshipStatus = await userService.getFriendshipStatus(queued.user_id, partner.user_id);
+    }
+
+    const room_id = `match-${queued.id}-${partner.id}`;
+    const mediaA = userMediaState.get(queued.id) || { is_muted: false };
+    const mediaB = userMediaState.get(partner.id) || { is_muted: false };
 
     const startTime = Date.now();
-    activeCalls.set(queued.id, { partnerId: partner.id, startTime });
-    activeCalls.set(partner.id, { partnerId: queued.id, startTime });
+    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime });
+    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime });
 
     io.to(queued.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'offerer',
-        partnerId: partner.id,
-        partnerUserId: partner.userId,
-        partnerUsername: partner.username,
-        partnerAvatar: partner.avatar,
-        partnerGender: partner.gender,
-        partnerCountry: partner.country,
-        partnerCountryCode: partner.countryCode,
-        partnerIsMuted: mediaB.isMuted,
-        roomId,
+        partner_id: partner.id,
+        partner_user_id: partner.user_id,
+        partner_username: partner.username,
+        partner_avatar: partner.avatar,
+        partner_gender: partner.gender,
+        partner_country: partner.country,
+        partner_country_code: partner.country_code,
+        partner_is_muted: mediaB.is_muted,
+        room_id,
         mode: queued.mode,
+        friendship_status: friendshipStatus,
     });
+
+    // Reverse status for the partner
+    let reverseStatus = friendshipStatus;
+    if (friendshipStatus === 'pending_sent') reverseStatus = 'pending_received';
+    else if (friendshipStatus === 'pending_received') reverseStatus = 'pending_sent';
 
     io.to(partner.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'answerer',
-        partnerId: queued.id,
-        partnerUserId: queued.userId,
-        partnerUsername: queued.username,
-        partnerAvatar: queued.avatar,
-        partnerGender: queued.gender,
-        partnerCountry: queued.country,
-        partnerCountryCode: queued.countryCode,
-        partnerIsMuted: mediaA.isMuted,
-        roomId,
+        partner_id: queued.id,
+        partner_user_id: queued.user_id,
+        partner_username: queued.username,
+        partner_avatar: queued.avatar,
+        partner_gender: queued.gender,
+        partner_country: queued.country,
+        partner_country_code: queued.country_code,
+        partner_is_muted: mediaA.is_muted,
+        room_id,
         mode: partner.mode,
+        friendship_status: reverseStatus,
     });
 
     statsService.incrementMatchesToday();
-    logger.info({ roomId, userA: queued.id, userB: partner.id }, '[MATCHMAKING] Match found');
+    logger.info({ room_id, userA: queued.id, userB: partner.id, friendship_status: friendshipStatus }, '[MATCHMAKING] Match found');
 };
 
 
@@ -68,13 +81,13 @@ export const joinQueue = async (
     io: Server | null,
     params: {
         socketId: string;
-        userId?: string;
+        user_id?: string;
         mode: 'voice';
         country?: string;
-        countryCode?: string;
+        country_code?: string;
         preferences?: any;
-        peerId?: string;
-        requestId?: string;
+        peer_id?: string;
+        request_id?: string;
     }
 ): Promise<void> => {
     const serverIo = io || getIo();
@@ -85,22 +98,22 @@ export const joinQueue = async (
 
     const {
         socketId,
-        userId,
+        user_id: userId,
         mode,
         country,
-        countryCode,
+        country_code,
         preferences,
-        peerId,
-        requestId,
+        peer_id: peerId,
+        request_id: requestId,
     } = params;
 
-    // Reliability guard: if userId is already in queue, remove old entry (likely a stale connection)
+    // Reliability guard: if user_id is already in queue, remove old entry (likely a stale connection)
     if (userId && userId !== 'unknown') {
-        const existingIdx = voiceQueue.findIndex(u => u.userId === userId);
+        const existingIdx = voiceQueue.findIndex(u => u.user_id === userId);
         if (existingIdx !== -1) {
             const staleUser = voiceQueue[existingIdx];
             if (staleUser.id !== socketId) {
-                logger.info({ userId, oldSocketId: staleUser.id, newSocketId: socketId }, '[MATCHMAKING] Replacing stale queue entry for user');
+                logger.info({ user_id: userId, old_socket_id: staleUser.id, new_socket_id: socketId }, '[MATCHMAKING] Replacing stale queue entry for user');
                 removeUserFromQueues(staleUser.id);
             } else {
                 // Same socket, same user, already in queue. Just return.
@@ -116,8 +129,8 @@ export const joinQueue = async (
     // Safety guard: if user is already in a call, end it before re-queueing
     const existingInfo = activeCalls.get(socketId);
     if (existingInfo) {
-        await callService.handleEndCall(serverIo, socketId, { target: existingInfo.partnerId, reason: 'skip' });
-        logger.info({ socketId, partnerId: existingInfo.partnerId }, '[MATCHMAKING] Ended orphaned call (skipped) before joining queue');
+        await callService.handleEndCall(serverIo, socketId, { target: existingInfo.partner_id, reason: 'skip' });
+        logger.info({ socketId, partner_id: existingInfo.partner_id }, '[MATCHMAKING] Ended orphaned call (skipped) before joining queue');
     }
 
     // Fetch full profile if we have a userId
@@ -128,30 +141,30 @@ export const joinQueue = async (
 
     const user: User = {
         id: socketId,
-        userId: userId || 'unknown',
+        user_id: userId || 'unknown',
         username: profile?.username || 'Guest',
         avatar: profile?.avatar || '/avatars/avatar1.webp',
         gender: profile?.gender || 'unknown',
         country: profile?.country || country || 'Unknown',
-        countryCode: profile?.countryCode || countryCode || 'UN',
+        country_code: profile?.country_code || country_code || 'UN',
         mode: mode || 'voice',
-        joinedAt: Date.now(),
+        joined_at: Date.now(),
         state: 'FINDING',
         preferences,
-        preferredCountry: preferences?.selectedCountry,
-        peerId,
-        requestId,
+        preferred_country: preferences?.selected_country,
+        peer_id: peerId,
+        request_id: requestId,
     };
 
     voiceQueue.push(user);
-    if (user.countryCode) {
-        const bucket = voiceBuckets.get(user.countryCode) || [];
+    if (user.country_code) {
+        const bucket = voiceBuckets.get(user.country_code) || [];
         bucket.push(user);
-        voiceBuckets.set(user.countryCode, bucket);
+        voiceBuckets.set(user.country_code, bucket);
     }
 
     serverIo.to(user.id).emit(SocketEvents.WAITING_FOR_MATCH, { position: voiceQueue.length });
-    tryMatch(serverIo, user);
+    await tryMatch(serverIo, user);
 };
 
 export const leaveQueue = (socketId: string): void => {
@@ -169,7 +182,7 @@ export const setupMatchmaking = (io: Server): void => {
         // Queue timeout cleanup
         for (let i = voiceQueue.length - 1; i >= 0; i--) {
             const user = voiceQueue[i];
-            if (now - user.joinedAt > 5 * 60 * 1000) {
+            if (now - user.joined_at > 5 * 60 * 1000) {
                 removeUserFromQueues(user.id);
                 io.to(user.id).emit(SocketEvents.MATCH_CANCELLED, { reason: 'timeout' });
                 logger.info({ socketId: user.id }, '[MATCHMAKING] Queue timeout — removed');
@@ -192,16 +205,16 @@ export const register = (io: Server, socket: Socket): void => {
     socket.on(SocketEvents.WAITING_FOR_MATCH, async (data: {
         mode: 'voice';
         country?: string;
-        countryCode?: string;
+        country_code?: string;
         preferences?: any;
     }) => {
         const userId = userService.getUserId(socket.id);
         await joinQueue(io, {
             socketId: socket.id,
-            userId: userId || 'unknown',
+            user_id: userId || 'unknown',
             mode: data.mode || 'voice',
             country: data.country,
-            countryCode: data.countryCode,
+            country_code: data.country_code,
             preferences: data.preferences,
         });
     });
