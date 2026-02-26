@@ -12,7 +12,7 @@ export const handleTokenRefresh = async (): Promise<string | null> => {
             const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
             if (refreshRes.ok) {
                 const refreshData = await refreshRes.json();
-                const newToken = refreshData.token || null;
+                const newToken = refreshData.data?.token || refreshData.token || null;
 
                 if (newToken) {
                     // Update store

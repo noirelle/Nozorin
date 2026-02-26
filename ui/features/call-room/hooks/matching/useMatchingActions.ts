@@ -127,8 +127,8 @@ export const useMatchingActions = ({
                 mode: 'voice' as const,
                 preferences: { selected_country: options?.preferred_country || 'GLOBAL' },
                 session: { peer_id: options?.peer_id, connection_id: undefined },
-                request_id: requestId,
-            });
+                requestId, // Use camelCase requestId for backend compatibility
+            } as any);
 
             // Add a safety timeout for the API call
             const timeoutPromise = new Promise<{ error: string; data: null }>(resolve =>

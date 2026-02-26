@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { api } from '../../lib/api';
 import * as historyActions from '../../lib/socket/history/history.actions';
 import { SessionRecord } from '../../lib/socket/history/history.types';
 import { UseHistoryStateReturn } from './useHistoryState';
@@ -21,10 +22,8 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`/api/session/history/${userId}`);
-            if (!res.ok) throw new Error('Failed to fetch history');
-            const result = await res.json();
-            if (result.status === 'success') {
+            const result = await api.get<any>(`/api/session/history/${userId}`);
+            if (!result.error && result.data) {
                 setHistory(result.data.history);
                 setStats(result.data.stats);
 
@@ -34,10 +33,10 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
                     historyActions.emitWatchUserStatus(partnerIds);
                 }
             } else {
-                throw new Error(result.message || 'Failed to fetch history');
+                throw new Error(result.error || 'Failed to fetch history');
             }
-        } catch (err) {
-            setError('Failed to load history');
+        } catch (err: any) {
+            setError(err.message || 'Failed to load history');
         } finally {
             setIsLoading(false);
         }
@@ -46,19 +45,17 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
     const clearHistory = useCallback(async () => {
         if (!userId) return;
         try {
-            const res = await fetch(`/api/session/history/${userId}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Failed to delete history');
-            const result = await res.json();
-            if (result.status === 'success') {
+            const result = await api.delete<any>(`/api/session/history/${userId}`);
+            if (!result.error) {
                 setHistory([]);
                 setStats(null);
             } else {
-                throw new Error(result.message || 'Failed to delete history');
+                throw new Error(result.error || 'Failed to delete history');
             }
-        } catch (err) {
-            setError('Failed to clear history');
+        } catch (err: any) {
+            setError(err.message || 'Failed to clear history');
         }
-    }, [userId, visitorToken, setError, setHistory, setStats]);
+    }, [userId, setError, setHistory, setStats]);
 
     const trackSessionStart = useCallback((partnerId: string, mode: 'chat' | 'voice') => {
         if (!visitorToken) { console.warn('[HISTORY] Missing token for session start'); return; }

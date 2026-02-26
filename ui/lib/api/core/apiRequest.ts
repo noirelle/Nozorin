@@ -1,3 +1,4 @@
+import { useAuthStore } from '../../../stores/useAuthStore';
 import { ApiResponse, StandardApiResponse } from './types';
 import { getBaseApiUrl } from './config';
 import { handleTokenRefresh, handleAuthError } from './auth';
@@ -21,10 +22,27 @@ export async function apiRequest<T>(
         }
     }
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...(options.headers || {}),
     };
+
+    // Normalize and merge provided headers
+    if (options.headers) {
+        const providedHeaders = options.headers as Record<string, string>;
+        Object.keys(providedHeaders).forEach(key => {
+            headers[key] = providedHeaders[key];
+        });
+    }
+
+    // Automatically attach Authorization header if on client and token exists
+    if (typeof window !== 'undefined') {
+        const token = useAuthStore.getState().token || localStorage.getItem('nz_token');
+        // Only attach if not already present (case-insensitive check)
+        const hasAuth = Object.keys(headers).some(k => k.toLowerCase() === 'authorization');
+        if (token && !hasAuth) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+    }
 
     logRequest(url, options);
 
@@ -61,6 +79,37 @@ export async function apiRequest<T>(
 
         logResponse(url, response.status);
 
+        // Interceptor for 401 Unauthorized - Attempt Refresh
+        if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
+            try {
+                console.log('[API] 401 detected, attempting token refresh...');
+                const newToken = await handleTokenRefresh();
+
+                if (newToken) {
+                    console.log('[API] Token refresh successful, retrying request...');
+
+                    // Retry original request with new token
+                    const retryHeaders = {
+                        ...headers,
+                        'Authorization': `Bearer ${newToken}`
+                    };
+
+                    const retryResponse = await fetch(url, {
+                        credentials: 'include',
+                        ...options,
+                        headers: retryHeaders
+                    });
+
+                    // Replace original response with retry response
+                    response = retryResponse;
+                    logResponse(url, response.status);
+                } else if (!endpoint.includes('/matchmaking/leave')) {
+                    handleAuthError();
+                }
+            } catch (refreshErr) {
+                console.error('[API] Error during refresh:', refreshErr);
+            }
+        }
 
         let data: any = null;
         const contentType = response.headers.get('content-type');
@@ -70,10 +119,9 @@ export async function apiRequest<T>(
             // Check if it's a standard response
             if (isStandardApiResponse(json)) {
                 if (json.status === 'success') {
-                    data = json.data;
                     return {
                         error: null,
-                        data: data as T,
+                        data: json.data as T,
                         status: response.status,
                         headers: response.headers,
                         message: json.message
@@ -89,74 +137,12 @@ export async function apiRequest<T>(
                     };
                 }
             } else {
-                // Fallback for non-standard responses (e.g. legacy or 3rd party)
+                // Fallback for non-standard responses
                 data = json;
             }
         }
 
         if (!response.ok) {
-            // Interceptor for 401 Unauthorized - Attempt Refresh
-            if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
-                try {
-                    console.log('[API] 401 detected, attempting token refresh...');
-                    const newToken = await handleTokenRefresh();
-
-                    if (newToken) {
-                        console.log('[API] Token refresh successful, retrying request...');
-
-                        // Retry original request with new token
-                        const retryHeaders = {
-                            ...headers,
-                            'Authorization': `Bearer ${newToken}`
-                        };
-
-                        const retryResponse = await fetch(url, {
-                            credentials: 'include',
-                            ...options,
-                            headers: retryHeaders
-                        });
-
-                        let retryData: any = null;
-                        let retryMessage: string | undefined;
-
-                        const retryContentType = retryResponse.headers.get('content-type');
-                        if (retryContentType && retryContentType.includes('application/json')) {
-                            const retryJson = await retryResponse.json();
-                            if (isStandardApiResponse(retryJson)) {
-                                if (retryJson.status === 'success') {
-                                    retryData = retryJson.data;
-                                    retryMessage = retryJson.message;
-                                } else {
-                                    return {
-                                        error: retryJson.message || retryJson.error || 'Unknown API error',
-                                        data: null,
-                                        status: retryResponse.status,
-                                        headers: retryResponse.headers,
-                                        message: retryJson.message
-                                    };
-                                }
-                            } else {
-                                retryData = retryJson;
-                            }
-                        }
-
-                        if (retryResponse.ok) {
-                            return {
-                                error: null,
-                                data: retryData as T,
-                                status: retryResponse.status,
-                                headers: retryResponse.headers,
-                                message: retryMessage
-                            };
-                        }
-                    } else if (!endpoint.includes('/matchmaking/leave')) {
-                        handleAuthError();
-                    }
-                } catch (refreshErr) {
-                    console.error('[API] Error during refresh:', refreshErr);
-                }
-            }
-
             return {
                 error: (data && data.error) || `Request failed with status ${response.status}`,
                 data: null,

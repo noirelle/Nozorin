@@ -2,10 +2,9 @@ import { useFriendsState } from './useFriendsState';
 import { useFriendsActions } from './useFriendsActions';
 import { useFriendsListeners } from './useFriendsListeners';
 
-export const useFriends = (token: string | null) => {
+export const useFriends = () => {
     const state = useFriendsState();
     const actions = useFriendsActions({
-        token,
         setFriends: state.setFriends,
         setPendingRequests: state.setPendingRequests,
         setSentRequests: state.setSentRequests,

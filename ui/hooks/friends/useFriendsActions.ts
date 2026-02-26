@@ -4,7 +4,6 @@ import { UseFriendsStateReturn } from './useFriendsState';
 import * as historyActions from '../../lib/socket/history/history.actions';
 
 interface UseFriendsActionsProps {
-    token: string | null;
     setFriends: UseFriendsStateReturn['setFriends'];
     setPendingRequests: UseFriendsStateReturn['setPendingRequests'];
     setSentRequests: UseFriendsStateReturn['setSentRequests'];
@@ -16,7 +15,6 @@ interface UseFriendsActionsProps {
 }
 
 export const useFriendsActions = ({
-    token,
     setFriends,
     setPendingRequests,
     setSentRequests,
@@ -27,13 +25,11 @@ export const useFriendsActions = ({
     isFetchingSent,
 }: UseFriendsActionsProps) => {
     const fetchFriends = useCallback(async () => {
-        if (!token || isFetchingFriends.current) return;
+        if (isFetchingFriends.current) return;
         isFetchingFriends.current = true;
         setIsLoading(true);
         try {
-            const response = await api.get<any[]>('/api/friends', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await api.get<any[]>('/api/friends');
             if (response.data) {
                 setFriends(response.data);
                 setError(null);
@@ -45,15 +41,13 @@ export const useFriendsActions = ({
             setIsLoading(false);
             isFetchingFriends.current = false;
         }
-    }, [token, setFriends, setIsLoading, setError, isFetchingFriends]);
+    }, [setFriends, setIsLoading, setError, isFetchingFriends]);
 
     const fetchPendingRequests = useCallback(async () => {
-        if (!token || isFetchingPending.current) return;
+        if (isFetchingPending.current) return;
         isFetchingPending.current = true;
         try {
-            const response = await api.get<any[]>('/api/friends/requests', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await api.get<any[]>('/api/friends/requests');
             if (response.data) {
                 setPendingRequests(response.data);
                 const userIds = response.data.map((r: any) => r.user?.id).filter(Boolean);
@@ -62,15 +56,13 @@ export const useFriendsActions = ({
         } finally {
             isFetchingPending.current = false;
         }
-    }, [token, setPendingRequests, isFetchingPending]);
+    }, [setPendingRequests, isFetchingPending]);
 
     const fetchSentRequests = useCallback(async () => {
-        if (!token || isFetchingSent.current) return;
+        if (isFetchingSent.current) return;
         isFetchingSent.current = true;
         try {
-            const response = await api.get<any[]>('/api/friends/sent', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await api.get<any[]>('/api/friends/sent');
             if (response.data) {
                 setSentRequests(response.data);
                 const userIds = response.data.map((r: any) => r.user?.id).filter(Boolean);
@@ -79,53 +71,41 @@ export const useFriendsActions = ({
         } finally {
             isFetchingSent.current = false;
         }
-    }, [token, setSentRequests, isFetchingSent]);
+    }, [setSentRequests, isFetchingSent]);
 
     const sendRequest = useCallback(async (receiverId: string) => {
-        if (!token) return { success: false, error: 'Not authenticated' };
-        const response = await api.post<any>(`/api/friends/${receiverId}/request`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.post<any>(`/api/friends/${receiverId}/request`, {});
         if (!response.error) { fetchPendingRequests(); return { success: true }; }
         return { success: false, error: response.error };
-    }, [token, fetchPendingRequests]);
+    }, [fetchPendingRequests]);
 
     const acceptRequest = useCallback(async (requestId: string) => {
-        if (!token) return { success: false, error: 'Not authenticated' };
-        const response = await api.post<any>(`/api/friends/${requestId}/accept`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.post<any>(`/api/friends/${requestId}/accept`, {});
         if (!response.error) {
             setPendingRequests(prev => prev.filter(r => r.id !== requestId));
             fetchFriends();
             return { success: true };
         }
         return { success: false, error: response.error };
-    }, [token, fetchFriends, setPendingRequests]);
+    }, [fetchFriends, setPendingRequests]);
 
     const declineRequest = useCallback(async (requestId: string) => {
-        if (!token) return { success: false, error: 'Not authenticated' };
-        const response = await api.post<any>(`/api/friends/${requestId}/decline`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.post<any>(`/api/friends/${requestId}/decline`, {});
         if (!response.error) {
             setPendingRequests(prev => prev.filter(r => r.id !== requestId));
             return { success: true };
         }
         return { success: false, error: response.error };
-    }, [token, setPendingRequests]);
+    }, [setPendingRequests]);
 
     const removeFriend = useCallback(async (friendId: string) => {
-        if (!token) return { success: false, error: 'Not authenticated' };
-        const response = await api.delete<any>(`/api/friends/${friendId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.delete<any>(`/api/friends/${friendId}`);
         if (!response.error) {
             setFriends(prev => prev.filter(f => f.id !== friendId));
             return { success: true };
         }
         return { success: false, error: response.error };
-    }, [token, setFriends]);
+    }, [setFriends]);
 
     return {
         fetchFriends,
