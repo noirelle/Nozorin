@@ -5,24 +5,7 @@ import { successResponse, errorResponse } from '../../core/utils/response.util';
 export const userController = {
     async getMe(req: Request, res: Response) {
         try {
-            const cookieHeader = req.headers.cookie;
-            if (!cookieHeader) {
-                return res.status(401).json(errorResponse('Unauthorized', 'No cookies found'));
-            }
-
-            const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-                const [key, value] = cookie.trim().split('=');
-                acc[key] = value;
-                return acc;
-            }, {} as Record<string, string>);
-
-            const sid = cookies['nz_sid'];
-            if (!sid) {
-                return res.status(401).json(errorResponse('Unauthorized', 'Session ID missing'));
-            }
-
-            // Retrieve session using service (handles Redis + Memory fallback)
-            const userId = await userService.getSession(sid);
+            const userId = (req as any).user?.id || (req as any).user?.userId;
 
             if (!userId) {
                 return res.status(401).json(errorResponse('Unauthorized', 'Invalid session'));

@@ -155,6 +155,10 @@ export const authController = {
             // Generate new access token
             const newToken = generateUserToken(user.id);
 
+            // Fetch from database and re-save to Redis. Only log out if the user is missing from both
+            // getUserProfile automatically falls back to DB, so we just mandate saving here
+            await userService.cacheUserProfile(user);
+
             return res.status(200).json(successResponse({
                 token: newToken,
                 expiresIn: '15m'
