@@ -47,5 +47,16 @@ export const sessionService = {
     async deleteHistory(userId: string) {
         const repository = AppDataSource.getRepository(CallHistory);
         await repository.delete({ user_id: userId });
+    },
+
+    async hasCallHistory(userId: string, partnerId: string): Promise<boolean> {
+        const repository = AppDataSource.getRepository(CallHistory);
+        const count = await repository.count({
+            where: {
+                user_id: userId,
+                partner_id: partnerId
+            }
+        });
+        return count > 0;
     }
 };

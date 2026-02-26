@@ -2,6 +2,7 @@
 import { callClient } from '../../integrations/socket/call/call.client';
 import { userService } from '../user/user.service';
 import { friendService } from '../friend/friend.service';
+import { sessionService } from '../session/session.service';
 
 class CallService {
     /**
@@ -14,10 +15,13 @@ class CallService {
             throw new Error('User is offline');
         }
 
-        // 2. Check friendship status (optional policy: only friends can call)
+        // 2. Check friendship status or call history
         const friendshipStatus = await friendService.getFriendshipStatus(callerUserId, targetUserId);
         if (friendshipStatus !== 'friends') {
-            throw new Error('You can only call users who are on your friends list');
+            const hasHistory = await sessionService.hasCallHistory(callerUserId, targetUserId);
+            if (!hasHistory) {
+                throw new Error('You can only call users who are on your friends list');
+            }
         }
 
         // 3. Signal the socket service to notify the target
