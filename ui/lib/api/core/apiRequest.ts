@@ -29,11 +29,35 @@ export async function apiRequest<T>(
     logRequest(url, options);
 
     try {
-        const response = await fetch(url, {
-            credentials: 'include',
-            ...options,
-            headers,
-        });
+        let response: Response | undefined;
+        let lastError: any;
+        const maxRetries = 5;
+        const baseDelay = 1000;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                response = await fetch(url, {
+                    credentials: 'include',
+                    ...options,
+                    headers,
+                });
+                break; // Break loop on successful connection (even if HTTP 4xx/5xx)
+            } catch (err: any) {
+                lastError = err;
+                const isNetworkError = err.cause?.code === 'ECONNREFUSED' || err.message?.includes('fetch failed');
+                // Only retry on the server-side for network errors, to let Docker containers spin up
+                if (attempt === maxRetries - 1 || (!isNetworkError && typeof window !== 'undefined')) {
+                    throw err;
+                }
+                const delay = baseDelay * Math.pow(1.5, attempt);
+                console.warn(`[API] Network error (${err.cause?.code || err.message}). Retrying in ${Math.round(delay)}ms (Attempt ${attempt + 1}/${maxRetries})...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        if (!response) {
+            throw lastError || new Error('Fetch failed completely.');
+        }
 
         logResponse(url, response.status);
 
