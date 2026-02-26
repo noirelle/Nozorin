@@ -1,13 +1,10 @@
-import { apiRequest } from '../core/apiRequest';
+import { apiRequest } from '../../core/apiRequest';
+import { JoinQueueRequest } from './types';
+
+export type { JoinQueueRequest };
 
 export const matchmaking = {
-    joinQueue: (data: {
-        user_id: string;
-        mode: 'voice';
-        preferences?: { language?: string; selected_country?: string; min_rating?: number };
-        session?: { peer_id?: string; connection_id?: string };
-        request_id?: string;
-    }, headers?: HeadersInit) =>
+    joinQueue: (data: JoinQueueRequest, headers?: HeadersInit) =>
         apiRequest<void>('/api/matchmaking/join', {
             method: 'POST',
             body: JSON.stringify(data),
