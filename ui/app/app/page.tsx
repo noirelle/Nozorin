@@ -296,6 +296,8 @@ export default function AppPage() {
 
             {incomingCall && (
                 <IncomingCallOverlay
+                    from_username={incomingCall.from_username}
+                    from_avatar={incomingCall.from_avatar}
                     from_country_name={incomingCall.from_country_name}
                     from_country={incomingCall.from_country}
                     mode={incomingCall.mode}

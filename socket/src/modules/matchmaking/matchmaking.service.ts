@@ -126,11 +126,22 @@ export const joinQueue = async (
         if (alreadyIdx !== -1) return;
     }
 
-    // Safety guard: if user is already in a call, end it before re-queueing
+    // Safety guard: if user is already in a call or in reconnection period, end it before re-queueing
     const existingInfo = activeCalls.get(socketId);
     if (existingInfo) {
         await callService.handleEndCall(serverIo, socketId, { target: existingInfo.partner_id, reason: 'skip' });
-        logger.info({ socketId, partner_id: existingInfo.partner_id }, '[MATCHMAKING] Ended orphaned call (skipped) before joining queue');
+        logger.info({ socketId, partner_id: existingInfo.partner_id }, '[MATCHMAKING] Ended active call (skipped) before joining queue');
+    }
+
+    // Also check if user has a pending reconnection session (e.g. they refreshed and then skipped)
+    if (userId && userId !== 'unknown') {
+        const reconnectInfo = reconnectingUsers.get(userId);
+        if (reconnectInfo) {
+            // End the call for the partner who is waiting
+            await callService.handleEndCall(serverIo, socketId, { target: reconnectInfo.partner_socket_id, reason: 'skip' });
+            reconnectingUsers.delete(userId);
+            logger.info({ userId, partner_id: reconnectInfo.partner_socket_id }, '[MATCHMAKING] Ended pending reconnection session before joining queue');
+        }
     }
 
     // Fetch full profile if we have a userId

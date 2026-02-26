@@ -183,14 +183,6 @@ export const useRoomActionsCallbacks = ({
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
 
-        // RELIABILITY: If we are currently in RECONNECTING state (either local or partner),
-        // ignore the CALL_ENDED event as it might be a stale event from the previous socket
-        // session or a race condition during rejoin.
-        if (callRoomState.partner_signal_strength === 'reconnecting') {
-            console.log('[RoomActions] Ignoring CALL_ENDED during reconnection grace period.');
-            return;
-        }
-
         // Ignore late echoes if we already left/skipped
         if (!callRoomState.partner_id) return;
 

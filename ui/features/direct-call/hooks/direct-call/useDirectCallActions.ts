@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
-import * as directCallActions from '../../../../lib/socket/direct-call/directCall.actions';
 import { UseDirectCallStateReturn } from './useDirectCallState';
+import { useCall } from '../../../../hooks/call/useCall';
+import { emitCancelCall } from '../../../../lib/socket/direct-call/directCall.actions';
 
 interface UseDirectCallActionsProps {
     incomingCall: UseDirectCallStateReturn['incomingCall'];
@@ -23,31 +24,44 @@ export const useDirectCallActions = ({
     setError,
     onCallStarted,
 }: UseDirectCallActionsProps) => {
-    const initiateCall = useCallback((targetUserId: string, mode: 'voice') => {
+    const { requestCall, respondToCall } = useCall({ setError });
+
+    const initiateCall = useCallback(async (targetUserId: string, mode: 'voice') => {
         setError(null);
         setIsCalling(true);
         setCallTarget(targetUserId);
         onCallStarted?.();
-        directCallActions.emitInitiateCall(targetUserId, mode);
-    }, [onCallStarted, setError, setIsCalling, setCallTarget]);
 
-    const acceptCall = useCallback(() => {
+        const success = await requestCall(targetUserId, mode);
+        if (!success) {
+            setIsCalling(false);
+            setCallTarget(null);
+        }
+    }, [onCallStarted, setError, setIsCalling, setCallTarget, requestCall]);
+
+    const acceptCall = useCallback(async () => {
         if (!incomingCall) return;
         onCallStarted?.();
-        directCallActions.emitRespondToCall(incomingCall.from_socket_id, true, incomingCall.mode);
-        setIncomingCall(null);
-    }, [incomingCall, onCallStarted, setIncomingCall]);
 
-    const declineCall = useCallback(() => {
+        const success = await respondToCall(incomingCall.from_user_id, true, incomingCall.mode);
+        if (success) {
+            setIncomingCall(null);
+        }
+    }, [incomingCall, onCallStarted, setIncomingCall, respondToCall]);
+
+    const declineCall = useCallback(async () => {
         if (!incomingCall) return;
-        onCallStarted?.();
-        directCallActions.emitRespondToCall(incomingCall.from_socket_id, false, incomingCall.mode);
-        setIncomingCall(null);
-    }, [incomingCall, onCallStarted, setIncomingCall]);
+
+        const success = await respondToCall(incomingCall.from_user_id, false, incomingCall.mode);
+        if (success) {
+            setIncomingCall(null);
+        }
+    }, [incomingCall, setIncomingCall, respondToCall]);
 
     const cancelCall = useCallback(() => {
         if (!callTarget) return;
-        directCallActions.emitCancelCall(callTarget);
+
+        emitCancelCall(callTarget);
         setIsCalling(false);
         setCallTarget(null);
     }, [callTarget, setIsCalling, setCallTarget]);

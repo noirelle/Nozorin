@@ -11,3 +11,4 @@ export * from '../features/call-room/hooks/media/useCallRoom';
 export * from '../features/call-room/hooks/room-actions/useRoomActions';
 export * from '../features/call-room/hooks/reconnect/useReconnect';
 export * from '../features/auth/hooks/guest-login/useGuestLogin';
+export * from './call/useCall';
