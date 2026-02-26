@@ -223,29 +223,28 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                         )}
                                     </div>
 
-                                    {is_connected && partner_user_id && (
-                                        <button
-                                            onClick={() => onAddFriend && onAddFriend(partner_user_id)}
-                                            disabled={
-                                                callRoomState.friendship_status === 'friends' ||
-                                                friends.some(f => f.id === partner_user_id) ||
-                                                pendingRequests?.some(r => r.user?.id === partner_user_id) ||
-                                                sentRequests?.some(r => r.user?.id === partner_user_id)
-                                            }
-                                            className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
-                                                ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
-                                                    ? 'bg-slate-400 cursor-not-allowed'
-                                                    : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'
-                                                }`}
-                                        >
-                                            {(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
-                                                ? 'FRIENDS'
-                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
-                                                    ? 'PENDING'
-                                                    : 'ADD FRIEND'}
-                                        </button>
-                                    )}
+                                    {is_connected && partner_user_id && (() => {
+                                        const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id);
+                                        const isPending = callRoomState.friendship_status === 'pending_sent' ||
+                                            callRoomState.friendship_status === 'pending_received' ||
+                                            pendingRequests?.some(r => r.user?.id === partner_user_id) ||
+                                            sentRequests?.some(r => r.user?.id === partner_user_id);
+
+                                        return (
+                                            <button
+                                                onClick={() => onAddFriend && onAddFriend(partner_user_id)}
+                                                disabled={isFriends || isPending}
+                                                className={`mt-4 px-6 py-2 text-white text-[11px] font-bold rounded-2xl transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0 ${isFriends
+                                                    ? 'bg-emerald-500 hover:bg-emerald-600'
+                                                    : isPending
+                                                        ? 'bg-slate-400 cursor-not-allowed'
+                                                        : 'bg-gradient-to-r from-[#FF8BA7] to-[#FF7597] hover:shadow-pink-200'
+                                                    }`}
+                                            >
+                                                {isFriends ? 'FRIENDS' : isPending ? 'PENDING' : 'ADD FRIEND'}
+                                            </button>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ) : (

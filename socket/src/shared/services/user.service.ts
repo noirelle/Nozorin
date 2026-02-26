@@ -1,15 +1,24 @@
 /**
  * In-process user service: maps socketId ↔ userId within the realtime service.
- * For profile data (username, avatar, status) it calls the API service.
+ * Accesses DB and Redis directly to avoid HTTP calls to the API.
  */
 import { logger } from '../../core/logger';
 import { getRedisClient } from '../../core/config/redis.config';
+import { AppDataSource } from '../../core/config/database.config';
+import { User } from '../../modules/user/user.entity';
+import { Friend } from '../../modules/friends/friend.entity';
+import { FriendRequest } from '../../modules/friends/friend-request.entity';
 
-const API_URL = process.env.API_SERVICE_URL || 'http://nozorin_api:3001';
+const STATUS_TTL = 3600; // 1 hour for status if not updated
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
 const userToSockets = new Map<string, Set<string>>(); // userId → Set of socketIds
+
+// ── Repositories ─────────────────────────────────────────────────────────────
+const userRepository = AppDataSource.getRepository(User);
+const friendRepository = AppDataSource.getRepository(Friend);
+const requestRepository = AppDataSource.getRepository(FriendRequest);
 
 export const userService = {
     /** Associate socketId with a user_id. Returns the previous primary socketId if any. */
@@ -55,80 +64,112 @@ export const userService = {
         return false;
     },
 
-    /** Register/activate a user in the API service */
-    async registerUser(user_id: string): Promise<void> {
-        try {
-            await fetch(`${API_URL}/api/users/${user_id}/register`, { method: 'POST' });
-        } catch (err) {
-            logger.warn({ err, user_id }, '[USER-SERVICE] Failed to register user in API');
+    /** Register/activate a user (marking existence in Redis) */
+    async registerUser(userId: string): Promise<void> {
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                // Set a key to indicate user existence, matching API logic
+                await redis.set(`user:exists:${userId}`, '1', 'EX', 30 * 24 * 60 * 60);
+                // Also mark as online
+                await this.updateUserStatus(userId, true);
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] Redis error registering user');
+            }
         }
     },
 
-    /** Deactivate user in API (set offline) */
-    async deactivateUser(user_id: string): Promise<void> {
-        try {
-            await fetch(`${API_URL}/api/users/${user_id}/deactivate`, { method: 'POST' });
-        } catch (err) {
-            logger.warn({ err, user_id }, '[USER-SERVICE] Failed to deactivate user in API');
+    /** Update user online status and last seen in Redis */
+    async updateUserStatus(userId: string, isOnline: boolean) {
+        const status = {
+            is_online: isOnline,
+            last_seen: Date.now()
+        };
+
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                await redis.setex(`user:status:${userId}`, STATUS_TTL, JSON.stringify(status));
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] Redis error updating status');
+            }
         }
     },
 
-    /** Fetch user's online status from API */
-    async getUserStatus(userId: string): Promise<unknown> {
-        try {
-            const res = await fetch(`${API_URL}/api/users/${userId}/status`);
-            return await res.json();
-        } catch {
-            return { is_online: false, last_seen: 0 };
-        }
-    },
+    /** Deactivate user in DB (set offline and update last active) */
+    async deactivateUser(userId: string): Promise<void> {
+        logger.info({ userId }, '[USER-SERVICE] Deactivating user');
+        await this.updateUserStatus(userId, false);
 
-    /** Fetch statuses for multiple users */
-    async getUserStatuses(user_ids: string[]): Promise<Record<string, unknown>> {
-        if (!user_ids.length) return {};
         try {
-            const res = await fetch(`${API_URL}/api/users/statuses`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_ids }),
+            await userRepository.update(userId, {
+                last_active_at: Date.now()
             });
-            return await res.json();
-        } catch {
-            return {};
+        } catch (error) {
+            logger.warn({ error, userId }, '[USER-SERVICE] DB error updating last_active_at on deactivation');
         }
     },
 
-    /** Check if user is registered */
+    /** Fetch user's online status from Redis */
+    async getUserStatus(userId: string): Promise<any> {
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                const statusJson = await redis.get(`user:status:${userId}`);
+                if (statusJson) {
+                    return JSON.parse(statusJson);
+                }
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] Redis error getting status');
+            }
+        }
+        return { is_online: false, last_seen: 0 };
+    },
+
+    /** Fetch statuses for multiple users from Redis */
+    async getUserStatuses(user_ids: string[]): Promise<Record<string, unknown>> {
+        const results: Record<string, unknown> = {};
+        for (const userId of user_ids) {
+            results[userId] = await this.getUserStatus(userId);
+        }
+        return results;
+    },
+
+    /** Check if user is registered in Redis */
     async isUserRegistered(userId: string): Promise<boolean> {
-        try {
-            const res = await fetch(`${API_URL}/api/users/${userId}/exists`);
-            const data = await res.json() as { exists: boolean };
-            return data.exists ?? false;
-        } catch {
-            return false;
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                const exists = await redis.get(`user:exists:${userId}`);
+                return !!exists;
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] Redis error checking user existence');
+            }
         }
+        return false;
     },
 
-    /** Fetch full profile from API */
-    async getUserProfile(userId: string): Promise<{
-        username: string;
-        avatar: string;
-        gender: string;
-        country_name?: string;
-        country?: string;
-    } | null> {
-        // Priority 1: Fetch from Redis (cached by API on /join or /me)
+    /** Fetch full profile from Redis or DB */
+    async getUserProfile(userId: string): Promise<any | null> {
+        // Priority 1: Fetch from Redis
         const redis = getRedisClient();
         if (redis) {
             try {
                 const data = await redis.hgetall(`user:${userId}`);
                 if (data && Object.keys(data).length > 0) {
                     return {
+                        id: userId,
                         username: data.username,
                         avatar: data.avatar,
                         gender: data.gender,
+                        profile_completed: data.profile_completed === 'true',
+                        is_claimed: data.is_claimed === 'true',
+                        created_at: parseInt(data.created_at || '0'),
+                        country: data.country,
                         country_name: data.country_name,
-                        country: data.country
+                        last_ip: data.last_ip,
+                        device_id: data.device_id,
+                        last_active_at: parseInt(data.last_active_at || '0')
                     };
                 }
             } catch (error) {
@@ -136,31 +177,38 @@ export const userService = {
             }
         }
 
-        // Priority 2: Fallback to API
+        // Priority 2: Fallback to DB
         try {
-            const res = await fetch(`${API_URL}/api/users/${userId}/profile`);
-            if (!res.ok) return null;
-            return await res.json();
-        } catch {
+            const user = await userRepository.findOneBy({ id: userId });
+            return user;
+        } catch (error) {
+            logger.warn({ error, userId }, '[USER-SERVICE] DB error getting profile');
             return null;
         }
     },
 
-    /** Fetch friendship status between two users */
+    /** Fetch friendship status between two users directly from DB */
     async getFriendshipStatus(user_id: string, target_id: string): Promise<string> {
         try {
-            const res = await fetch(`${API_URL}/api/friends/${target_id}/status`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // This will be used if API is behind gateway or needs auth
-                    // For internal calls, we might need a bypass
-                }
+            const friendship = await friendRepository.findOne({
+                where: { user_id: user_id, friend_id: target_id }
             });
-            const json = await res.json();
-            return json.data?.status || 'none';
+            if (friendship) return 'friends';
+
+            const request = await requestRepository.findOne({
+                where: [
+                    { sender_id: user_id, receiver_id: target_id, status: 'pending' },
+                    { sender_id: target_id, receiver_id: user_id, status: 'pending' }
+                ]
+            });
+
+            if (request) {
+                return request.sender_id === user_id ? 'pending_sent' : 'pending_received';
+            }
+
+            return 'none';
         } catch (error) {
-            logger.warn({ error, user_id, target_id }, '[USER-SERVICE] Error fetching friendship status');
+            logger.warn({ error, user_id, target_id }, '[USER-SERVICE] DB error fetching friendship status');
             return 'none';
         }
     }

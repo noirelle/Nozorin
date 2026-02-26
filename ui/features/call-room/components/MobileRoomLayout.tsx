@@ -202,29 +202,28 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                             <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partner_country_name || 'Unknown Location'}</p>
                                         </div>
                                     </div>
-                                    {partner_user_id && (
-                                        <button
-                                            onClick={() => onAddFriend && onAddFriend(partner_user_id)}
-                                            disabled={
-                                                callRoomState.friendship_status === 'friends' ||
-                                                friends.some(f => f.id === partner_user_id) ||
-                                                pendingRequests?.some(r => r.user?.id === partner_user_id) ||
-                                                sentRequests?.some(r => r.user?.id === partner_user_id)
-                                            }
-                                            className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
-                                                ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
-                                                    ? 'bg-slate-400 cursor-not-allowed'
-                                                    : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
-                                                }`}
-                                        >
-                                            {(callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id))
-                                                ? 'FRIENDS'
-                                                : (pendingRequests?.some(r => r.user?.id === partner_user_id) || sentRequests?.some(r => r.user?.id === partner_user_id))
-                                                    ? 'PENDING'
-                                                    : 'ADD FRIEND'}
-                                        </button>
-                                    )}
+                                    {partner_user_id && (() => {
+                                        const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id);
+                                        const isPending = callRoomState.friendship_status === 'pending_sent' ||
+                                            callRoomState.friendship_status === 'pending_received' ||
+                                            pendingRequests?.some(r => r.user?.id === partner_user_id) ||
+                                            sentRequests?.some(r => r.user?.id === partner_user_id);
+
+                                        return (
+                                            <button
+                                                onClick={() => onAddFriend && onAddFriend(partner_user_id)}
+                                                disabled={isFriends || isPending}
+                                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${isFriends
+                                                    ? 'bg-emerald-500 hover:bg-emerald-600'
+                                                    : isPending
+                                                        ? 'bg-slate-400 cursor-not-allowed'
+                                                        : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
+                                                    }`}
+                                            >
+                                                {isFriends ? 'FRIENDS' : isPending ? 'PENDING' : 'ADD FRIEND'}
+                                            </button>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div className="w-full flex flex-col items-center justify-center py-4 opacity-40">

@@ -80,7 +80,7 @@ export default function AppPage() {
         fetchFriends,
         fetchPendingRequests,
         fetchSentRequests
-    } = useFriends(token);
+    } = useFriends();
 
     const handleAddFriend = useCallback(async (targetId: string) => {
         const result = await sendRequest(targetId);

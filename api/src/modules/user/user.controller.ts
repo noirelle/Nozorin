@@ -27,41 +27,4 @@ export const userController = {
             return res.status(500).json(errorResponse('Internal server error', error));
         }
     },
-
-    async registerUser(req: Request, res: Response) {
-        const { userId } = req.params;
-        await userService.registerUser(userId);
-        return res.json({ success: true });
-    },
-
-    async getUserStatus(req: Request, res: Response) {
-        const { userId } = req.params;
-        const status = await userService.getUserStatus(userId);
-        return res.json(status);
-    },
-
-    async getUserStatuses(req: Request, res: Response) {
-        const { userIds } = req.body;
-        const statuses = await userService.getUserStatuses(userIds);
-        return res.json(statuses);
-    },
-
-    async isUserRegistered(req: Request, res: Response) {
-        const { userId } = req.params;
-        const exists = await userService.isUserRegistered(userId);
-        return res.json({ exists });
-    },
-
-    async getUserProfile(req: Request, res: Response) {
-        const { userId } = req.params;
-        const profile = await userService.getUserProfile(userId);
-        if (!profile) return res.status(404).json({ error: 'User not found' });
-        return res.json(profile);
-    },
-
-    async deactivateUser(req: Request, res: Response) {
-        const { userId } = req.params;
-        await userService.deactivateUser(userId);
-        return res.json({ success: true });
-    }
 };
