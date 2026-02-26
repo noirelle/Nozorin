@@ -144,7 +144,7 @@ export default function Room({
     });
 
     // 8. Reconnect Hook — no socket prop
-    const { isReconnecting } = useReconnect({
+    const { isReconnecting, clearReconnectState } = useReconnect({
         rejoinCall: actions.matching.rejoinCall,
         onRestorePartner: useCallback((data: any) => {
             if (data.partnerProfile) {
@@ -166,6 +166,16 @@ export default function Room({
 
     const handleSendMessageWrapper = (text: string) => actions.handleSendMessage(text, setInputText);
 
+    const handleUserStopWrapper = useCallback(() => {
+        clearReconnectState();
+        actions.handleUserStop();
+    }, [clearReconnectState, actions]);
+
+    const handleNextWrapper = useCallback(() => {
+        clearReconnectState();
+        actions.handleNext();
+    }, [clearReconnectState, actions]);
+
     return (
         <div className="flex flex-col h-[100dvh] bg-[#111] text-foreground font-sans overflow-hidden select-none relative touch-none">
             <MobileRoomLayout
@@ -176,8 +186,8 @@ export default function Room({
                 inputText={inputText}
                 remoteAudioRef={remoteAudioRef}
                 messagesEndRef={messagesEndRef}
-                onStop={actions.handleUserStop}
-                onNext={actions.handleNext}
+                onStop={handleUserStopWrapper}
+                onNext={handleNextWrapper}
                 onToggleMute={actions.handleToggleMute}
                 onSendMessage={handleSendMessageWrapper}
                 setShowChat={setShowChat}
@@ -207,8 +217,8 @@ export default function Room({
                 inputText={inputText}
                 remoteAudioRef={remoteAudioRef}
                 messagesEndRef={messagesEndRef}
-                onStop={actions.handleUserStop}
-                onNext={actions.handleNext}
+                onStop={handleUserStopWrapper}
+                onNext={handleNextWrapper}
                 onToggleMute={actions.handleToggleMute}
                 onSendMessage={handleSendMessageWrapper}
                 setShowChat={setShowChat}

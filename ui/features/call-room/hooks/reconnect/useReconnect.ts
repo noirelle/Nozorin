@@ -71,5 +71,5 @@ export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptio
         clearWithMinDelay,
     });
 
-    return { isReconnecting };
+    return { isReconnecting, clearReconnectState: clearImmediately };
 };
