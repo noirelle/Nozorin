@@ -157,12 +157,12 @@ export const useRoomActionsCallbacks = ({
         setPartnerIsMuted(!!data.partner_is_muted);
         try {
             localStorage.setItem('nz_active_call', JSON.stringify({
-                room_id: data.room_id, peer_id: data.partner_id, started_at: Date.now(),
+                room_id: data.room_id, peerId: data.partner_id, startedAt: Date.now(),
                 partnerProfile: {
                     id: data.partner_id,
                     user_id: data.partner_user_id,
                     username: data.partner_username,
-                    display_name: data.partner_username,
+                    displayName: data.partner_username,
                     avatar: data.partner_avatar,
                     gender: data.partner_gender,
                     country_name: data.partner_country_name || 'unknown',
