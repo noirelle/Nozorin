@@ -6,8 +6,8 @@ export interface User {
     username: string;
     avatar: string;
     gender: string;
+    country_name: string;
     country: string;
-    country_code: string;
     mode: 'chat' | 'voice';
     preferred_country?: string;
     preferences?: {
@@ -31,8 +31,8 @@ export interface MediaState {
 }
 
 export interface UserConnectionInfo {
+    country_name: string;
     country: string;
-    country_code: string;
 }
 
 export type CallDisconnectReason = 'user-action' | 'partner-disconnect' | 'partner-skip' | 'error' | 'skip' | 'network' | 'answered-another' | 'timeout';

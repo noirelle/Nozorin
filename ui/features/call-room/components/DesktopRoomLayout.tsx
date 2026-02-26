@@ -31,7 +31,7 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
     reconnectCountdown,
     callDuration,
 }) => {
-    const { is_connected, is_searching, partner_country, partner_country_code, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
+    const { is_connected, is_searching, partner_country_name, partner_country, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
     const { user: localUser } = useUser();
 
     return (
@@ -208,15 +208,15 @@ export const DesktopRoomLayout: React.FC<RoomLayoutProps> = ({
                                                 {partner_gender === 'male' ? '♂' : partner_gender === 'female' ? '♀' : partner_gender}
                                             </span>
                                         )}
-                                        {is_connected && partner_country_code && (
-                                            <ReactCountryFlag countryCode={partner_country_code} svg className="w-5 h-4 rounded-sm object-cover" />
+                                        {is_connected && partner_country && (
+                                            <ReactCountryFlag countryCode={partner_country} svg className="w-5 h-4 rounded-sm object-cover" />
                                         )}
                                     </div>
                                     <div className={`flex items-center justify-center gap-1.5 transition-all ${is_connected ? 'text-emerald-500' : 'text-[#A58E92] opacity-60 font-medium'}`}>
                                         {is_connected ? (
                                             <>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{partner_country || 'Connected'}</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.15em]">{partner_country_name || 'Connected'}</span>
                                             </>
                                         ) : (
                                             <span className="text-[10px] font-bold uppercase tracking-[0.1em]">Frequency Search</span>

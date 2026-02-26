@@ -1,7 +1,7 @@
 
 import { getRedisClient, checkRedisAvailability } from '../../core/config/redis.config';
 import { CreateUserDto, UserProfile } from '../../shared/types/user.types';
-import { getGeoInfo } from '../../core/utils/geo.utils';
+import { getGeoInfo } from '../../core/utils/ip.utils';
 import { v4 as uuidv4 } from 'uuid';
 import { AppDataSource } from '../../core/config/database.config';
 import { User } from './user.entity';
@@ -136,16 +136,12 @@ class UserService {
     /**
      * Resolve location from IP
      */
-    async resolveLocation(ip: string): Promise<{ country_code?: string; city?: string; region?: string; lat?: number; lon?: number; timezone?: string }> {
-        const geo = await getGeoInfo(ip);
+    async resolveLocation(ip: string): Promise<{ country?: string; country_name?: string }> {
+        const geo = getGeoInfo(ip);
         if (geo) {
             return {
-                country_code: geo.country_code,
-                city: geo.city,
-                region: geo.subdivision,
-                lat: geo.latitude,
-                lon: geo.longitude,
-                timezone: geo.time_zone
+                country: geo.country,
+                country_name: geo.country_name
             };
         }
         return {};
@@ -184,12 +180,7 @@ class UserService {
                         is_claimed: data.is_claimed === 'true',
                         created_at: parseInt(data.created_at || '0'),
                         country: data.country,
-                        country_code: data.country_code,
-                        city: data.city,
-                        region: data.region,
-                        lat: data.lat ? parseFloat(data.lat) : undefined,
-                        lon: data.lon ? parseFloat(data.lon) : undefined,
-                        timezone: data.timezone,
+                        country_name: data.country_name,
                         last_ip: data.last_ip,
                         device_id: data.device_id,
                         last_active_at: parseInt(data.last_active_at || '0')
@@ -354,12 +345,7 @@ class UserService {
                 is_claimed: userProfile.is_claimed.toString(),
                 created_at: userProfile.created_at.toString(),
                 ...(userProfile.country && { country: userProfile.country }),
-                ...(userProfile.country_code && { country_code: userProfile.country_code }),
-                ...(userProfile.city && { city: userProfile.city }),
-                ...(userProfile.region && { region: userProfile.region }),
-                ...(userProfile.lat && { lat: userProfile.lat.toString() }),
-                ...(userProfile.lon && { lon: userProfile.lon.toString() }),
-                ...(userProfile.timezone && { timezone: userProfile.timezone }),
+                ...(userProfile.country_name && { country_name: userProfile.country_name }),
                 ...(userProfile.last_ip && { last_ip: userProfile.last_ip }),
                 ...(userProfile.device_id && { device_id: userProfile.device_id }),
                 ...(userProfile.fingerprint && { fingerprint: userProfile.fingerprint }),

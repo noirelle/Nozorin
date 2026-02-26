@@ -9,9 +9,9 @@ import { logger } from '../../core/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // connected user geo info — lightweight per-socket store
-const connectedUsers = new Map<string, { country: string; country_code: string }>();
+const connectedUsers = new Map<string, { country: string; country_name: string }>();
 
-export const addConnectedUser = (socketId: string, info: { country: string; country_code: string }): void => {
+export const addConnectedUser = (socketId: string, info: { country: string; country_name: string }): void => {
     connectedUsers.set(socketId, info);
 };
 

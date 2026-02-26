@@ -19,8 +19,8 @@ export const sessionService = {
             session_id: record.id,
             partner_id: record.partner_id,
             partner_username: record.partner_username,
+            partner_country_name: record.partner_country_name,
             partner_country: record.partner_country,
-            partner_country_code: record.partner_country_code,
             partner_avatar: record.partner_avatar,
             duration: record.duration,
             mode: record.mode,
@@ -30,7 +30,7 @@ export const sessionService = {
         }));
 
         const total_duration = records.reduce((acc, curr) => acc + curr.duration, 0);
-        const countries_connected = [...new Set(records.map(r => r.partner_country).filter(c => !!c))];
+        const countries_connected = [...new Set(records.map(r => r.partner_country_name).filter(c => !!c))];
         const average_duration = records.length > 0 ? Math.floor(total_duration / records.length) : 0;
 
         return {

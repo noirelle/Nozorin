@@ -151,8 +151,8 @@ export default function Room({
                 const pp = data.partnerProfile;
                 setPartner(
                     data.peerId,
+                    pp.country_name || '',
                     pp.country || '',
-                    pp.countryCode || '',
                     pp.username || '',
                     pp.avatar || '',
                     pp.gender || '',

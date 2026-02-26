@@ -9,7 +9,7 @@ interface UseRoomActionsProps {
     callRoomState: CallRoomState;
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
-    setPartner: (id: string | null, country?: string, country_code?: string, username?: string, avatar?: string, gender?: string, user_id?: string | null) => void;
+    setPartner: (id: string | null, country_name?: string, country?: string, username?: string, avatar?: string, gender?: string, user_id?: string | null) => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     initMediaManager: () => Promise<boolean>;

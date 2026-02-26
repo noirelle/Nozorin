@@ -21,8 +21,8 @@ export interface SessionRecord {
     session_id: string;
     partner_id: string;
     partner_username?: string;
+    partner_country_name?: string;
     partner_country?: string;
-    partner_country_code?: string;
     created_at: number;
     disconnection_time?: number;
     duration?: number;

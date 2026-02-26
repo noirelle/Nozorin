@@ -124,9 +124,7 @@ export const authController = {
                     username: user.username,
                     displayName: user.username || 'Guest',
                     avatar: user.avatar,
-                    country: user.country || null,
-                    city: user.city || null,
-                    timezone: user.timezone || null
+                    country_name: user.country_name || null
                 }
             }, 'Anonymous login successful'));
         } catch (error) {

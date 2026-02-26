@@ -114,8 +114,8 @@ export const userService = {
         username: string;
         avatar: string;
         gender: string;
+        country_name?: string;
         country?: string;
-        country_code?: string;
     } | null> {
         // Priority 1: Fetch from Redis (cached by API on /join or /me)
         const redis = getRedisClient();
@@ -127,8 +127,8 @@ export const userService = {
                         username: data.username,
                         avatar: data.avatar,
                         gender: data.gender,
-                        country: data.country,
-                        country_code: data.country_code
+                        country_name: data.country_name,
+                        country: data.country
                     };
                 }
             } catch (error) {

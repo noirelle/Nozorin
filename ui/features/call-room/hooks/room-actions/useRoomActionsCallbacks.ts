@@ -11,8 +11,8 @@ interface UseRoomActionsCallbacksProps {
     setConnected: (v: boolean) => void;
     setPartner: (
         id: string | null,
+        country_name?: string,
         country?: string,
-        country_code?: string,
         username?: string,
         avatar?: string,
         gender?: string,
@@ -146,8 +146,8 @@ export const useRoomActionsCallbacks = ({
         setConnected(true);
         setPartner(
             data.partner_id,
+            data.partner_country_name,
             data.partner_country,
-            data.partner_country_code,
             data.partner_username,
             data.partner_avatar,
             data.partner_gender,
@@ -165,8 +165,8 @@ export const useRoomActionsCallbacks = ({
                     display_name: data.partner_username,
                     avatar: data.partner_avatar,
                     gender: data.partner_gender,
-                    country: data.partner_country || 'unknown',
-                    country_code: data.partner_country_code || 'UN',
+                    country_name: data.partner_country_name || 'unknown',
+                    country: data.partner_country || 'UN',
                     city: null,
                     timezone: null
                 },
@@ -229,23 +229,23 @@ export const useRoomActionsCallbacks = ({
         closePeerConnection();
         setPartner(
             data.new_socket_id,
+            callRoomState.partner_country_name,
             callRoomState.partner_country,
-            callRoomState.partner_country_code,
             callRoomState.partner_username,
             callRoomState.partner_avatar,
             callRoomState.partner_gender,
             callRoomState.partner_user_id,
             callRoomState.friendship_status
         );
-    }, [closePeerConnection, setPartner, callRoomState.partner_country, callRoomState.partner_country_code, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status]);
+    }, [closePeerConnection, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
         setSearching(false);
         setConnected(true);
         setPartner(
             data.partner_id,
+            data.partner_country_name || callRoomState.partner_country_name,
             data.partner_country || callRoomState.partner_country,
-            data.partner_country_code || callRoomState.partner_country_code,
             data.partner_username || callRoomState.partner_username,
             data.partner_avatar || callRoomState.partner_avatar,
             data.partner_gender || callRoomState.partner_gender,
@@ -258,7 +258,7 @@ export const useRoomActionsCallbacks = ({
 
         closePeerConnection();
         if (mode === 'voice') pendingRejoinPartnerRef.current = data.partner_id;
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partner_country, callRoomState.partner_country_code, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager]);
+    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

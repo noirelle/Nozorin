@@ -23,10 +23,10 @@ export class CallHistory {
     partner_avatar!: string;
 
     @Column({ nullable: true })
-    partner_country!: string;
+    partner_country_name!: string;
 
     @Column({ nullable: true })
-    partner_country_code!: string;
+    partner_country!: string;
 
     @Column({ type: 'int', default: 0 })
     duration!: number;

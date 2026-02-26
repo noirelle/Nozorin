@@ -3,6 +3,6 @@ export interface JoinQueuePayload {
     user_id: string;
     mode: 'voice';
     preferences?: Record<string, unknown>;
+    country_name?: string;
     country?: string;
-    country_code?: string;
 }

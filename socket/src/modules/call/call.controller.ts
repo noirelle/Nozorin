@@ -46,8 +46,8 @@ export const register = (io: Server, socket: Socket): void => {
             partner_username: partnerProfile?.username,
             partner_avatar: partnerProfile?.avatar,
             partner_gender: partnerProfile?.gender,
+            partner_country_name: partnerProfile?.country_name,
             partner_country: partnerProfile?.country,
-            partner_country_code: partnerProfile?.country_code,
             room_id: rejoinInfo.room_id
         });
 

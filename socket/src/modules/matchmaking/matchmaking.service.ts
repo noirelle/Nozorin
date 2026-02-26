@@ -42,8 +42,8 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
         partner_username: partner.username,
         partner_avatar: partner.avatar,
         partner_gender: partner.gender,
+        partner_country_name: partner.country_name,
         partner_country: partner.country,
-        partner_country_code: partner.country_code,
         partner_is_muted: mediaB.is_muted,
         room_id,
         mode: queued.mode,
@@ -62,8 +62,8 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
         partner_username: queued.username,
         partner_avatar: queued.avatar,
         partner_gender: queued.gender,
+        partner_country_name: queued.country_name,
         partner_country: queued.country,
-        partner_country_code: queued.country_code,
         partner_is_muted: mediaA.is_muted,
         room_id,
         mode: partner.mode,
@@ -83,8 +83,8 @@ export const joinQueue = async (
         socketId: string;
         user_id?: string;
         mode: 'voice';
+        country_name?: string;
         country?: string;
-        country_code?: string;
         preferences?: any;
         peer_id?: string;
         request_id?: string;
@@ -100,8 +100,8 @@ export const joinQueue = async (
         socketId,
         user_id: userId,
         mode,
+        country_name,
         country,
-        country_code,
         preferences,
         peer_id: peerId,
         request_id: requestId,
@@ -145,8 +145,8 @@ export const joinQueue = async (
         username: profile?.username || 'Guest',
         avatar: profile?.avatar || '/avatars/avatar1.webp',
         gender: profile?.gender || 'unknown',
-        country: profile?.country || country || 'Unknown',
-        country_code: profile?.country_code || country_code || 'UN',
+        country_name: profile?.country_name || country_name || 'Unknown',
+        country: profile?.country || country || 'UN',
         mode: mode || 'voice',
         joined_at: Date.now(),
         state: 'FINDING',
@@ -157,10 +157,10 @@ export const joinQueue = async (
     };
 
     voiceQueue.push(user);
-    if (user.country_code) {
-        const bucket = voiceBuckets.get(user.country_code) || [];
+    if (user.country) {
+        const bucket = voiceBuckets.get(user.country) || [];
         bucket.push(user);
-        voiceBuckets.set(user.country_code, bucket);
+        voiceBuckets.set(user.country, bucket);
     }
 
     serverIo.to(user.id).emit(SocketEvents.WAITING_FOR_MATCH, { position: voiceQueue.length });
@@ -204,8 +204,8 @@ export const register = (io: Server, socket: Socket): void => {
 
     socket.on(SocketEvents.WAITING_FOR_MATCH, async (data: {
         mode: 'voice';
+        country_name?: string;
         country?: string;
-        country_code?: string;
         preferences?: any;
     }) => {
         const userId = userService.getUserId(socket.id);
@@ -213,8 +213,8 @@ export const register = (io: Server, socket: Socket): void => {
             socketId: socket.id,
             user_id: userId || 'unknown',
             mode: data.mode || 'voice',
+            country_name: data.country_name,
             country: data.country,
-            country_code: data.country_code,
             preferences: data.preferences,
         });
     });

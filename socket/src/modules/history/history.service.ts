@@ -24,7 +24,7 @@ export const historyService = {
         const averageDuration = records.length > 0 ? Math.floor(totalDuration / records.length) : 0;
         const totalSessions = records.length;
 
-        const countriesConnected = [...new Set(records.map((r: CallHistory) => r.partner_country).filter((c: string | null): c is string => !!c))];
+        const countriesConnected = [...new Set(records.map((r: CallHistory) => r.partner_country_name).filter((c: string | null): c is string => !!c))];
 
         return {
             total_sessions: totalSessions,
@@ -91,8 +91,8 @@ export const register = (io: any, socket: Socket): void => {
                 partner_id: s.partner_id,
                 partner_username: s.partner_username,
                 partner_avatar: s.partner_avatar,
+                partner_country_name: s.partner_country_name,
                 partner_country: s.partner_country,
-                partner_country_code: s.partner_country_code,
                 duration: s.duration,
                 mode: s.mode,
                 created_at: s.created_at ? new Date(s.created_at).getTime() : 0,

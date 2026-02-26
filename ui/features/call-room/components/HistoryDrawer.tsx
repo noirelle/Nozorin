@@ -177,8 +177,8 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
                                                 {session.partner_avatar ? (
                                                     <img src={session.partner_avatar} alt={session.partner_username} className="w-full h-full object-cover" />
-                                                ) : session.partner_country_code ? (
-                                                    <ReactCountryFlag countryCode={session.partner_country_code} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : session.partner_country ? (
+                                                    <ReactCountryFlag countryCode={session.partner_country} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 ) : (
                                                     <span className="text-xs text-slate-400">?</span>
                                                 )}
@@ -189,7 +189,7 @@ export const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
                                         <div className="flex flex-col min-w-0">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-bold text-slate-800 truncate">
-                                                    {session.partner_username ? `@${session.partner_username}` : (session.partner_country || 'Unknown')}
+                                                    {session.partner_username ? `@${session.partner_username}` : (session.partner_country_name || 'Unknown')}
                                                 </span>
                                                 <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(session.disconnect_reason)}`}>
                                                     {getReasonLabel(session.disconnect_reason)}

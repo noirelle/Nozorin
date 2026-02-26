@@ -86,11 +86,7 @@ export const useGuestLoginActions = ({ setIsRegistering, setError }: UseGuestLog
 
                 const locationData = {
                     location: {
-                        country: newUser.country,
-                        city: newUser.city,
-                        region: newUser.region,
-                        lat: newUser.lat,
-                        lon: newUser.lon,
+                        country_name: newUser.country_name,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         detectionMethod: 'timezone',
                         detectedAt: new Date().toISOString()

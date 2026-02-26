@@ -131,8 +131,8 @@ export const callService = {
                 partner_id: partner.id,
                 partner_username: partner.username,
                 partner_avatar: partner.avatar,
+                partner_country_name: partner.country_name,
                 partner_country: partner.country,
-                partner_country_code: partner.country_code,
                 duration,
                 mode: 'voice',
                 reason: r

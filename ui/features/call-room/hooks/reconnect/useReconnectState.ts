@@ -9,7 +9,7 @@ export interface ActiveCallData {
         username: string;
         displayName: string;
         avatar: string;
-        country: string;
+        country_name: string;
     };
 }
 

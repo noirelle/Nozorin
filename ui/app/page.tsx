@@ -100,8 +100,8 @@ export default function Home() {
 
             {incomingCall && (
                 <IncomingCallOverlay
+                    from_country_name={incomingCall.from_country_name}
                     from_country={incomingCall.from_country}
-                    from_country_code={incomingCall.from_country_code}
                     mode={incomingCall.mode}
                     onAccept={performAcceptCall}
                     onDecline={performDeclineCall}

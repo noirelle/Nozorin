@@ -7,15 +7,15 @@ export const reconnectingUsers = realReconnectingUsers;
 /** Master FIFO list for voice matching */
 export const voiceQueue: User[] = [];
 
-/** Bucketed queues by country_code */
+/** Bucketed queues by country */
 export const voiceBuckets = new Map<string, User[]>();
 
-export const removeUserFromQueues = (socketId: string, country_code?: string): void => {
+export const removeUserFromQueues = (socketId: string, country?: string): void => {
     const voiceIdx = voiceQueue.findIndex(u => u.id === socketId);
     if (voiceIdx !== -1) voiceQueue.splice(voiceIdx, 1);
 
-    if (country_code) {
-        const bucket = voiceBuckets.get(country_code);
+    if (country) {
+        const bucket = voiceBuckets.get(country);
         if (bucket) {
             const idx = bucket.findIndex(u => u.id === socketId);
             if (idx !== -1) bucket.splice(idx, 1);

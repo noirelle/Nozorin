@@ -27,22 +27,7 @@ export class User {
     country!: string;
 
     @Column({ nullable: true })
-    country_code!: string;
-
-    @Column({ nullable: true })
-    city!: string;
-
-    @Column({ nullable: true })
-    region!: string;
-
-    @Column({ type: 'float', nullable: true })
-    lat!: number;
-
-    @Column({ type: 'float', nullable: true })
-    lon!: number;
-
-    @Column({ nullable: true })
-    timezone!: string;
+    country_name!: string;
 
     @Column({ nullable: true })
     last_ip?: string;

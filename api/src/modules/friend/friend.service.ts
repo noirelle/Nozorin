@@ -51,12 +51,12 @@ class FriendService {
             receiver_id: receiverId,
             sender_username: senderProfile?.username,
             sender_avatar: senderProfile?.avatar,
-            sender_country: senderProfile?.country,
-            sender_country_code: senderProfile?.country_code,
+            sender_country: senderProfile?.country_name,
+            sender_country_code: senderProfile?.country,
             receiver_username: receiverProfile?.username,
             receiver_avatar: receiverProfile?.avatar,
-            receiver_country: receiverProfile?.country,
-            receiver_country_code: receiverProfile?.country_code,
+            receiver_country: receiverProfile?.country_name,
+            receiver_country_code: receiverProfile?.country,
             status: 'pending',
             created_at: Date.now()
         });
@@ -97,8 +97,8 @@ class FriendService {
             friend_id: request.receiver_id,
             friend_username: receiverProfile?.username,
             friend_avatar: receiverProfile?.avatar,
-            friend_country: receiverProfile?.country,
-            friend_country_code: receiverProfile?.country_code,
+            friend_country: receiverProfile?.country_name,
+            friend_country_code: receiverProfile?.country,
             created_at: Date.now()
         });
 
@@ -108,8 +108,8 @@ class FriendService {
             friend_id: request.sender_id,
             friend_username: senderProfile?.username,
             friend_avatar: senderProfile?.avatar,
-            friend_country: senderProfile?.country,
-            friend_country_code: senderProfile?.country_code,
+            friend_country: senderProfile?.country_name,
+            friend_country_code: senderProfile?.country,
             created_at: Date.now()
         });
 
@@ -193,8 +193,8 @@ class FriendService {
             id: friend.friend_id,
             username: friend.friend_username,
             avatar: friend.friend_avatar,
-            country: friend.friend_country,
-            country_code: friend.friend_country_code,
+            country_name: friend.friend_country,
+            country: friend.friend_country_code,
             ...(statuses[friend.friend_id] || { is_online: false, last_seen: 0 })
         }));
     }
@@ -222,8 +222,8 @@ class FriendService {
                 id: req.sender_id,
                 username: senderMap.get(req.sender_id)?.username || req.sender_username,
                 avatar: senderMap.get(req.sender_id)?.avatar || req.sender_avatar,
-                country: senderMap.get(req.sender_id)?.country || req.sender_country,
-                country_code: senderMap.get(req.sender_id)?.country_code || req.sender_country_code
+                country_name: senderMap.get(req.sender_id)?.country_name || req.sender_country,
+                country: senderMap.get(req.sender_id)?.country || req.sender_country_code
             }
         }));
     }
@@ -251,8 +251,8 @@ class FriendService {
                 id: req.receiver_id,
                 username: receiverMap.get(req.receiver_id)?.username || req.receiver_username,
                 avatar: receiverMap.get(req.receiver_id)?.avatar || req.receiver_avatar,
-                country: receiverMap.get(req.receiver_id)?.country || req.receiver_country,
-                country_code: receiverMap.get(req.receiver_id)?.country_code || req.receiver_country_code
+                country_name: receiverMap.get(req.receiver_id)?.country_name || req.receiver_country,
+                country: receiverMap.get(req.receiver_id)?.country || req.receiver_country_code
             }
         }));
     }

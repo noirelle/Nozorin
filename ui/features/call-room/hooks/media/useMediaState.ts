@@ -4,8 +4,8 @@ import { MediaStreamManager } from '../../../../lib/mediaStream';
 export interface CallRoomState {
     is_searching: boolean;
     is_connected: boolean;
+    partner_country_name: string;
     partner_country: string;
-    partner_country_code: string;
     partner_username: string;
     partner_avatar: string;
     partner_gender: string;
@@ -22,8 +22,8 @@ export interface CallRoomState {
 export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
     is_searching: false,
     is_connected: false,
+    partner_country_name: '',
     partner_country: '',
-    partner_country_code: '',
     partner_username: '',
     partner_avatar: '',
     partner_gender: '',

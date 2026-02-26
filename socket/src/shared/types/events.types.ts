@@ -51,8 +51,8 @@ export interface MatchFoundPayload {
     partner_username: string;
     partner_avatar: string;
     partner_gender: string;
+    partner_country_name?: string;
     partner_country?: string;
-    partner_country_code?: string;
     partner_is_muted: boolean;
     room_id: string;
     mode: 'voice';

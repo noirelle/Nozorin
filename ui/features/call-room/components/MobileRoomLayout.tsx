@@ -31,7 +31,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     reconnectCountdown,
     callDuration,
 }) => {
-    const { is_connected, is_searching, partner_country, partner_country_code, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
+    const { is_connected, is_searching, partner_country_name, partner_country, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
     const { user: localUser } = useUser();
 
     return (
@@ -195,11 +195,11 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                                         {partner_gender === 'male' ? '♂' : partner_gender === 'female' ? '♀' : partner_gender}
                                                     </span>
                                                 )}
-                                                {partner_country_code && (
-                                                    <ReactCountryFlag countryCode={partner_country_code} svg className="w-4 h-3 rounded-sm object-cover" />
+                                                {partner_country && (
+                                                    <ReactCountryFlag countryCode={partner_country} svg className="w-4 h-3 rounded-sm object-cover" />
                                                 )}
                                             </div>
-                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partner_country || 'Unknown Location'}</p>
+                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partner_country_name || 'Unknown Location'}</p>
                                         </div>
                                     </div>
                                     {partner_user_id && (

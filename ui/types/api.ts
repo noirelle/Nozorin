@@ -28,7 +28,7 @@ export interface AnonymousLoginResponse {
         username: string;
         displayName: string;
         avatar: string;
-        country: string | null;
+        country_name: string | null;
         city: string | null;
         timezone: string | null;
     };

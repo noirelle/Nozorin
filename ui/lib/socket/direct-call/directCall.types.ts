@@ -11,8 +11,8 @@ export interface IncomingCallPayload {
     from_username: string;
     from_avatar: string;
     from_gender: string;
+    from_country_name: string;
     from_country: string;
-    from_country_code: string;
     mode: 'voice';
 }
 

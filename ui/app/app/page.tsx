@@ -111,7 +111,7 @@ export default function AppPage() {
         console.log('[App] Friend request received:', data);
         setFriendRequestNotif({
             ...data.profile,
-            countryCode: data.profile.country_code
+            country: data.profile.country
         });
         // If drawer is open, refresh the list
         if (isFriendsOpen) {
@@ -296,8 +296,8 @@ export default function AppPage() {
 
             {incomingCall && (
                 <IncomingCallOverlay
+                    from_country_name={incomingCall.from_country_name}
                     from_country={incomingCall.from_country}
-                    from_country_code={incomingCall.from_country_code}
                     mode={incomingCall.mode}
                     onAccept={performAcceptCall}
                     onDecline={performDeclineCall}

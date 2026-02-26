@@ -127,16 +127,16 @@ export const FriendsDrawer: React.FC<FriendsDrawerProps> = ({
                                                     {friend.avatar ? (
                                                         <img src={friend.avatar} alt={friend.username} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <ReactCountryFlag countryCode={friend.country_code || 'US'} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <ReactCountryFlag countryCode={friend.country || 'US'} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     )}
                                                 </div>
                                                 <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${friend.is_online ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
                                             </div>
                                             <div className="flex flex-col min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-bold text-slate-800 truncate">{friend.username ? `@${friend.username}` : (friend.country || 'Friend')}</span>
-                                                    {friend.country_code && (
-                                                        <ReactCountryFlag countryCode={friend.country_code} svg className="w-3 h-2" />
+                                                    <span className="text-sm font-bold text-slate-800 truncate">{friend.username ? `@${friend.username}` : (friend.country_name || 'Friend')}</span>
+                                                    {friend.country && (
+                                                        <ReactCountryFlag countryCode={friend.country} svg className="w-3 h-2" />
                                                     )}
                                                 </div>
                                                 <div className="text-[10px] font-bold">
@@ -200,16 +200,16 @@ export const FriendsDrawer: React.FC<FriendsDrawerProps> = ({
                                                 {request.user?.avatar ? (
                                                     <img src={request.user?.avatar} alt={request.user?.username} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <ReactCountryFlag countryCode={request.user?.country_code || 'US'} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <ReactCountryFlag countryCode={request.user?.country || 'US'} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 )}
                                             </div>
                                             <div className="flex flex-col min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-bold text-slate-800 truncate">
-                                                        {request.user?.username ? `@${request.user.username}` : (request.user?.country || 'User')}
+                                                        {request.user?.username ? `@${request.user.username}` : (request.user?.country_name || 'User')}
                                                     </span>
-                                                    {request.user?.country_code && (
-                                                        <ReactCountryFlag countryCode={request.user.country_code} svg className="w-3 h-2" />
+                                                    {request.user?.country && (
+                                                        <ReactCountryFlag countryCode={request.user.country} svg className="w-3 h-2" />
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 font-medium leading-none">

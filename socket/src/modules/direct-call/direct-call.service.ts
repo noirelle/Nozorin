@@ -42,7 +42,7 @@ export const register = (io: Server, socket: Socket): void => {
             from_avatar: callerProfile?.avatar || '/avatars/avatar1.webp',
             from_gender: callerProfile?.gender || 'unknown',
             from_country: callerInfo?.country,
-            from_country_code: callerInfo?.country_code,
+            from_country_name: callerInfo?.country_name,
             mode,
         });
 
@@ -99,7 +99,7 @@ export const register = (io: Server, socket: Socket): void => {
             partner_avatar: profileB?.avatar || '/avatars/avatar1.webp',
             partner_gender: profileB?.gender || 'unknown',
             partner_country: infoB?.country,
-            partner_country_code: infoB?.country_code,
+            partner_country_name: infoB?.country_name,
             partner_is_muted: mediaB.is_muted,
             room_id: roomId, mode,
             friendship_status: friendshipStatus,
@@ -117,7 +117,7 @@ export const register = (io: Server, socket: Socket): void => {
             partner_avatar: profileA?.avatar || '/avatars/avatar1.webp',
             partner_gender: profileA?.gender || 'unknown',
             partner_country: infoA?.country,
-            partner_country_code: infoA?.country_code,
+            partner_country_name: infoA?.country_name,
             partner_is_muted: mediaA.is_muted,
             room_id: roomId, mode,
             friendship_status: reverseStatus,

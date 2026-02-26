@@ -90,8 +90,8 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
 
     const setPartner = useCallback((
         partner_id: string | null,
+        country_name?: string,
         country?: string,
-        country_code?: string,
         username?: string,
         avatar?: string,
         gender?: string,
@@ -102,8 +102,8 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
             ...prev,
             partner_id,
             partner_user_id: user_id || null,
+            partner_country_name: country_name || '',
             partner_country: country || '',
-            partner_country_code: country_code || '',
             partner_username: username || '',
             partner_avatar: avatar || '',
             partner_gender: gender || '',
@@ -127,8 +127,8 @@ export const useMediaActions = ({ setState, mediaManager, mode }: UseMediaAction
         setState(prev => ({
             is_searching: false,
             is_connected: false,
+            partner_country_name: '',
             partner_country: '',
-            partner_country_code: '',
             partner_username: '',
             partner_avatar: '',
             partner_gender: '',

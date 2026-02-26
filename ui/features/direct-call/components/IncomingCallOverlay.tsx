@@ -3,8 +3,8 @@ import React from 'react';
 import ReactCountryFlag from 'react-country-flag';
 
 interface IncomingCallOverlayProps {
+    from_country_name: string;
     from_country: string;
-    from_country_code: string;
     mode: 'voice';
     onAccept: () => void;
     onDecline: () => void;
@@ -12,8 +12,8 @@ interface IncomingCallOverlayProps {
 }
 
 export const IncomingCallOverlay: React.FC<IncomingCallOverlayProps> = ({
+    from_country_name,
     from_country,
-    from_country_code,
     mode,
     onAccept,
     onDecline,
@@ -29,8 +29,7 @@ export const IncomingCallOverlay: React.FC<IncomingCallOverlayProps> = ({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         ) : (
-                            <ReactCountryFlag
-                                countryCode={from_country_code}
+                            <ReactCountryFlag countryCode={from_country}
                                 svg
                                 style={{
                                     width: '4em',
@@ -48,7 +47,7 @@ export const IncomingCallOverlay: React.FC<IncomingCallOverlayProps> = ({
                 <p className="text-zinc-400 mb-8 flex items-center gap-2">
                     {error ? error : (
                         <>
-                            <span>{from_country}</span>
+                            <span>{from_country_name}</span>
                             <span>is calling you...</span>
                         </>
                     )}

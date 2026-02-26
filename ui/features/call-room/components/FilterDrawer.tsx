@@ -113,27 +113,27 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
 
                     {/* Country List */}
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-1">
-                        {filteredCountries.map((country) => (
+                        {filteredCountries.map((country_name) => (
                             <button
-                                key={country.code}
-                                onClick={() => onSelectCountry(country.code)}
-                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${currentCountry === country.code
+                                key={country_name.code}
+                                onClick={() => onSelectCountry(country_name.code)}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${currentCountry === country_name.code
                                     ? 'bg-[#FF0055]/5 border border-[#FF0055]/20'
                                     : 'hover:bg-slate-50 border border-transparent'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-base overflow-hidden shrink-0">
-                                        {country.code === 'GLOBAL' ? '🌍' : (
-                                            <ReactCountryFlag countryCode={country.code} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        {country_name.code === 'GLOBAL' ? '🌍' : (
+                                            <ReactCountryFlag countryCode={country_name.code} svg style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         )}
                                     </div>
-                                    <span className={`text-sm font-bold text-left truncate ${currentCountry === country.code ? 'text-[#FF0055]' : 'text-slate-600 group-hover:text-slate-900'
+                                    <span className={`text-sm font-bold text-left truncate ${currentCountry === country_name.code ? 'text-[#FF0055]' : 'text-slate-600 group-hover:text-slate-900'
                                         }`}>
-                                        {country.name}
+                                        {country_name.name}
                                     </span>
                                 </div>
-                                {currentCountry === country.code && (
+                                {currentCountry === country_name.code && (
                                     <div className="w-5 h-5 rounded-full bg-[#FF0055] flex items-center justify-center text-white shrink-0">
                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />

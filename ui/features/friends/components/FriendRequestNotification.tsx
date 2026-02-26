@@ -8,8 +8,8 @@ interface FriendRequestNotificationProps {
         id: string;
         username: string;
         avatar: string;
+        country_name?: string;
         country?: string;
-        countryCode?: string;
     };
     onView: () => void;
     onClose: () => void;
@@ -51,8 +51,8 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
                 <div className="flex-1 min-w-0 pr-4">
                     <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-bold text-slate-800 truncate">{profile.username}</span>
-                        {profile.countryCode && (
-                            <ReactCountryFlag countryCode={profile.countryCode} svg className="w-3 h-2" />
+                        {profile.country && (
+                            <ReactCountryFlag countryCode={profile.country} svg className="w-3 h-2" />
                         )}
                     </div>
                     <p className={`text-[11px] font-medium line-clamp-1 ${isAcceptance ? 'text-emerald-600' : 'text-slate-500'}`}>
