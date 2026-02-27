@@ -5,6 +5,7 @@ import { useWebRTCListeners } from './useWebRTCListeners';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 
 interface UseWebRTCProps {
+    is_media_ready: boolean;
     mediaManager: MutableRefObject<MediaStreamManager | null>;
     remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
@@ -12,15 +13,20 @@ interface UseWebRTCProps {
 }
 
 export const useWebRTC = ({
+    is_media_ready,
     mediaManager,
     remoteAudioRef,
     onConnectionStateChange,
     onSignalQuality,
 }: UseWebRTCProps) => {
-    const { peerConnectionRef, ICE_CONFIG } = useWebRTCState();
+    const { peerConnectionRef, ICE_CONFIG, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef } = useWebRTCState();
     const actions = useWebRTCActions({
+        is_media_ready,
         peerConnectionRef,
         ICE_CONFIG,
+        pendingOfferRef,
+        pendingAnswerRef,
+        pendingIceCandidatesRef,
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange,

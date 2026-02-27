@@ -30,18 +30,29 @@ export const useRoomEffects = ({
     setPartnerSignalStrength,
     cleanupMedia,
     onConnectionChange,
+    initialMatchData,
     createOffer,
     pendingRejoinPartnerRef,
     handleStop,
     handleNext,
     findMatch,
     handleUserStop,
+    onMatchFound,
 }: UseRoomEffectsProps) => {
 
     // Notify parent about connection state changes
     useEffect(() => {
         onConnectionChange(callRoomState.is_connected);
     }, [callRoomState.is_connected, onConnectionChange]);
+
+    // Handle initial direct call match data
+    useEffect(() => {
+        if (initialMatchData) {
+            console.log('[Room] Processing initial direct call match data');
+            onMatchFound(initialMatchData);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Deferred WebRTC offer for rejoin — fires once media is ready
     useEffect(() => {

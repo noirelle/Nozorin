@@ -1,4 +1,4 @@
-import { useCallback, MutableRefObject, RefObject } from 'react';
+import { useCallback, useEffect, MutableRefObject, RefObject } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 import {
     emitOffer,
@@ -8,6 +8,7 @@ import {
 import { UseWebRTCStateReturn } from './useWebRTCState';
 
 interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
+    is_media_ready: boolean;
     mediaManager: MutableRefObject<MediaStreamManager | null>;
     remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
@@ -15,8 +16,12 @@ interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
 }
 
 export const useWebRTCActions = ({
+    is_media_ready,
     peerConnectionRef,
     ICE_CONFIG,
+    pendingOfferRef,
+    pendingAnswerRef,
+    pendingIceCandidatesRef,
     mediaManager,
     remoteAudioRef,
     onConnectionStateChange,
@@ -74,27 +79,89 @@ export const useWebRTCActions = ({
     }, [createPeerConnection]);
 
     const handleOffer = useCallback(async (sdp: RTCSessionDescriptionInit, callerId: string) => {
+        if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing offer from', callerId);
+            pendingOfferRef.current = { sdp, callerId };
+            return;
+        }
+
         if (!peerConnectionRef.current) createPeerConnection(callerId);
         const pc = peerConnectionRef.current;
         if (!pc) return;
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        emitAnswer(callerId, answer);
-    }, [createPeerConnection, peerConnectionRef]);
+
+        try {
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            emitAnswer(callerId, answer);
+        } catch (e) {
+            console.error('[WebRTC] Error handling offer:', e);
+        }
+    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingOfferRef]);
 
     const handleAnswer = useCallback(async (sdp: RTCSessionDescriptionInit) => {
+        if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing answer');
+            pendingAnswerRef.current = sdp;
+            return;
+        }
+
         const pc = peerConnectionRef.current;
-        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-    }, [peerConnectionRef]);
+        if (pc) {
+            try {
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            } catch (e) {
+                console.error('[WebRTC] Error handling answer:', e);
+            }
+        }
+    }, [peerConnectionRef, is_media_ready, pendingAnswerRef]);
 
     const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
+        if (!is_media_ready) {
+            pendingIceCandidatesRef.current.push(candidate);
+            return;
+        }
+
         const pc = peerConnectionRef.current;
         if (pc) {
             try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
             catch (e) { console.error('Error adding received ice candidate', e); }
         }
-    }, [peerConnectionRef]);
+    }, [peerConnectionRef, is_media_ready, pendingIceCandidatesRef]);
+
+    useEffect(() => {
+        if (!is_media_ready) return;
+
+        const processQueues = async () => {
+            // 1. Process Offer
+            if (pendingOfferRef.current) {
+                console.log('[WebRTC] Processing queued offer:', pendingOfferRef.current);
+                const { sdp, callerId } = pendingOfferRef.current;
+                pendingOfferRef.current = null;
+                await handleOffer(sdp, callerId);
+            }
+
+            // 2. Process Answer
+            if (pendingAnswerRef.current) {
+                console.log('[WebRTC] Processing queued answer:', pendingAnswerRef.current);
+                const sdp = pendingAnswerRef.current;
+                pendingAnswerRef.current = null;
+                await handleAnswer(sdp);
+            }
+
+            // 3. Process ICE Candidates
+            if (pendingIceCandidatesRef.current.length > 0) {
+                console.log(`[WebRTC] Processing ${pendingIceCandidatesRef.current.length} queued ICE candidates`);
+                const candidates = [...pendingIceCandidatesRef.current];
+                pendingIceCandidatesRef.current = [];
+                for (const candidate of candidates) {
+                    await handleIceCandidate(candidate);
+                }
+            }
+        };
+
+        processQueues();
+    }, [is_media_ready, handleOffer, handleAnswer, handleIceCandidate, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef]);
 
     return {
         createPeerConnection,

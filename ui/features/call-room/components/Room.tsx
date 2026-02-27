@@ -84,6 +84,7 @@ export default function Room({
 
     // 4. WebRTC Hook — no socket prop
     const { createOffer, closePeerConnection } = useWebRTC({
+        is_media_ready: callRoomState.is_media_ready,
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
