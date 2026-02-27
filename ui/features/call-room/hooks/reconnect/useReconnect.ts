@@ -1,18 +1,27 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useReconnectState, ActiveCallData } from './useReconnectState';
 import { useReconnectListeners } from './useReconnectListeners';
+import { apiRequest } from '../../../../lib/api';
 
 interface UseReconnectOptions {
     rejoinCall: (room_id?: string) => void;
     onRestorePartner?: (data: ActiveCallData) => void;
+    initialReconnecting?: boolean;
+    initialCallData?: any;
 }
 
-export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptions) => {
-    const state = useReconnectState();
+export const useReconnect = ({
+    rejoinCall,
+    onRestorePartner,
+    initialReconnecting = false,
+    initialCallData = null
+}: UseReconnectOptions) => {
+    const state = useReconnectState(initialReconnecting);
     const {
         isReconnecting,
         setIsReconnecting,
-        attemptedRef,
+        hasCheckedRef,
+        rejoinEmittedRef,
         activeCallRef,
         reconnectStartRef,
         minDisplayTimerRef,
@@ -21,33 +30,67 @@ export const useReconnect = ({ rejoinCall, onRestorePartner }: UseReconnectOptio
     const onRestorePartnerRef = useRef(onRestorePartner);
     useEffect(() => { onRestorePartnerRef.current = onRestorePartner; }, [onRestorePartner]);
 
-    // Check localStorage for an active call once on mount
+    const isCheckingRef = useRef(false);
+
+    // Bootstrap from initial data if provided from AppPage (saves a network roundtrip)
     useEffect(() => {
-        if (attemptedRef.current) return;
-        let stored: string | null = null;
-        try { stored = localStorage.getItem('nz_active_call'); } catch { }
-        if (!stored) return;
-
-        let activeCall: ActiveCallData;
-        try { activeCall = JSON.parse(stored); }
-        catch { localStorage.removeItem('nz_active_call'); return; }
-
-        const elapsed = Date.now() - activeCall.startedAt;
-        if (elapsed > 120_000 || !activeCall.peerId) {
-            localStorage.removeItem('nz_active_call');
-            return;
+        if (!hasCheckedRef.current && initialCallData) {
+            console.log('[useReconnect] Bootstrapping from initial session data provided by parent');
+            activeCallRef.current = initialCallData;
+            onRestorePartnerRef.current?.(initialCallData);
+            // We set hasChecked = true so handleIdentified knows it doesn't need to check API
+            hasCheckedRef.current = true;
         }
+    }, [initialCallData, hasCheckedRef, activeCallRef]);
 
+    // We no longer rely on socket events. Instead, we pull session status when identified.
+    const checkActiveSession = useCallback(async () => {
+        if (hasCheckedRef.current || isCheckingRef.current) return;
+
+        isCheckingRef.current = true;
+        console.log('[useReconnect] Proactively checking for active session...');
+
+        // Optimistically set reconnecting state to show UI immediately
         setIsReconnecting(true);
-        activeCallRef.current = activeCall;
-        onRestorePartnerRef.current?.(activeCall);
-    }, [attemptedRef, activeCallRef, setIsReconnecting]);
 
-    const handleIdentified = useCallback(() => {
-        if (attemptedRef.current || !activeCallRef.current) return;
-        attemptedRef.current = true;
-        rejoinCall(activeCallRef.current.room_id);
-    }, [rejoinCall, attemptedRef, activeCallRef]);
+        try {
+            const statusRes = await apiRequest<{ active: boolean }>('/api/session/current');
+            if (statusRes.error || !statusRes.data?.active) {
+                setIsReconnecting(false);
+                isCheckingRef.current = false;
+                hasCheckedRef.current = true;
+                return;
+            }
+
+            console.log('[useReconnect] Found active session, fetching details...');
+
+            const response = await apiRequest<ActiveCallData>('/api/session/call');
+            if (!response.error && response.data) {
+                const activeCall = response.data;
+                activeCallRef.current = activeCall;
+                onRestorePartnerRef.current?.(activeCall);
+            } else {
+                setIsReconnecting(false);
+            }
+            hasCheckedRef.current = true;
+        } catch (error) {
+            console.error('[useReconnect] Error pulling active call session:', error);
+            setIsReconnecting(false);
+            // We don't set hasChecked = true here to allow retry if it was a network error
+            // But for now, let's keep it consistent
+        } finally {
+            isCheckingRef.current = false;
+        }
+    }, [setIsReconnecting, hasCheckedRef, activeCallRef]);
+
+    const handleIdentified = useCallback(async () => {
+        await checkActiveSession();
+        // If we have an active call and haven't rejoined it yet, do it now
+        if (activeCallRef.current && !rejoinEmittedRef.current) {
+            rejoinEmittedRef.current = true;
+            rejoinCall(activeCallRef.current.room_id);
+        }
+    }, [rejoinCall, checkActiveSession, rejoinEmittedRef, activeCallRef]);
 
     useEffect(() => {
         if (isReconnecting) reconnectStartRef.current = Date.now();

@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../core/config/database.config';
 import { CallHistory } from './history.entity';
 import { userService } from '../user/user.service';
+import { getRedisClient } from '../../core/config/redis.config';
 
 export const sessionService = {
     async getHistory(userId: string) {
@@ -58,5 +59,39 @@ export const sessionService = {
             }
         });
         return count > 0;
+    },
+
+    async getActiveSession(userId: string) {
+        const redis = getRedisClient();
+        if (!redis) return null;
+
+        const data = await redis.get(`call:reconnect:${userId}`);
+        if (!data) return null;
+
+        const session = JSON.parse(data);
+        const partnerProfile = await userService.getUserProfile(session.partner_user_id);
+
+        return {
+            room_id: session.room_id,
+            peerId: session.partner_socket_id,
+            partner_user_id: session.partner_user_id,
+            startedAt: session.start_time,
+            partnerProfile: partnerProfile ? {
+                id: session.partner_user_id,
+                username: partnerProfile.username,
+                displayName: partnerProfile.username,
+                avatar: partnerProfile.avatar,
+                country_name: partnerProfile.country_name,
+                country: partnerProfile.country
+            } : null
+        };
+    },
+
+    async getCurrentSessionStatus(userId: string) {
+        const redis = getRedisClient();
+        if (!redis) return { active: false };
+
+        const data = await redis.get(`call:reconnect:${userId}`);
+        return { active: !!data };
     }
 };

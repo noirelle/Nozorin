@@ -9,4 +9,10 @@ export const session = {
 
     deleteHistory: (userId: string, headers?: HeadersInit) =>
         api.delete(`/api/session/history/${userId}`, { headers }),
+
+    getActiveCall: (headers?: HeadersInit) =>
+        api.get<any>(`/api/session/call`, { headers }),
+
+    getCurrentSession: (headers?: HeadersInit) =>
+        api.get<{ active: boolean }>(`/api/session/current`, { headers }),
 };

@@ -60,7 +60,8 @@ export const register = (io: Server, socket: Socket): void => {
         });
 
         io.to(currentPartnerSocketId).emit(SocketEvents.PARTNER_RECONNECTED, {
-            new_socket_id: socket.id
+            new_socket_id: socket.id,
+            new_user_id: userId
         });
 
         logger.info({ socketId: socket.id, user_id: userId, partner_id: rejoinInfo.partner_socket_id }, '[CALL] Call rejoined successfully');

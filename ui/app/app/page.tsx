@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
 import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
-import { useHistory, useUser, useDirectCall, useFriends } from '@/hooks';
+import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
 import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
@@ -27,6 +27,13 @@ export default function AppPage() {
 
     // History hooks
     const { token, ensureToken, user, isChecking, refreshUser } = useUser();
+
+    // Session hook
+    const {
+        isVerifyingSession,
+        initialReconnecting,
+        initialCallData
+    } = useSession({ token, isChecking, user });
 
     const {
         history,
@@ -142,6 +149,15 @@ export default function AppPage() {
     useSocketEvent(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
     useSocketEvent(SocketEvents.FRIEND_REMOVED, handleFriendRemoved);
 
+    const identifySocket = useCallback(() => {
+        if (!token) return;
+        const s = getSocketClient(token);
+        if (s) {
+            console.log('[App] Identifying socket...', s.id);
+            s.emit(SocketEvents.USER_IDENTIFY, { token });
+        }
+    }, [token]);
+
     // Connect socket with token and identify
     useEffect(() => {
         if (!token) return;
@@ -151,13 +167,6 @@ export default function AppPage() {
             console.log('[App] Connecting socket with token...');
             connectSocket();
         }
-
-        const identify = () => {
-            if (token) {
-                console.log('[App] Identifying socket...', s?.id);
-                s?.emit(SocketEvents.USER_IDENTIFY, { token });
-            }
-        };
 
         const handleAuthError = async (err: any) => {
             const isAuthError = !err || Object.keys(err).length === 0 ||
@@ -186,27 +195,27 @@ export default function AppPage() {
             if (data.success) console.log('[App] Socket token updated successfully (Graceful Refresh)');
         };
 
-        if (s?.connected && token && !isSocketIdentified()) identify();
+        if (s?.connected && token && !isSocketIdentified()) identifySocket();
 
-        const onFocus = () => { if (s?.connected && token) identify(); };
+        const onFocus = () => { if (s?.connected && token && !isSocketIdentified()) identifySocket(); };
         const onStorageChange = (e: StorageEvent) => {
             if (e.key === 'nz_token') window.location.reload();
         };
 
-        s?.on('connect', identify);
+        s?.on('connect', identifySocket);
         s?.on(SocketEvents.AUTH_ERROR, handleAuthError);
         s?.on(SocketEvents.TOKEN_UPDATED, handleTokenUpdated);
         window.addEventListener('focus', onFocus);
         window.addEventListener('storage', onStorageChange);
 
         return () => {
-            s?.off('connect', identify);
+            s?.off('connect', identifySocket);
             s?.off(SocketEvents.AUTH_ERROR, handleAuthError);
             s?.off(SocketEvents.TOKEN_UPDATED, handleTokenUpdated);
             window.removeEventListener('focus', onFocus);
             window.removeEventListener('storage', onStorageChange);
         };
-    }, [token, refreshUser]);
+    }, [token, refreshUser, identifySocket]);
 
     // Also ensure token on mount so we can join room logic
     useEffect(() => {
@@ -227,7 +236,7 @@ export default function AppPage() {
     };
 
     // Show loading or welcome screen - MOVED TO BOTTOM
-    if (isChecking) {
+    if (isChecking || isVerifyingSession) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-white">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-500 border-t-transparent"></div>
@@ -257,6 +266,8 @@ export default function AppPage() {
                 friends={friends}
                 pendingRequests={pendingRequests}
                 sentRequests={sentRequests}
+                initialReconnecting={initialReconnecting}
+                initialCallData={initialCallData}
             />
 
             {/* Global Overlays */}

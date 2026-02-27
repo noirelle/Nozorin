@@ -25,6 +25,8 @@ interface RoomProps {
     friends: any[];
     pendingRequests: any[];
     sentRequests: any[];
+    initialReconnecting?: boolean;
+    initialCallData?: any;
 }
 
 export default function Room({
@@ -37,7 +39,9 @@ export default function Room({
     onAddFriend,
     friends,
     pendingRequests,
-    sentRequests
+    sentRequests,
+    initialReconnecting,
+    initialCallData
 }: RoomProps) {
     // 1. Core State
     const {
@@ -161,6 +165,8 @@ export default function Room({
                 );
             }
         }, [setPartner]),
+        initialReconnecting,
+        initialCallData,
     });
 
     const callDuration = useCallDuration(callRoomState.is_connected);

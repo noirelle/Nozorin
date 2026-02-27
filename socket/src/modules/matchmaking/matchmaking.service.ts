@@ -135,11 +135,10 @@ export const joinQueue = async (
 
     // Also check if user has a pending reconnection session (e.g. they refreshed and then skipped)
     if (userId && userId !== 'unknown') {
-        const reconnectInfo = reconnectingUsers.get(userId);
+        const reconnectInfo = await callService.getActiveCall(userId);
         if (reconnectInfo) {
             // End the call for the partner who is waiting
             await callService.handleEndCall(serverIo, socketId, { target: reconnectInfo.partner_socket_id, reason: 'skip' });
-            reconnectingUsers.delete(userId);
             logger.info({ userId, partner_id: reconnectInfo.partner_socket_id }, '[MATCHMAKING] Ended pending reconnection session before joining queue');
         }
     }

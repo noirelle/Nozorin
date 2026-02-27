@@ -5,6 +5,7 @@ import { addConnectedUser } from '../../modules/tracking/tracking.service';
 import { presenceService } from '../../modules/presence/presence.service';
 import { logger } from '../../core/logger';
 import { SocketEvents } from '../socket.events';
+import { callService } from '../../modules/call/call.service';
 
 export const initializeSocketConnection = async (io: Server, socket: Socket): Promise<void> => {
     logger.info({ socketId: socket.id }, '[CONNECT] New connection');

@@ -13,9 +13,10 @@ export interface ActiveCallData {
     };
 }
 
-export const useReconnectState = () => {
-    const [isReconnecting, setIsReconnecting] = useState(false);
-    const attemptedRef = useRef(false);
+export const useReconnectState = (initialReconnecting = false) => {
+    const [isReconnecting, setIsReconnecting] = useState(initialReconnecting);
+    const hasCheckedRef = useRef(false);
+    const rejoinEmittedRef = useRef(false);
     const activeCallRef = useRef<ActiveCallData | null>(null);
     const reconnectStartRef = useRef<number>(0);
     const minDisplayTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -29,7 +30,8 @@ export const useReconnectState = () => {
     return {
         isReconnecting,
         setIsReconnecting,
-        attemptedRef,
+        hasCheckedRef,
+        rejoinEmittedRef,
         activeCallRef,
         reconnectStartRef,
         minDisplayTimerRef,

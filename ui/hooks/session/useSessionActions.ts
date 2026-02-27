@@ -3,9 +3,21 @@
 import { useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { apiRequest } from '../../lib/api';
+
 const LOCATION_KEY = 'nz_location';
 
-export const useSessionActions = () => {
+interface UseSessionActionsProps {
+    setInitialCallData: (data: any) => void;
+    setInitialReconnecting: (reconnecting: boolean) => void;
+    setIsVerifyingSession: (verifying: boolean) => void;
+}
+
+export const useSessionActions = ({
+    setInitialCallData,
+    setInitialReconnecting,
+    setIsVerifyingSession,
+}: UseSessionActionsProps) => {
     const getSessionId = useCallback(() => {
         if (typeof window === 'undefined') return null;
 
@@ -22,13 +34,28 @@ export const useSessionActions = () => {
 
         if (!sid) {
             sid = uuidv4();
-            // Note: We don't save back to localStorage here because 
-            // the full location object structure is managed elsewhere (useUser/useGuestLogin).
-            // But if we generated a new ID, we return it.
         }
 
         return sid;
     }, []);
 
-    return { getSessionId };
+    const verifyActiveCallSession = useCallback(async () => {
+        try {
+            const res = await apiRequest<{ active: boolean }>('/api/session/current');
+            if (!res.error && res.data?.active) {
+                console.log('[useSession] Active session found, fetching full details...');
+                const fullRes = await apiRequest<any>('/api/session/call');
+                if (!fullRes.error && fullRes.data) {
+                    setInitialCallData(fullRes.data);
+                    setInitialReconnecting(true);
+                }
+            }
+        } catch (err) {
+            console.error('[useSession] Failed to verify active session:', err);
+        } finally {
+            setIsVerifyingSession(false);
+        }
+    }, [setInitialCallData, setInitialReconnecting, setIsVerifyingSession]);
+
+    return { getSessionId, verifyActiveCallSession };
 };

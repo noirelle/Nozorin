@@ -195,7 +195,6 @@ export const useMatchingActions = ({
         clearReconnectTimer();
         setStatus('IDLE');
         emitCancelReconnect();
-        try { localStorage.removeItem('nz_active_call'); } catch { }
     }, [clearReconnectTimer, setStatus]);
 
     const skipToNext = useCallback((preferred_country?: string) => {
@@ -283,7 +282,6 @@ export const useMatchingActions = ({
         console.warn('[Matching] Rejoin failed:', data.reason);
         clearReconnectTimer();
         setStatus('IDLE');
-        try { localStorage.removeItem('nz_active_call'); } catch { }
         callbacksRef.current.onRejoinFailed?.(data);
     }, [clearReconnectTimer, setStatus]);
 
