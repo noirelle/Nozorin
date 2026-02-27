@@ -183,8 +183,10 @@ export const useRoomActionsCallbacks = ({
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
 
-        // Ignore late echoes if we already left/skipped
-        if (!callRoomState.partner_id) return;
+        console.log('[RoomActions] CALL_ENDED received. Partner:', callRoomState.partner_id);
+
+        // Even if partner_id is not yet set in state (race condition), we should cleanup if we are connected or searching
+        if (!callRoomState.partner_id && !callRoomState.is_connected && !callRoomState.is_searching) return;
 
         trackSessionEnd('partner-disconnect');
 
@@ -198,9 +200,16 @@ export const useRoomActionsCallbacks = ({
 
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
         try { localStorage.removeItem('nz_active_call'); } catch { }
+
+        if (roomActionsState.isDirectCall) {
+            console.log('[RoomActions] Direct call ended by partner, stopping.');
+            roomActionsState.setIsDirectCall(false);
+            return;
+        }
+
         setSearching(true);
         reconnectTimeoutRef.current = setTimeout(() => findMatch(true), 300);
-    }, [manualStopRef, callRoomState.partner_id, trackSessionEnd, nextTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, reconnectTimeoutRef, setSearching, findMatch]);
+    }, [manualStopRef, callRoomState.partner_id, callRoomState.is_connected, callRoomState.is_searching, trackSessionEnd, nextTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, reconnectTimeoutRef, setSearching, findMatch, roomActionsState]);
 
     const onMatchCancelled = useCallback((data: { reason: string }) => {
         if (nextTimeoutRef.current) clearTimeout(nextTimeoutRef.current);

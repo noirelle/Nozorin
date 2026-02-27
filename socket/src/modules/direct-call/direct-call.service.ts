@@ -21,14 +21,6 @@ export const directCallService = {
         const targetSocket = io.sockets.sockets.get(targetSocketId);
 
         if (!fromSocket || !targetSocket) {
-            logger.warn({
-                fromSocketId,
-                fromSocketExists: !!fromSocket,
-                targetSocketId,
-                targetSocketExists: !!targetSocket,
-                fromUserId,
-                targetUserId
-            }, '[DIRECT-CALL] Failed to find socket in io.sockets.sockets');
             throw new Error('User connection lost');
         }
 
