@@ -4,7 +4,8 @@ import { useUserState } from './useUserState';
 import { useUserActions } from './useUserActions';
 import { useUserEffects } from './useUserEffects';
 
-export const useUser = () => {
+export const useUser = (options?: { skipCheck?: boolean }) => {
+    const { skipCheck = false } = options || {};
     const state = useUserState();
     const actions = useUserActions({
         token: state.token,
@@ -21,6 +22,7 @@ export const useUser = () => {
         setIsChecking: state.setIsChecking,
         setChecked: state.setChecked,
         fetchMe: actions.fetchMe,
+        skipCheck,
     });
 
     return {

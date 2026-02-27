@@ -42,8 +42,8 @@ export const register = (io: Server, socket: Socket): void => {
             activeCalls.delete(oldSocketId);
         }
 
-        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId, start_time: startTime });
-        activeCalls.set(currentPartnerSocketId, { partner_id: socket.id, start_time: startTime });
+        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId, start_time: startTime, last_seen: Date.now() });
+        activeCalls.set(currentPartnerSocketId, { partner_id: socket.id, start_time: startTime, last_seen: Date.now() });
         reconnectingUsers.delete(userId);
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
@@ -78,5 +78,10 @@ export const register = (io: Server, socket: Socket): void => {
             }
             logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Reconnection cancelled');
         }
+    });
+
+    socket.on(SocketEvents.PING, () => {
+        callService.handlePing(socket.id);
+        socket.emit(SocketEvents.PONG);
     });
 };

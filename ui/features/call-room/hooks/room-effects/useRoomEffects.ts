@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type React from 'react';
 import { connectSocket } from '../../../../lib/socket';
-import { emitUpdateMediaState } from '../../../../lib/socket/media/media.actions';
+import { emitUpdateMediaState, emitPing } from '../../../../lib/socket';
 import { CallRoomState } from '@/hooks';
 import { useRoomEffectsListeners } from './useRoomEffectsListeners';
 
@@ -80,6 +80,21 @@ export const useRoomEffects = ({
         if (!callRoomState.is_media_ready) return;
         emitUpdateMediaState(callRoomState.is_muted);
     }, [callRoomState.is_media_ready, callRoomState.is_muted]);
+
+    // Heartbeat for presence detection
+    useEffect(() => {
+        if (!callRoomState.is_connected || callRoomState.is_searching) return;
+
+        console.log('[Room] Starting heartbeat ping interval');
+        const interval = setInterval(() => {
+            emitPing();
+        }, 5000);
+
+        return () => {
+            console.log('[Room] Stopping heartbeat ping interval');
+            clearInterval(interval);
+        };
+    }, [callRoomState.is_connected, callRoomState.is_searching]);
 
     // Keyboard shortcuts
     useEffect(() => {

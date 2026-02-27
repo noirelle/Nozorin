@@ -39,6 +39,7 @@ export const callService = {
 
             // Notify partner
             io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
+            io.to(partnerId).emit(SocketEvents.USER_LEFT, { socketId });
 
             // Record history if we have start time
             if (startTime) {
@@ -89,6 +90,7 @@ export const callService = {
             activeCalls.delete(socketId);
 
             io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason: 'partner-disconnect' });
+            io.to(partnerId).emit(SocketEvents.USER_LEFT, { socketId });
 
             if (startTime) {
                 await callService.reportHistory(socketId, partnerId, duration, 'user-action', 'partner-disconnect');
@@ -97,16 +99,31 @@ export const callService = {
     },
 
     cleanupExpiredSessions: async (io: Server) => {
-        // Now handled by Redis TTL for persistence, 
-        // but we still clean up the in-memory fallback map
+        // 1. Clean up stale call heartbeats
         const now = Date.now();
+        for (const [sid, info] of activeCalls.entries()) {
+            if (now - info.last_seen > 15000) {
+                logger.warn({ socketId: sid, partnerId: info.partner_id }, '[CALL] Heartbeat timeout — terminating call');
+                await callService.handleEndCall(io, sid, { target: info.partner_id, reason: 'partner-disconnect' });
+            }
+        }
+
+        // 2. Clean up in-memory fallback map for reconnecting users
         for (const [userId, info] of reconnectingUsers.entries()) {
             if (now > info.expires_at) {
                 reconnectingUsers.delete(userId);
-                // ... rest of logic for identifying partner to notify end ...
-                // This logic is mostly for UI feedback if someone doesn't come back
             }
         }
+    },
+
+    handlePing: (socketId: string) => {
+        const info = activeCalls.get(socketId);
+        if (info) {
+            info.last_seen = Date.now();
+            activeCalls.set(socketId, info);
+            return true;
+        }
+        return false;
     },
 
     getActiveCall: async (userId: string) => {

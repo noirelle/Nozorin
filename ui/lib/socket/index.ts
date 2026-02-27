@@ -39,6 +39,7 @@ export {
     emitAnswer,
     emitIceCandidate,
     emitSignalStrength,
+    emitPing,
 } from './matching/matching.actions';
 
 // ── Media ─────────────────────────────────────────────────────────────────────

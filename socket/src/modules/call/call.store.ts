@@ -6,8 +6,8 @@ export interface RejoinInfo {
     expires_at: number;
 }
 
-/** socketId → { partner_id, start_time } */
-export const activeCalls = new Map<string, { partner_id: string, start_time: number }>();
+/** socketId → { partner_id, start_time, last_seen } */
+export const activeCalls = new Map<string, { partner_id: string, start_time: number, last_seen: number }>();
 
 /** userId → reconnection info */
 export const reconnectingUsers = new Map<string, RejoinInfo>();

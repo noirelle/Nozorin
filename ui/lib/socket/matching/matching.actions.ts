@@ -67,3 +67,9 @@ export function emitSignalStrength(
     const payload: SignalStrengthPayload = { target, strength };
     socket.emit(SocketEvents.SIGNAL_STRENGTH, payload);
 }
+
+export function emitPing(): void {
+    const socket = getSocketClient();
+    if (!socket) return;
+    socket.emit(SocketEvents.PING);
+}

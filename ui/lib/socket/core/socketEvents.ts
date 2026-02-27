@@ -79,6 +79,9 @@ export const SocketEvents = {
     CALL_ERROR: 'call-error',
     CALL_DECLINED: 'call-declined',
     CANCEL_CALL: 'cancel-call',
+    PING: 'ping',
+    PONG: 'pong',
+    USER_LEFT: 'user-left',
 } as const;
 
 export type SocketEventName = typeof SocketEvents[keyof typeof SocketEvents];

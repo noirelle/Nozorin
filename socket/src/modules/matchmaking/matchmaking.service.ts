@@ -32,8 +32,8 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
     const mediaB = userMediaState.get(partner.id) || { is_muted: false };
 
     const startTime = Date.now();
-    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime });
-    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime });
+    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime, last_seen: startTime });
+    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime, last_seen: startTime });
 
     io.to(queued.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'offerer',

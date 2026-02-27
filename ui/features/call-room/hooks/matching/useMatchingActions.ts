@@ -297,6 +297,13 @@ export const useMatchingActions = ({
         emitMatchReady();
     }, [setStatus]);
 
+    const buildHandleUserLeft = useCallback(() => (data: { socketId: string }) => {
+        console.log('[Matching] User left:', data.socketId);
+        // If we are matched, we might want to end the call or show a message
+        // For now, let's treat it as a trigger to ensure UI remains deterministic
+        callbacksRef.current.onCallEnded?.({ reason: 'partner-left' });
+    }, []);
+
     return {
         startSearch,
         stopSearch,
@@ -314,5 +321,6 @@ export const useMatchingActions = ({
         buildHandleRejoinFailed,
         buildHandleWaitingForMatch,
         buildHandlePrepareMatch,
+        buildHandleUserLeft,
     };
 };
