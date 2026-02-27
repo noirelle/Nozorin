@@ -11,6 +11,7 @@ interface UseUserEffectsProps {
     setIsChecking: UseUserStateReturn['setIsChecking'];
     setChecked: UseUserStateReturn['setChecked'];
     fetchMe: ReturnType<typeof useUserActions>['fetchMe'];
+    skipCheck?: boolean;
 }
 
 export const useUserEffects = ({
@@ -19,9 +20,15 @@ export const useUserEffects = ({
     setIsChecking,
     setChecked,
     fetchMe,
+    skipCheck,
 }: UseUserEffectsProps) => {
     useEffect(() => {
         let mounted = true;
+
+        if (skipCheck) {
+            if (mounted) setIsChecking(false);
+            return;
+        }
 
         if (isChecked) {
             if (mounted) setIsChecking(false);
