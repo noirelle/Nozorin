@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Room from '@/features/call-room/components/Room';
 import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
@@ -26,14 +26,23 @@ export default function AppPage() {
     }, []);
 
     // History hooks
-    const { token, ensureToken, user, isChecking, refreshUser } = useUser();
+    const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
 
     // Session hook
     const {
         isVerifyingSession,
         initialReconnecting,
-        initialCallData
-    } = useSession({ token, isChecking, user });
+        initialCallData,
+        verifyActiveCallSession
+    } = useSession();
+
+    const hasVerifiedRef = useRef(false);
+    useEffect(() => {
+        if (isChecked && token && !hasVerifiedRef.current) {
+            hasVerifiedRef.current = true;
+            verifyActiveCallSession();
+        }
+    }, [isChecked, token, verifyActiveCallSession]);
 
     const {
         history,

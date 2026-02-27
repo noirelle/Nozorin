@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useReconnectState, ActiveCallData } from './useReconnectState';
 import { useReconnectListeners } from './useReconnectListeners';
-import { apiRequest } from '../../../../lib/api';
+import { executeSessionVerification } from '../../../../hooks/session/useSessionActions';
 
 interface UseReconnectOptions {
     rejoinCall: (room_id?: string) => void;
@@ -50,37 +50,21 @@ export const useReconnect = ({
         isCheckingRef.current = true;
         console.log('[useReconnect] Proactively checking for active session...');
 
-        // Optimistically set reconnecting state to show UI immediately
-        setIsReconnecting(true);
-
-        try {
-            const statusRes = await apiRequest<{ active: boolean }>('/api/session/current');
-            if (statusRes.error || !statusRes.data?.active) {
-                setIsReconnecting(false);
-                isCheckingRef.current = false;
-                hasCheckedRef.current = true;
-                return;
-            }
-
-            console.log('[useReconnect] Found active session, fetching details...');
-
-            const response = await apiRequest<ActiveCallData>('/api/session/call');
-            if (!response.error && response.data) {
-                const activeCall = response.data;
+        await executeSessionVerification({
+            onStart: () => setIsReconnecting(true),
+            onSuccess: (activeCall) => {
                 activeCallRef.current = activeCall;
                 onRestorePartnerRef.current?.(activeCall);
-            } else {
+            },
+            onError: (error) => {
+                console.error('[useReconnect] Error pulling active call session:', error);
                 setIsReconnecting(false);
+            },
+            onFinally: () => {
+                isCheckingRef.current = false;
+                hasCheckedRef.current = true;
             }
-            hasCheckedRef.current = true;
-        } catch (error) {
-            console.error('[useReconnect] Error pulling active call session:', error);
-            setIsReconnecting(false);
-            // We don't set hasChecked = true here to allow retry if it was a network error
-            // But for now, let's keep it consistent
-        } finally {
-            isCheckingRef.current = false;
-        }
+        });
     }, [setIsReconnecting, hasCheckedRef, activeCallRef]);
 
     const handleIdentified = useCallback(async () => {

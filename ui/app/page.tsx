@@ -27,7 +27,7 @@ export default function Home() {
         setIsHistoryOpen(false);
     }, []);
 
-    const { token, ensureToken, user } = useUser({ skipCheck: true });
+    const { token, ensureToken, user } = useUser();
 
     const {
         history,
