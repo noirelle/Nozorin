@@ -7,6 +7,7 @@ import { userMediaState } from '../media/media.store';
 import { getConnectedUser } from '../tracking/tracking.service';
 import { logger } from '../../core/logger';
 import { callService } from '../call/call.service';
+import { v4 as uuidv4 } from 'uuid';
 
 export const directCallService = {
     async initiateCall(io: Server, fromUserId: string, targetUserId: string, mode: 'voice' | 'video') {
@@ -74,7 +75,7 @@ export const directCallService = {
             return { success: true, accepted: false };
         }
 
-        const roomId = `direct-${responderSocketId}-${callerSocketId}`;
+        const roomId = `direct-${uuidv4()}`;
 
         // End any existing calls
         const existingInfo = activeCalls.get(responderSocketId);
@@ -83,8 +84,8 @@ export const directCallService = {
         }
 
         const start_time = Date.now();
-        activeCalls.set(responderSocketId, { partner_id: callerSocketId, start_time, last_seen: start_time });
-        activeCalls.set(callerSocketId, { partner_id: responderSocketId, start_time, last_seen: start_time });
+        activeCalls.set(responderSocketId, { partner_id: callerSocketId, start_time, last_seen: start_time, is_offerer: false, room_id: roomId });
+        activeCalls.set(callerSocketId, { partner_id: responderSocketId, start_time, last_seen: start_time, is_offerer: true, room_id: roomId });
 
         responderSocket.join(roomId);
         callerSocket.join(roomId);

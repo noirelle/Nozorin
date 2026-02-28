@@ -9,6 +9,8 @@ import { User } from '../../shared/types/socket.types';
 import { statsService } from '../../shared/services/stats.service';
 import { getIo } from '../../api/emit.controller';
 import { callService } from '../call/call.service';
+import { getRedisClient } from '../../core/config/redis.config';
+import { v4 as uuidv4 } from 'uuid';
 
 let heartbeatSetup = false;
 
@@ -27,13 +29,22 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
         friendshipStatus = await userService.getFriendshipStatus(queued.user_id, partner.user_id);
     }
 
-    const room_id = `match-${queued.id}-${partner.id}`;
+    const room_id = `match-${uuidv4()}`;
     const mediaA = userMediaState.get(queued.id) || { is_muted: false };
     const mediaB = userMediaState.get(partner.id) || { is_muted: false };
 
     const startTime = Date.now();
-    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime, last_seen: startTime });
-    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime, last_seen: startTime });
+    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime, last_seen: startTime, is_offerer: true, room_id });
+    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime, last_seen: startTime, is_offerer: false, room_id });
+
+    // Persist room data in Redis for reliable reconnection (survives fast refresh)
+    const redis = getRedisClient();
+    if (redis) {
+        const roomDataA = JSON.stringify({ partner_user_id: partner.user_id, partner_socket_id: partner.id, room_id, start_time: startTime, is_offerer: true, expires_at: startTime + 3600000 });
+        const roomDataB = JSON.stringify({ partner_user_id: queued.user_id, partner_socket_id: queued.id, room_id, start_time: startTime, is_offerer: false, expires_at: startTime + 3600000 });
+        if (queued.user_id !== 'unknown') await redis.set(`call:room:${queued.user_id}`, roomDataA, 'EX', 3600);
+        if (partner.user_id !== 'unknown') await redis.set(`call:room:${partner.user_id}`, roomDataB, 'EX', 3600);
+    }
 
     io.to(queued.id).emit(SocketEvents.MATCH_FOUND, {
         role: 'offerer',

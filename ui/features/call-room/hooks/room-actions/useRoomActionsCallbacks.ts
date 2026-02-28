@@ -209,10 +209,12 @@ export const useRoomActionsCallbacks = ({
         setTimeout(() => findMatch(), 1000);
     }, [nextTimeoutRef, reconnectTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
 
-    const onPartnerReconnected = useCallback(async (data: { new_socket_id: string; new_user_id?: string }) => {
+    const onPartnerReconnected = useCallback(async (data: { new_socket_id: string; new_user_id?: string; your_role?: 'offerer' | 'answerer' }) => {
         console.log('[RoomActions] Partner reconnected with new socket:', data.new_socket_id);
 
-        // session or a race condition during rejoin.
+        // Ensure UI transitions to connected state (in dual-refresh, this may be the only event)
+        setSearching(false);
+        setConnected(true);
         closePeerConnection();
 
         setPartner(
@@ -226,18 +228,15 @@ export const useRoomActionsCallbacks = ({
             callRoomState.friendship_status
         );
 
-        // Deterministic role assignment for reconnection
-        const currentUserId = user?.id;
-        const partnerUserId = data.new_user_id || callRoomState.partner_user_id;
-
-        if (currentUserId && partnerUserId && currentUserId < partnerUserId) {
-            console.log('[RoomActions] I am the deterministic offerer for this reconnection.');
+        // Use assigned role from server
+        if (data.your_role === 'offerer') {
+            console.log('[RoomActions] I am the assigned offerer for this reconnection.');
             await initMediaManager();
             await createOffer(data.new_socket_id);
         } else {
-            console.log('[RoomActions] I am the deterministic answerer for this reconnection.');
+            console.log('[RoomActions] I am the assigned answerer for this reconnection.');
         }
-    }, [closePeerConnection, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, user?.id, initMediaManager, createOffer]);
+    }, [closePeerConnection, setSearching, setConnected, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, initMediaManager, createOffer]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
         setSearching(false);
@@ -258,18 +257,15 @@ export const useRoomActionsCallbacks = ({
 
         closePeerConnection();
 
-        // Deterministic role assignment for reconnection
-        const currentUserId = user?.id;
-        const partnerUserId = data.partner_user_id || callRoomState.partner_user_id;
-
-        if (currentUserId && partnerUserId && currentUserId < partnerUserId) {
-            console.log('[RoomActions] I am the deterministic offerer for this rejoined session.');
+        // Use assigned role from server
+        if (data.role === 'offerer') {
+            console.log('[RoomActions] I am the assigned offerer for this rejoined session.');
             if (mode === 'voice') pendingRejoinPartnerRef.current = data.partner_id;
         } else {
-            console.log('[RoomActions] I am the deterministic answerer for this rejoined session. Waiting for offer...');
+            console.log('[RoomActions] I am the assigned answerer for this rejoined session. Waiting for offer...');
             pendingRejoinPartnerRef.current = null;
         }
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager, user?.id]);
+    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

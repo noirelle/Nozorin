@@ -12,6 +12,7 @@ interface UseSessionActionsProps {
 
 // Module-level state for deduplication
 let verificationPromise: Promise<void> | null = null;
+let verificationResult: any = null;
 
 /**
  * Shared executor for session verification to prevent duplicate network calls.
@@ -25,9 +26,22 @@ export const executeSessionVerification = async (callbacks: {
 }) => {
     if (verificationPromise) {
         console.log('[Session] Verification already in progress, deduplicating...');
-        return verificationPromise;
+        // Await the existing promise, then propagate the cached result to this caller too
+        try {
+            await verificationPromise;
+            // If the first call succeeded, share its result with this caller
+            if (verificationResult) {
+                callbacks.onSuccess?.(verificationResult);
+            }
+        } catch {
+            // Already handled by the first caller
+        } finally {
+            callbacks.onFinally?.();
+        }
+        return;
     }
 
+    verificationResult = null;
     verificationPromise = (async () => {
         console.log('[Session] Starting explicit verified session check...');
         callbacks.onStart?.();
@@ -37,6 +51,7 @@ export const executeSessionVerification = async (callbacks: {
                 console.log('[Session] Active session found, fetching context...');
                 const fullRes = await apiRequest<any>('/api/session/call');
                 if (!fullRes.error && fullRes.data) {
+                    verificationResult = fullRes.data;
                     callbacks.onSuccess?.(fullRes.data);
                 }
             }
@@ -45,9 +60,8 @@ export const executeSessionVerification = async (callbacks: {
             callbacks.onError?.(err);
         } finally {
             callbacks.onFinally?.();
-            // We keep the promise a bit longer to catch rapid subsequent calls,
-            // then clear it to allow future manual refreshes if needed.
-            setTimeout(() => { verificationPromise = null; }, 1000);
+            // Clear the lock after a short delay to catch rapid subsequent calls
+            setTimeout(() => { verificationPromise = null; verificationResult = null; }, 1000);
         }
     })();
 

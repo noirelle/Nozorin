@@ -280,8 +280,11 @@ export const useMatchingActions = ({
 
     const buildHandleRejoinFailed = useCallback(() => (data: { reason: string }) => {
         console.warn('[Matching] Rejoin failed:', data.reason);
-        clearReconnectTimer();
-        setStatus('IDLE');
+        // Only reset to IDLE on permanent failures — let the reconnect hook retry
+        if (data.reason !== 'partner-not-ready') {
+            clearReconnectTimer();
+            setStatus('IDLE');
+        }
         callbacksRef.current.onRejoinFailed?.(data);
     }, [clearReconnectTimer, setStatus]);
 

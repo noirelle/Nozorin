@@ -51,6 +51,7 @@ export interface RejoinSuccessPayload {
     partner_gender?: string;
     partner_country_name?: string;
     partner_country?: string;
+    role?: 'offerer' | 'answerer';
     [key: string]: unknown;
 }
 
@@ -64,6 +65,7 @@ export interface PartnerReconnectingPayload {
 
 export interface PartnerReconnectedPayload {
     new_socket_id: string;
+    your_role?: 'offerer' | 'answerer';
 }
 
 // ── WebRTC Signaling ──────────────────────────────────────────────────────────
