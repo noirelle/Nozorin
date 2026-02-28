@@ -55,7 +55,7 @@ export default function Home() {
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('pendingMatch', JSON.stringify(data));
         }
-        router.push('/app');
+        router.push('/app/call');
     }, [router, clearCallState]);
 
     const handleIdentifySuccess = useCallback(() => {
@@ -67,7 +67,7 @@ export default function Home() {
 
     const handleJoin = async () => {
         await ensureToken();
-        router.push('/app');
+        router.push('/app/call');
     };
 
     return (
