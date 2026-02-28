@@ -6,7 +6,7 @@ import { MoreHorizontal, Heart, MessageCircle, Send, Bookmark } from 'lucide-rea
 export const PostCard = () => {
     return (
         <div className="max-w-[470px] mx-auto mb-6">
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 px-4">
                 <div className="flex items-center gap-3">
                     <div className="p-[1px] rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600">
                         <div className="p-[1.5px] bg-black rounded-full">
@@ -33,7 +33,7 @@ export const PostCard = () => {
                 />
             </div>
 
-            <div className="py-4 space-y-3">
+            <div className="py-4 px-4 space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Heart className="text-white w-6 h-6 cursor-pointer" />
