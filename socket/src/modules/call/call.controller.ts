@@ -126,6 +126,11 @@ export const register = (io: Server, socket: Socket): void => {
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
 
+        let friendshipStatus = 'none';
+        if (userId && rejoinInfo.partner_user_id && rejoinInfo.partner_user_id !== 'unknown') {
+            friendshipStatus = await userService.getFriendshipStatus(userId, rejoinInfo.partner_user_id);
+        }
+
         socket.emit(SocketEvents.REJOIN_SUCCESS, {
             partner_id: currentPartnerSocketId,
             partner_user_id: rejoinInfo.partner_user_id,
@@ -134,13 +139,26 @@ export const register = (io: Server, socket: Socket): void => {
             partner_gender: partnerProfile?.gender,
             partner_country_name: partnerProfile?.country_name,
             partner_country: partnerProfile?.country,
+            friendship_status: friendshipStatus,
             room_id: rejoinInfo.room_id,
             role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
         });
 
+        let reverseStatus = friendshipStatus;
+        if (friendshipStatus === 'pending_sent') reverseStatus = 'pending_received';
+        else if (friendshipStatus === 'pending_received') reverseStatus = 'pending_sent';
+
+        const userProfile = await userService.getUserProfile(userId);
+
         io.to(currentPartnerSocketId!).emit(SocketEvents.PARTNER_RECONNECTED, {
             new_socket_id: socket.id,
             new_user_id: userId,
+            partner_username: userProfile?.username,
+            partner_avatar: userProfile?.avatar,
+            partner_gender: userProfile?.gender,
+            partner_country_name: userProfile?.country_name,
+            partner_country: userProfile?.country,
+            friendship_status: reverseStatus,
             your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
         });
 
@@ -170,6 +188,12 @@ export const register = (io: Server, socket: Socket): void => {
                     reconnectingUsers.delete(waitingUserId);
 
                     const waitingPartnerProfile = await userService.getUserProfile(userId);
+
+                    let waitingFriendshipStatus = 'none';
+                    if (waitingUserId && userId && userId !== 'unknown') {
+                        waitingFriendshipStatus = await userService.getFriendshipStatus(waitingUserId, userId);
+                    }
+
                     io.to(waitingSocketId).emit(SocketEvents.REJOIN_SUCCESS, {
                         partner_id: socket.id,
                         partner_user_id: userId,
@@ -178,15 +202,28 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingPartnerProfile?.gender,
                         partner_country_name: waitingPartnerProfile?.country_name,
                         partner_country: waitingPartnerProfile?.country,
+                        friendship_status: waitingFriendshipStatus,
                         room_id: waitingRejoinInfo.room_id,
                         role: waitingRejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
+
+                    let waitingReverseStatus = waitingFriendshipStatus;
+                    if (waitingFriendshipStatus === 'pending_sent') waitingReverseStatus = 'pending_received';
+                    else if (waitingFriendshipStatus === 'pending_received') waitingReverseStatus = 'pending_sent';
+
+                    const waitingUserProfile = await userService.getUserProfile(waitingUserId);
 
                     // Also send PARTNER_RECONNECTED to the side that just completed
                     // so it knows the waiting user is resolved too
                     socket.emit(SocketEvents.PARTNER_RECONNECTED, {
                         new_socket_id: waitingSocketId,
                         new_user_id: waitingUserId,
+                        partner_username: waitingUserProfile?.username,
+                        partner_avatar: waitingUserProfile?.avatar,
+                        partner_gender: waitingUserProfile?.gender,
+                        partner_country_name: waitingUserProfile?.country_name,
+                        partner_country: waitingUserProfile?.country,
+                        friendship_status: waitingReverseStatus,
                         your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
                     });
 

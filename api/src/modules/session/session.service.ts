@@ -71,6 +71,11 @@ export const sessionService = {
         const session = JSON.parse(data);
         const partnerProfile = await userService.getUserProfile(session.partner_user_id);
 
+        let friendshipStatus = 'none';
+        if (session.partner_user_id && session.partner_user_id !== 'unknown') {
+            friendshipStatus = await userService.getFriendshipStatus(userId, session.partner_user_id);
+        }
+
         return {
             room_id: session.room_id,
             peerId: session.partner_socket_id,
@@ -82,7 +87,9 @@ export const sessionService = {
                 displayName: partnerProfile.username,
                 avatar: partnerProfile.avatar,
                 country_name: partnerProfile.country_name,
-                country: partnerProfile.country
+                country: partnerProfile.country,
+                gender: partnerProfile.gender,
+                friendship_status: friendshipStatus
             } : null
         };
     },

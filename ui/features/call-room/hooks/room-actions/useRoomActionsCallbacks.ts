@@ -209,7 +209,17 @@ export const useRoomActionsCallbacks = ({
         setTimeout(() => findMatch(), 1000);
     }, [nextTimeoutRef, reconnectTimeoutRef, cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, setSearching, findMatch]);
 
-    const onPartnerReconnected = useCallback(async (data: { new_socket_id: string; new_user_id?: string; your_role?: 'offerer' | 'answerer' }) => {
+    const onPartnerReconnected = useCallback(async (data: {
+        new_socket_id: string;
+        new_user_id?: string;
+        partner_username?: string;
+        partner_avatar?: string;
+        partner_gender?: string;
+        partner_country_name?: string;
+        partner_country?: string;
+        friendship_status?: string;
+        your_role?: 'offerer' | 'answerer';
+    }) => {
         console.log('[RoomActions] Partner reconnected with new socket:', data.new_socket_id);
 
         // Ensure UI transitions to connected state (in dual-refresh, this may be the only event)
@@ -219,13 +229,13 @@ export const useRoomActionsCallbacks = ({
 
         setPartner(
             data.new_socket_id,
-            callRoomState.partner_country_name,
-            callRoomState.partner_country,
-            callRoomState.partner_username,
-            callRoomState.partner_avatar,
-            callRoomState.partner_gender,
-            callRoomState.partner_user_id,
-            callRoomState.friendship_status
+            data.partner_country_name || callRoomState.partner_country_name,
+            data.partner_country || callRoomState.partner_country,
+            data.partner_username || callRoomState.partner_username,
+            data.partner_avatar || callRoomState.partner_avatar,
+            data.partner_gender || callRoomState.partner_gender,
+            data.new_user_id || callRoomState.partner_user_id,
+            (data.friendship_status as any) || callRoomState.friendship_status
         );
 
         // Use assigned role from server

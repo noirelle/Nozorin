@@ -161,7 +161,8 @@ export default function Room({
                     pp.username || '',
                     pp.avatar || '',
                     pp.gender || '',
-                    pp.user_id || null
+                    pp.id || pp.user_id || null,
+                    pp.friendship_status || 'none'
                 );
             }
         }, [setPartner]),

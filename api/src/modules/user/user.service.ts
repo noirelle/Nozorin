@@ -5,6 +5,8 @@ import { getGeoInfo } from '../../core/utils/ip.utils';
 import { v4 as uuidv4 } from 'uuid';
 import { AppDataSource } from '../../core/config/database.config';
 import { User } from './user.entity';
+import { Friend } from '../friend/friend.entity';
+import { FriendRequest } from '../friend/friend-request.entity';
 
 const STATUS_TTL = 3600; // 1 hour for status if not updated
 
@@ -15,6 +17,41 @@ export interface UserStatus {
 
 class UserService {
     private userRepository = AppDataSource.getRepository(User);
+    private friendRepository = AppDataSource.getRepository(Friend);
+    private requestRepository = AppDataSource.getRepository(FriendRequest);
+
+    /**
+     * Get friendship status between two users
+     */
+    async getFriendshipStatus(userId: string, targetId: string): Promise<'none' | 'friends' | 'pending_sent' | 'pending_received'> {
+        try {
+            // Check if already friends
+            const isFriend = await this.friendRepository.findOne({
+                where: { user_id: userId, friend_id: targetId }
+            });
+
+            if (isFriend) return 'friends';
+
+            // Check if there is a pending request from user to target
+            const sentRequest = await this.requestRepository.findOne({
+                where: { sender_id: userId, receiver_id: targetId, status: 'pending' }
+            });
+
+            if (sentRequest) return 'pending_sent';
+
+            // Check if there is a pending request from target to user
+            const receivedRequest = await this.requestRepository.findOne({
+                where: { sender_id: targetId, receiver_id: userId, status: 'pending' }
+            });
+
+            if (receivedRequest) return 'pending_received';
+
+        } catch (error) {
+            console.error('[USER] Error checking friendship status:', error);
+        }
+
+        return 'none';
+    }
 
     /**
      * Save user footprint
