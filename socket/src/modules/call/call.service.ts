@@ -185,9 +185,23 @@ export const callService = {
                 const thisUserId = userService.getUserId(sid);
                 const partnerIsReconnecting = partnerUserId ? reconnectingUsers.has(partnerUserId) : false;
                 const thisUserIsReconnecting = thisUserId ? reconnectingUsers.has(thisUserId) : false;
+
                 if (partnerIsReconnecting || thisUserIsReconnecting) {
-                    logger.debug({ socketId: sid, partnerUserId, thisUserId }, '[CALL] Heartbeat stale but reconnection in progress — skipping timeout');
-                    continue;
+                    // Check if it's been "reconnecting" for entirely too long (e.g. > 35s since expires_at).
+                    // If so, the grace period is definitely over and the reconnection entry is stale/bugged.
+                    let isFailsafeExpired = false;
+                    const pEntry = partnerUserId ? reconnectingUsers.get(partnerUserId) : null;
+                    const tEntry = thisUserId ? reconnectingUsers.get(thisUserId) : null;
+
+                    if (pEntry && now > pEntry.expires_at + 35000) isFailsafeExpired = true;
+                    if (tEntry && now > tEntry.expires_at + 35000) isFailsafeExpired = true;
+
+                    if (!isFailsafeExpired) {
+                        logger.debug({ socketId: sid, partnerUserId, thisUserId }, '[CALL] Heartbeat stale but reconnection in progress — skipping timeout');
+                        continue;
+                    } else {
+                        logger.warn({ socketId: sid, partnerUserId, thisUserId }, '[CALL] Heartbeat stale AND reconnection grace period heavily expired — forcibly terminating');
+                    }
                 }
                 logger.warn({ socketId: sid, partnerId: info.partner_id }, '[CALL] Heartbeat timeout — terminating call');
                 await callService.handleEndCall(io, sid, { target: info.partner_id, reason: 'partner-disconnect' });
@@ -198,6 +212,14 @@ export const callService = {
         for (const [userId, info] of reconnectingUsers.entries()) {
             if (now > info.expires_at) {
                 reconnectingUsers.delete(userId);
+
+                // Explicitly clean up Redis keys so they don't linger until TTL
+                const redis = getRedisClient();
+                if (redis) {
+                    await redis.del(`call:reconnect:${userId}`);
+                    await redis.del(`call:room:${userId}`);
+                }
+
                 // If this user was waiting for their partner, notify them
                 const waitingSocketId = waitingForPartner.get(userId);
                 if (waitingSocketId) {

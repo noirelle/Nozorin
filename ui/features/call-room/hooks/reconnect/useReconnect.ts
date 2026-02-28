@@ -99,24 +99,28 @@ export const useReconnect = ({
         }
     }, [initialCallData, hasCheckedRef, activeCallRef, onRestorePartnerRef, handleIdentified]);
 
-    // Handle rejoin failures — retry for 'partner-not-ready'
+    // Handle rejoin failures — rely on server's proactive REJOIN_SUCCESS instead of polling.
+    // We only add a single 15-second failsafe timeout here.
     const handleRejoinFailed = useCallback((data: { reason: string }) => {
         const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
-        if (data.reason === 'partner-not-ready' && rejoinRetryRef.current < 10) {
-            rejoinRetryRef.current += 1;
-            console.log(`[useReconnect] Partner not ready (${elapsed}ms elapsed), retry ${rejoinRetryRef.current}/10 in 2s...`);
-            rejoinRetryTimerRef.current = setTimeout(() => {
-                if (activeCallRef.current) {
-                    rejoinCall(activeCallRef.current.room_id);
-                }
-            }, 2000);
+        if (data.reason === 'partner-not-ready') {
+            if (!rejoinRetryTimerRef.current) {
+                console.log(`[useReconnect] Partner not ready (${elapsed}ms elapsed), waiting for server resolution. Failsafe timeout in 15s...`);
+                // Single 15-second failsafe timeout. If the server doesn't proactively send
+                // REJOIN_SUCCESS (via waitingForPartner resolution) by then, we give up.
+                rejoinRetryTimerRef.current = setTimeout(() => {
+                    console.error(`[useReconnect] Failsafe timeout reached after 15s waiting for partner. Abandoning reconnection.`);
+                    setIsReconnecting(false);
+                    rejoinRetryRef.current = 0;
+                }, 15000);
+            }
         } else {
             // Permanent failure — clear reconnecting state
             console.error(`[useReconnect] Reconnection failed after ${elapsed}ms — reason: ${data.reason}`);
             setIsReconnecting(false);
             rejoinRetryRef.current = 0;
         }
-    }, [rejoinCall, activeCallRef, setIsReconnecting]);
+    }, [setIsReconnecting]);
 
     // Handle partner coming back online (server proactively notifies us)
     // The server has ALREADY set up activeCalls for both sides at this point.
