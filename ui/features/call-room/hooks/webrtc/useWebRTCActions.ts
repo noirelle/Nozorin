@@ -38,7 +38,13 @@ export const useWebRTCActions = ({
 
         pc.ontrack = (event) => {
             const remoteStream = event.streams[0];
-            if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStream;
+            if (remoteAudioRef.current) {
+                remoteAudioRef.current.srcObject = remoteStream;
+                // Force play to overcome iOS/Safari strict auto-play blocks on dynamic connection
+                remoteAudioRef.current.play().catch(e => {
+                    console.warn('[WebRTC] Autoplay blocked or failed to play incoming stream:', e);
+                });
+            }
         };
 
         pc.onicecandidate = (event) => {

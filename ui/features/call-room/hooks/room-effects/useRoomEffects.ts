@@ -15,7 +15,6 @@ interface UseRoomEffectsProps {
     onConnectionChange: (connected: boolean) => void;
     initialMatchData?: any;
     createOffer: (partnerId: string) => Promise<void>;
-    pendingRejoinPartnerRef: React.MutableRefObject<string | null>;
     handleStop: () => void;
     handleNext: () => void;
     findMatch: () => void;
@@ -32,7 +31,6 @@ export const useRoomEffects = ({
     onConnectionChange,
     initialMatchData,
     createOffer,
-    pendingRejoinPartnerRef,
     handleStop,
     handleNext,
     findMatch,
@@ -53,15 +51,6 @@ export const useRoomEffects = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // Deferred WebRTC offer for rejoin — fires once media is ready
-    useEffect(() => {
-        const partnerId = pendingRejoinPartnerRef.current;
-        if (!partnerId || !callRoomState.is_media_ready) return;
-        pendingRejoinPartnerRef.current = null;
-        console.log('[Room] Media ready — creating deferred WebRTC offer for rejoin.');
-        createOffer(partnerId);
-    }, [callRoomState.is_media_ready, createOffer, pendingRejoinPartnerRef]);
 
     // Initialization & Cleanup
     useEffect(() => {

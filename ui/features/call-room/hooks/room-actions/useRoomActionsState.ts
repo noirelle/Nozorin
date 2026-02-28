@@ -5,7 +5,6 @@ export const useRoomActionsState = () => {
     const [isDirectCall, setIsDirectCall] = useState(false);
 
     const manualStopRef = useRef(false);
-    const pendingRejoinPartnerRef = useRef<string | null>(null);
     const nextTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -28,7 +27,6 @@ export const useRoomActionsState = () => {
         isDirectCall,
         setIsDirectCall,
         manualStopRef,
-        pendingRejoinPartnerRef,
         nextTimeoutRef,
         reconnectTimeoutRef,
         startSearchRef,

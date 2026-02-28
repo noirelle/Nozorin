@@ -58,7 +58,6 @@ export const useRoomActionsCallbacks = ({
     const {
         setPartnerIsMuted,
         manualStopRef,
-        pendingRejoinPartnerRef,
         nextTimeoutRef,
         reconnectTimeoutRef,
         startSearchRef,
@@ -238,10 +237,12 @@ export const useRoomActionsCallbacks = ({
             (data.friendship_status as any) || callRoomState.friendship_status
         );
 
+        // Power up local media unconditionally before dealing with offers
+        await initMediaManager();
+
         // Use assigned role from server
         if (data.your_role === 'offerer') {
             console.log('[RoomActions] I am the assigned offerer for this reconnection.');
-            await initMediaManager();
             await createOffer(data.new_socket_id);
         } else {
             console.log('[RoomActions] I am the assigned answerer for this reconnection.');
@@ -263,18 +264,17 @@ export const useRoomActionsCallbacks = ({
             data.friendship_status || callRoomState.friendship_status
         );
 
-        console.log('[RoomActions] Rejoin success. Powering up mic.');
+        // Power up local media unconditionally before dealing with offers
         await initMediaManager();
 
         // Use assigned role from server
         if (data.role === 'offerer') {
             console.log('[RoomActions] I am the assigned offerer for this rejoined session.');
-            if (mode === 'voice') pendingRejoinPartnerRef.current = data.partner_id;
+            if (mode === 'voice') await createOffer(data.partner_id);
         } else {
             console.log('[RoomActions] I am the assigned answerer for this rejoined session. Waiting for offer...');
-            pendingRejoinPartnerRef.current = null;
         }
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, pendingRejoinPartnerRef, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager]);
+    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager, createOffer]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

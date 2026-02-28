@@ -59,7 +59,6 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         partnerIsMuted: roomActionsState.partnerIsMuted,
         setPartnerIsMuted: roomActionsState.setPartnerIsMuted,
         isDirectCall: roomActionsState.isDirectCall,
-        pendingRejoinPartnerRef: roomActionsState.pendingRejoinPartnerRef,
         matching,
         onMatchFound: callbacks.onMatchFound,
     };

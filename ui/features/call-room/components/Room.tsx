@@ -140,7 +140,6 @@ export default function Room({
         onConnectionChange,
         initialMatchData,
         createOffer,
-        pendingRejoinPartnerRef: actions.pendingRejoinPartnerRef,
         handleStop: actions.handleStop,
         handleNext: actions.handleNext,
         findMatch: actions.findMatch,

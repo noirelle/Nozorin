@@ -20,6 +20,17 @@ export const register = (io: Server, socket: Socket): void => {
             return;
         }
 
+        // Check if our partner already successfully reconstructed the call for us concurrently.
+        // If we are already in activeCalls, we don't need to rebuild from rejoinInfo.
+        const alreadyActive = activeCalls.get(socket.id);
+        if (alreadyActive) {
+            logger.info({ userId, socketId: socket.id }, '[CALL] User is already in activeCalls. Partner likely restored the session concurrently.');
+            // We can optionally emit REJOIN_SUCCESS to ensure they have the latest data,
+            // or we can just return because PARTNER_RECONNECTED was already sent to them.
+            // Let's just return to avoid tearing down the connection they are building.
+            return;
+        }
+
         // Check in-memory first, then fall back to Redis
         let rejoinInfo = reconnectingUsers.get(userId);
         if (!rejoinInfo) {
