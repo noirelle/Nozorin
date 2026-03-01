@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { RightSidebar } from './RightSidebar';
-import { FloatingMessages } from './FloatingMessages';
 import { VoiceGameRoom } from './VoiceGameRoom';
 import { ArrowLeft } from 'lucide-react';
 
@@ -304,7 +303,7 @@ export const DesktopVoiceLayout = () => {
             </main>
 
             {/* Floating Elements */}
-            <FloatingMessages />
+
 
             <HistoryDrawer
                 isOpen={isHistoryOpen}
