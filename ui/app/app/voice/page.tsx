@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DesktopHomeLayout } from '@/features/explore/components/DesktopHomeLayout';
+import { DesktopVoiceLayout } from '@/features/explore/components/DesktopVoiceLayout';
 import { MobileNavbar } from '@/features/explore/components/MobileNavbar';
 import { MobileTabbar } from '@/features/explore/components/MobileTabbar';
 
@@ -33,5 +33,5 @@ export default function VoicePage() {
         );
     }
 
-    return <DesktopHomeLayout />;
+    return <DesktopVoiceLayout />;
 }
