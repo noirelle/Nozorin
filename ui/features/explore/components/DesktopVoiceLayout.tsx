@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/Sidebar';
 import { RightSidebar } from './RightSidebar';
 import { FloatingMessages } from './FloatingMessages';
 import { VoiceGameRoom } from './VoiceGameRoom';
 import { ArrowLeft } from 'lucide-react';
 
+import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
+import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
 import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
 import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
@@ -15,13 +18,17 @@ import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingC
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 import { FriendRequestNotification } from '@/features/friends/components/FriendRequestNotification';
 
-interface DesktopVoiceLayoutProps { }
-
 export const DesktopVoiceLayout = () => {
     const router = useRouter();
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isFriendsOpen, setIsFriendsOpen] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
     const [friendRequestNotif, setFriendRequestNotif] = useState<any>(null);
+
+    const handleCloseHistory = useCallback(() => {
+        setIsHistoryOpen(false);
+    }, []);
 
     // History hooks
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
@@ -79,7 +86,7 @@ export const DesktopVoiceLayout = () => {
         declineCall: performDeclineCall,
         cancelCall,
         clearCallState
-    } = useDirectCall();
+    } = useDirectCall(handleCloseHistory);
 
     // Friend System hook
     const {
@@ -97,13 +104,12 @@ export const DesktopVoiceLayout = () => {
     } = useFriends();
 
     useEffect(() => {
-        if (token && user?.id) {
-            fetchHistory();
+        if (token) {
             fetchFriends();
             fetchPendingRequests();
-            fetchSentRequests();
+            ();
         }
-    }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
+    }, [token, fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
     const handleAddFriend = useCallback(async (targetId: string) => {
         const result = await sendRequest(targetId);
@@ -116,6 +122,7 @@ export const DesktopVoiceLayout = () => {
 
     // Handle successful match-found for direct calls
     const handleMatchFound = useCallback((data: any) => {
+        setIsHistoryOpen(false);
         clearCallState();
         console.log('[DesktopVoiceLayout] Match found via direct call, ensuring room readiness...');
         setDirectMatchData(data);
@@ -131,10 +138,11 @@ export const DesktopVoiceLayout = () => {
             ...data.profile,
             country: data.profile.country
         });
-        // No longer checking isFriendsOpen, always refresh if a request comes in
-        fetchPendingRequests();
-        fetchSentRequests();
-    }, [fetchPendingRequests, fetchSentRequests]);
+        if (isFriendsOpen) {
+            fetchPendingRequests();
+            fetchSentRequests();
+        }
+    }, [isFriendsOpen, fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRequestAccepted = useCallback((data: any) => {
         console.log('[DesktopVoiceLayout] Friend request accepted:', data);
@@ -154,12 +162,6 @@ export const DesktopVoiceLayout = () => {
     useSocketEvent(SocketEvents.FRIEND_REQUEST_RECEIVED, handleFriendRequestReceived);
     useSocketEvent(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
     useSocketEvent(SocketEvents.FRIEND_REMOVED, handleFriendRemoved);
-
-    // Refresh history on session events
-    useSocketEvent(SocketEvents.CALL_ENDED, fetchHistory);
-    useSocketEvent(SocketEvents.MATCH_FOUND, fetchHistory);
-    useSocketEvent(SocketEvents.SESSION_END, fetchHistory);
-    useSocketEvent(SocketEvents.MATCH_CANCELLED, fetchHistory);
 
     const identifySocket = useCallback(() => {
         if (!token) return;
@@ -232,14 +234,13 @@ export const DesktopVoiceLayout = () => {
         setDirectMatchData(null);
         const s = getSocketClient();
         if (s) s.disconnect();
-
         router.push('/app');
     };
 
     if (isChecking || isVerifyingSession) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-[#fdfbfc]">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-500/20 border-t-pink-500"></div>
+            <div className="flex h-screen w-full items-center justify-center bg-black">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/20 border-t-white"></div>
             </div>
         );
     }
@@ -248,10 +249,11 @@ export const DesktopVoiceLayout = () => {
         return <WelcomeScreen onSuccess={refreshUser} />;
     }
 
-    const isWebRTCAvailable = true; // Placeholder for WebRTC availability check
-
     return (
-        <>
+        <div className="min-h-screen bg-black text-white flex">
+            {/* Fixed Sidebar */}
+            <Sidebar />
+
             {/* Main Feed Container */}
             <main className="flex-1 ml-[72px] flex justify-center">
                 <div className="w-full max-w-[935px] flex">
@@ -261,15 +263,20 @@ export const DesktopVoiceLayout = () => {
                             <div className="mb-8 flex items-center gap-4">
                                 <button
                                     onClick={handleLeave}
-                                    className="p-2 hover:bg-pink-50 text-zinc-900 rounded-full transition-colors"
+                                    className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
                                 >
                                     <ArrowLeft className="w-6 h-6" />
                                 </button>
                             </div>
                             <VoiceGameRoom
                                 onLeave={handleLeave}
-                                onNavigateToHistory={() => { }}
-                                onNavigateToFriends={() => { }}
+                                onNavigateToHistory={() => setIsHistoryOpen(true)}
+                                onNavigateToFriends={() => {
+                                    setIsFriendsOpen(true);
+                                    fetchFriends();
+                                    fetchPendingRequests();
+                                    fetchSentRequests();
+                                }}
                                 initialMatchData={directMatchData}
                                 onConnectionChange={setIsConnected}
                                 onAddFriend={handleAddFriend}
@@ -284,7 +291,6 @@ export const DesktopVoiceLayout = () => {
 
                     {/* Right Sidebar */}
                     <RightSidebar
-                        variant="voice"
                         history={history}
                         friends={friends}
                         pendingRequests={pendingRequests}
@@ -292,20 +298,47 @@ export const DesktopVoiceLayout = () => {
                         onAcceptRequest={acceptRequest}
                         onDeclineRequest={declineRequest}
                         onAddFriend={handleAddFriend}
-                        onCall={(targetId) => {
-                            if (!isWebRTCAvailable) {
-                                alert('Direct calling is not available yet.');
-                                return;
-                            }
-                            initiateCall(targetId, 'voice');
-                        }}
-                        onRemoveFriend={removeFriend}
+                        onCall={(targetId: string) => initiateCall(targetId, 'voice')}
                     />
                 </div>
             </main>
 
             {/* Floating Elements */}
             <FloatingMessages />
+
+            <HistoryDrawer
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                history={history}
+                stats={stats}
+                isLoading={isLoading}
+                error={error}
+                onClearHistory={clearHistory}
+                onRefresh={fetchHistory}
+                onCall={(targetId: string) => initiateCall(targetId, 'voice')}
+                onAddFriend={handleAddFriend}
+                friends={friends}
+                pendingRequests={pendingRequests}
+                sentRequests={sentRequests}
+                isConnected={isConnected}
+            />
+
+            <FriendsDrawer
+                isOpen={isFriendsOpen}
+                onClose={() => setIsFriendsOpen(false)}
+                friends={friends}
+                pendingRequests={pendingRequests}
+                sentRequests={sentRequests}
+                onAcceptRequest={acceptRequest}
+                onDeclineRequest={declineRequest}
+                onRemoveFriend={removeFriend}
+                onCall={(targetId: string) => {
+                    setIsFriendsOpen(false);
+                    initiateCall(targetId, 'voice');
+                }}
+                isConnected={isConnected}
+                isLoading={isLoadingFriendsData}
+            />
 
             {incomingCall && (
                 <IncomingCallOverlay
@@ -333,6 +366,7 @@ export const DesktopVoiceLayout = () => {
                     isAcceptance={friendRequestNotif.isAcceptance}
                     onView={() => {
                         setFriendRequestNotif(null);
+                        setIsFriendsOpen(true);
                         fetchFriends();
                         fetchPendingRequests();
                         fetchSentRequests();
@@ -340,6 +374,6 @@ export const DesktopVoiceLayout = () => {
                     onClose={() => setFriendRequestNotif(null)}
                 />
             )}
-        </>
+        </div>
     );
 };

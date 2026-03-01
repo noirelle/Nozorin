@@ -189,13 +189,13 @@ export const RightSidebar = ({
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                    ? 'text-white'
-                                    : 'text-zinc-600 hover:text-zinc-400'
+                                    ? 'text-pink-600'
+                                    : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
                                 {tab}
                                 {activeTab === tab && (
-                                    <div className="h-0.5 bg-white mt-1.5 rounded-full" />
+                                    <div className="h-0.5 bg-pink-600 mt-1.5 rounded-full" />
                                 )}
                             </button>
                         ))}
@@ -211,16 +211,16 @@ export const RightSidebar = ({
                                         className="w-12 h-12 rounded-full object-cover"
                                     />
                                     <div>
-                                        <p className="text-sm font-semibold text-white">a1r4su</p>
-                                        <p className="text-sm text-zinc-400">Arisu</p>
+                                        <p className="text-sm font-semibold text-zinc-900">a1r4su</p>
+                                        <p className="text-sm text-zinc-500">Arisu</p>
                                     </div>
                                 </div>
                                 <button className="text-xs font-semibold text-blue-500 hover:text-white">You</button>
                             </div>
                         )}
                         <div className="flex items-center gap-2 mb-4 mt-2">
-                            <span className="text-sm font-semibold text-zinc-400">Suggested for you</span>
-                            <span className="text-[10px] font-bold text-zinc-600 bg-zinc-900/50 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm border border-zinc-800/50">Upcoming</span>
+                            <span className="text-sm font-semibold text-zinc-600">Suggested for you</span>
+                            <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm border border-pink-100">Upcoming</span>
                         </div>
                     </>
                 )}
@@ -235,12 +235,12 @@ export const RightSidebar = ({
                                 <div key={user.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full border border-white/5 bg-zinc-900 p-0.5 object-cover" />
-                                            {user.isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />}
+                                            <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5 object-cover" />
+                                            {user.isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
                                         </div>
                                         <div className="max-w-[120px]">
                                             <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-white truncate">{user.username}</p>
+                                                <p className="text-sm font-bold text-zinc-900 truncate">{user.username}</p>
                                                 {user.disconnectReason && (
                                                     <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(user.disconnectReason)}`}>
                                                         {getReasonLabel(user.disconnectReason)}
@@ -264,7 +264,7 @@ export const RightSidebar = ({
                                         {!user.isFriend && (
                                             <button
                                                 onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
-                                                className="p-2 hover:bg-zinc-900 text-zinc-500 hover:text-white rounded-xl transition-all"
+                                                className="p-2 hover:bg-pink-50 text-zinc-500 hover:text-pink-600 rounded-xl transition-all"
                                                 title="Add Friend"
                                             >
                                                 <UserPlus className="w-4 h-4" />
@@ -272,7 +272,7 @@ export const RightSidebar = ({
                                         )}
                                         <button
                                             onClick={() => user.userId && onCall && onCall(user.userId)}
-                                            className="p-2 bg-white/5 hover:bg-white text-zinc-400 hover:text-black rounded-xl transition-all"
+                                            className="p-2 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl transition-all"
                                             title="Call"
                                         >
                                             <Phone className="w-3.5 h-3.5 fill-current" />
@@ -284,23 +284,23 @@ export const RightSidebar = ({
                                 <div key={req.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={req.avatar} alt={req.username} className="w-10 h-10 rounded-full border border-white/5 bg-zinc-900 p-0.5" />
-                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />
+                                            <img src={req.avatar} alt={req.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5" />
+                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                                         </div>
                                         <div className="max-w-[120px]">
                                             <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-white truncate">{req.username}</p>
+                                                <p className="text-sm font-bold text-zinc-900 truncate">{req.username}</p>
                                                 <ReactCountryFlag countryCode={req.country} svg className="w-3 h-2 opacity-60" />
                                             </div>
                                             <div className="flex items-center gap-1 mt-0.5">
-                                                <Clock className="w-2.5 h-2.5 text-zinc-600" />
+                                                <Clock className="w-2.5 h-2.5 text-zinc-400" />
                                                 <p className="text-[10px] font-bold text-zinc-500 tracking-tighter uppercase">{req.time}</p>
                                             </div>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
-                                        className="px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-[10px] font-black rounded-xl transition-all shadow-lg active:scale-95"
+                                        className="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-600 text-[10px] font-black rounded-xl transition-all shadow-sm active:scale-95"
                                     >
                                         Accept
                                     </button>
@@ -310,21 +310,21 @@ export const RightSidebar = ({
                                 <div key={p.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={p.avatar} alt={p.username} className="w-10 h-10 rounded-full border border-white/5 bg-zinc-900 p-0.5 grayscale" />
+                                            <img src={p.avatar} alt={p.username} className="w-10 h-10 rounded-full border border-zinc-200 bg-white shadow-sm p-0.5 grayscale" />
                                         </div>
                                         <div className="max-w-[120px]">
                                             <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-zinc-400 truncate">{p.username}</p>
-                                                <ReactCountryFlag countryCode={p.country} svg className="w-3 h-2 opacity-30 grayscale" />
+                                                <p className="text-sm font-bold text-zinc-500 truncate">{p.username}</p>
+                                                <ReactCountryFlag countryCode={p.country} svg className="w-3 h-2 opacity-30" />
                                             </div>
                                             <div className="flex items-center gap-1 mt-0.5">
-                                                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{p.status}</p>
+                                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{p.status}</p>
                                             </div>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => onDeclineRequest && onDeclineRequest(p.id)}
-                                        className="p-2 hover:bg-zinc-900 text-zinc-700 hover:text-red-500 rounded-xl transition-all"
+                                        className="p-2 hover:bg-red-50 text-red-500/50 hover:text-red-500 rounded-xl transition-all"
                                     >
                                         <Clock className="w-3.5 h-3.5" />
                                     </button>
@@ -339,12 +339,12 @@ export const RightSidebar = ({
                                         <img
                                             src={user.avatar}
                                             alt={user.username}
-                                            className="w-8 h-8 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+                                            className="w-8 h-8 rounded-full border border-zinc-200 shadow-sm"
                                         />
-                                        <div className="absolute inset-0 rounded-full shadow-inner bg-black/20" />
+                                        <div className="absolute inset-0 rounded-full shadow-inner bg-white/20 pointer-events-none" />
                                     </div>
                                     <div className="max-w-[150px]">
-                                        <p className="text-sm font-semibold text-white truncate">{user.username}</p>
+                                        <p className="text-sm font-semibold text-zinc-900 truncate">{user.username}</p>
                                         <p className="text-xs text-zinc-500 truncate">{user.subtitle}</p>
                                     </div>
                                 </div>
@@ -356,13 +356,13 @@ export const RightSidebar = ({
             </div>
 
             {/* 3. Fixed Footer Area */}
-            <footer className="flex-none pt-6 pb-8 mt-auto bg-black shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-10">
+            <footer className="flex-none pt-6 pb-8 mt-auto z-10 px-2">
                 <div className="flex flex-wrap gap-x-2 gap-y-1 mb-4">
                     {['About', 'Help', 'Press', 'API', 'Jobs', 'Privacy', 'Terms', 'Locations', 'Language', 'Meta Verified'].map((link) => (
-                        <span key={link} className="cursor-pointer hover:underline text-[11px] text-zinc-500 font-medium">{link}</span>
+                        <span key={link} className="cursor-pointer hover:underline text-[11px] text-zinc-400 font-medium">{link}</span>
                     ))}
                 </div>
-                <p className="font-black tracking-widest opacity-20 text-[9px] text-zinc-500 uppercase">© 2026 NOZORIN</p>
+                <p className="font-black tracking-widest text-[9px] text-zinc-400 uppercase">© 2026 NOZORIN</p>
             </footer>
         </aside>
     );

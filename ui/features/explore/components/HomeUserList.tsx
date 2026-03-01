@@ -41,12 +41,12 @@ export const HomeUserList = () => {
                 {dummyUsers.map((user) => (
                     <div
                         key={user.id}
-                        className="flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        className="flex items-center justify-between p-3 rounded-2xl hover:bg-pink-50 transition-colors group cursor-pointer"
                     >
                         <div className="flex items-center gap-4">
                             <div className="relative">
-                                <div className={`p-[2px] rounded-full ${user.isNew ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-zinc-800'}`}>
-                                    <div className="p-[2px] bg-black rounded-full">
+                                <div className={`p-[2px] rounded-full ${user.isNew ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-zinc-200'}`}>
+                                    <div className="p-[2px] bg-white rounded-full">
                                         <img
                                             src={user.avatar}
                                             alt={user.username}
@@ -54,7 +54,7 @@ export const HomeUserList = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 bg-black p-1 rounded-full border border-zinc-800 shadow-xl">
+                                <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full border border-pink-50 shadow-sm">
                                     <ReactCountryFlag
                                         countryCode={user.country}
                                         svg
@@ -64,11 +64,11 @@ export const HomeUserList = () => {
                             </div>
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-white font-bold text-[15px]">{user.username}</span>
+                                    <span className="text-zinc-900 font-bold text-[15px]">{user.username}</span>
                                     {user.gender === 'male' ? (
-                                        <Mars className="w-3.5 h-3.5 text-blue-400 opacity-80" strokeWidth={3} />
+                                        <Mars className="w-3.5 h-3.5 text-blue-500 opacity-90" strokeWidth={3} />
                                     ) : (
-                                        <Venus className="w-3.5 h-3.5 text-pink-400 opacity-80" strokeWidth={3} />
+                                        <Venus className="w-3.5 h-3.5 text-pink-500 opacity-90" strokeWidth={3} />
                                     )}
                                 </div>
                                 <span className="text-zinc-500 text-sm font-medium">{user.status}</span>
@@ -80,10 +80,10 @@ export const HomeUserList = () => {
 
             <button
                 disabled
-                className="w-full py-4 text-zinc-600 text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-4 text-zinc-400 text-sm font-bold cursor-not-allowed flex items-center justify-center gap-2"
             >
                 View More Suggestions
-                <span className="text-[10px] bg-zinc-900 px-2 py-0.5 rounded-full">Coming Soon</span>
+                <span className="text-[10px] bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200">Coming Soon</span>
             </button>
         </div>
     );

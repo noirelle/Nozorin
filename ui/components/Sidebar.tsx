@@ -31,10 +31,10 @@ export const Sidebar = () => {
     const pathname = usePathname();
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-[72px] hover:w-[245px] bg-black flex flex-col px-3 py-5 z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden">
+        <aside className="fixed left-0 top-0 h-screen w-[72px] hover:w-[245px] bg-transparent flex flex-col px-3 py-5 z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden">
             <div className="px-3 mb-10 mt-2">
                 <Link href="/">
-                    <Instagram className="text-white w-7 h-7" />
+                    <Instagram className="text-zinc-900 w-7 h-7" />
                 </Link>
             </div>
 
@@ -47,13 +47,13 @@ export const Sidebar = () => {
                             key={item.label}
                             href={item.isActive ? item.href : '#'}
                             className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive
-                                ? 'text-white cursor-pointer hover:bg-zinc-900 group/active'
-                                : 'text-zinc-600 cursor-not-allowed'
-                                } ${isCurrent ? 'font-bold' : ''}`}
+                                ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
+                                : 'text-zinc-300 cursor-not-allowed'
+                                } ${isCurrent ? 'font-bold bg-pink-50 text-pink-600' : ''}`}
                         >
                             <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
                                 <item.icon
-                                    className={`w-6 h-6 ${isCurrent ? 'text-white' : ''}`}
+                                    className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
                                     strokeWidth={isCurrent ? 3 : 2}
                                 />
                                 {item.badge && item.isActive && (
@@ -65,7 +65,7 @@ export const Sidebar = () => {
                             <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                                 <span className={`text-[16px] ${isCurrent ? 'font-bold' : 'font-normal'}`}>{item.label}</span>
                                 {!item.isActive && (
-                                    <span className="text-[10px] text-zinc-500 font-medium -mt-1 tracking-wider">Upcoming</span>
+                                    <span className="text-[10px] text-zinc-400 font-medium -mt-1 tracking-wider">Upcoming</span>
                                 )}
                             </div>
                         </Link>
@@ -74,11 +74,11 @@ export const Sidebar = () => {
             </nav>
 
             <div className="mt-auto space-y-2">
-                <div className="flex items-center gap-4 p-3 text-white rounded-lg cursor-pointer transition-all duration-200 hover:bg-zinc-900 group">
+                <div className="flex items-center gap-4 p-3 text-zinc-900 rounded-lg cursor-pointer transition-all duration-200 hover:bg-pink-50 hover:text-pink-600 group">
                     <Menu className="w-6 h-6 transition-transform duration-200 group-hover:scale-110 shrink-0" />
                     <span className="text-[16px] opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">More</span>
                 </div>
-                <div className="flex items-center gap-4 p-3 text-white rounded-lg cursor-pointer transition-all duration-200 hover:bg-zinc-900 group">
+                <div className="flex items-center gap-4 p-3 text-zinc-900 rounded-lg cursor-pointer transition-all duration-200 hover:bg-pink-50 group">
                     <Menu className="w-6 h-6 opacity-0 transition-transform duration-200 group-hover:scale-110 shrink-0" />
                     <span className="text-[16px] text-xs text-zinc-400 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Also from Meta</span>
                 </div>

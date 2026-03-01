@@ -5,7 +5,6 @@ import { Sidebar } from '@/components/Sidebar';
 import { Stories } from './Stories';
 import { PostCard } from './PostCard';
 import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
-import { FloatingMessages } from '@/features/voice-room/components/FloatingMessages';
 
 export const DesktopExploreLayout = () => {
     return (
@@ -27,8 +26,6 @@ export const DesktopExploreLayout = () => {
                 </div>
             </main>
 
-            {/* Floating Elements */}
-            <FloatingMessages />
         </>
     );
 };

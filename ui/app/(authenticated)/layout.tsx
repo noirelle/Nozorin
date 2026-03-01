@@ -24,7 +24,7 @@ export default function AppLayout({
 
     if (isMobile) {
         return (
-            <div className="min-h-screen bg-black text-white flex flex-col">
+            <div className="min-h-screen bg-[#fdfbfc] text-zinc-900 flex flex-col selection:bg-pink-100">
                 <MobileNavbar />
                 <main className="flex-1 overflow-y-auto pb-[50px]">
                     {children}
@@ -35,7 +35,7 @@ export default function AppLayout({
     }
 
     return (
-        <div className="min-h-screen bg-black text-white flex">
+        <div className="min-h-screen bg-[#fdfbfc] text-zinc-900 flex selection:bg-pink-100">
             {/* Fixed Sidebar */}
             <Sidebar />
 

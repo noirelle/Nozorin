@@ -213,38 +213,38 @@ export const VoiceGameRoom = ({
             </div>
 
             {/* Core Interaction Layer: Profiles and Skip */}
-            <div className="flex items-start justify-between px-12 pb-12 border-b border-zinc-900">
+            <div className="flex items-start justify-between px-12 pb-12 border-b border-zinc-200">
                 {/* Local User */}
                 <div className="flex flex-col items-center gap-4 flex-1">
                     <div className="relative">
-                        <div className="p-0.5 rounded-full bg-zinc-800 ring-4 ring-zinc-950 shadow-2xl">
+                        <div className="p-0.5 rounded-full bg-white ring-4 ring-pink-50 shadow-[0_4px_20px_rgba(236,72,153,0.15)]">
                             <img
                                 src={localUser?.avatar || "https://api.dicebear.com/9.x/notionists/svg?seed=You"}
                                 alt="You"
                                 className={`w-24 h-24 rounded-full object-cover transition-opacity ${!isConnected && !isSearching ? 'opacity-50' : ''}`}
                             />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-zinc-900 rounded-full flex items-center justify-center shadow-xl border border-white/5">
+                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-100">
                             <button
                                 onClick={actions.handleToggleMute}
-                                className={`w-full h-full rounded-full flex flex-col items-center justify-center transition-colors ${isMuted ? 'text-rose-500' : 'text-emerald-500 hover:text-white hover:bg-zinc-800'}`}
+                                className={`w-full h-full rounded-full flex flex-col items-center justify-center transition-colors ${isMuted ? 'text-rose-500 hover:bg-rose-50' : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'}`}
                             >
                                 {isMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
                             </button>
                         </div>
                     </div>
                     <div className="text-center">
-                        <h4 className="text-sm font-bold text-white">{localUser?.username || 'You'}</h4>
-                        <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isMuted ? 'text-rose-500' : 'text-zinc-600'}`}>{isMuted ? 'Muted' : 'Speaking'}</p>
+                        <h4 className="text-sm font-bold text-zinc-900">{localUser?.username || 'You'}</h4>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isMuted ? 'text-rose-500' : 'text-zinc-500'}`}>{isMuted ? 'Muted' : 'Speaking'}</p>
                     </div>
                 </div>
 
                 {/* Center Control: Skip */}
                 <div className="flex flex-col items-center gap-4 px-8 pt-4">
-                    <button onClick={handleNextWrapper} className="w-16 h-16 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 flex items-center justify-center transition-all active:scale-90 group relative overflow-hidden">
+                    <button onClick={handleNextWrapper} className="w-16 h-16 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-600 border border-pink-100 flex items-center justify-center transition-all shadow-sm active:scale-90 group relative overflow-hidden">
                         <FastForward className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
                         {isSearching && (
-                            <div className="absolute inset-0 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            <div className="absolute inset-0 border-2 border-pink-500/20 border-t-pink-500 rounded-full animate-spin" />
                         )}
                     </button>
                     <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">{isConnected ? 'Skip' : isSearching ? 'Scanning' : 'Tune In'}</span>
@@ -253,7 +253,7 @@ export const VoiceGameRoom = ({
                 {/* Partner User */}
                 <div className="flex flex-col items-center gap-4 flex-1">
                     <div className="relative">
-                        <div className={`p-0.5 rounded-full ${isConnected ? 'bg-purple-500/20' : 'bg-zinc-900'} ring-4 ring-zinc-950 shadow-2xl transition-colors duration-700`}>
+                        <div className={`p-0.5 rounded-full ${isConnected ? 'bg-pink-100' : 'bg-zinc-100'} ring-4 ring-pink-50 shadow-[0_4px_20px_rgba(236,72,153,0.15)] transition-colors duration-700`}>
                             {isConnected ? (
                                 <img
                                     src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
@@ -261,29 +261,29 @@ export const VoiceGameRoom = ({
                                     className="w-24 h-24 rounded-full object-cover"
                                 />
                             ) : (
-                                <div className="w-24 h-24 rounded-full bg-zinc-900 border-2 border-dashed border-zinc-800 flex items-center justify-center">
-                                    <span className="text-zinc-700 font-bold text-xs uppercase tracking-widest">{isSearching ? '...' : '?'}</span>
+                                <div className="w-24 h-24 rounded-full bg-zinc-50 border-2 border-dashed border-zinc-200 flex items-center justify-center">
+                                    <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest">{isSearching ? '...' : '?'}</span>
                                 </div>
                             )}
                         </div>
                         {isConnected && callRoomState.partner_country && (
-                            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-zinc-900 rounded-full flex items-center justify-center shadow-xl border border-white/5">
-                                <ReactCountryFlag countryCode={callRoomState.partner_country} svg className="w-4 h-3 rounded-sm opacity-80" />
+                            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md border border-pink-50">
+                                <ReactCountryFlag countryCode={callRoomState.partner_country} svg className="w-4 h-3 rounded-sm opacity-90" />
                             </div>
                         )}
                     </div>
                     <div className="flex flex-col items-center gap-3">
                         <div className="text-center">
-                            <h4 className={`text-sm font-bold ${isConnected ? 'text-white' : 'text-zinc-600'}`}>{isConnected ? (callRoomState.partner_username || 'Stranger') : 'No Partner'}</h4>
-                            <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">{isConnected ? (callRoomState.partner_country_name || 'Connected') : 'Awaiting Connection'}</p>
+                            <h4 className={`text-sm font-bold ${isConnected ? 'text-zinc-900' : 'text-zinc-500'}`}>{isConnected ? (callRoomState.partner_username || 'Stranger') : 'No Partner'}</h4>
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{isConnected ? (callRoomState.partner_country_name || 'Connected') : 'Awaiting Connection'}</p>
                         </div>
                         {isConnected && partnerId && (
                             <button
                                 onClick={() => !isFriends && !isPending && onAddFriend && onAddFriend(partnerId)}
                                 disabled={isFriends || isPending}
                                 className={`flex items-center gap-1.5 px-4 py-1.5 text-[10px] font-black rounded-full transition-all uppercase tracking-tight ${isFriends ? 'bg-emerald-500 text-white' :
-                                    isPending ? 'bg-zinc-700 text-zinc-400' :
-                                        'bg-white hover:bg-zinc-200 text-black'
+                                    isPending ? 'bg-pink-100 text-pink-600' :
+                                        'bg-zinc-900 hover:bg-zinc-800 text-white'
                                     }`}
                             >
                                 <UserPlus className="w-3.5 h-3.5" strokeWidth={3} />
@@ -301,8 +301,8 @@ export const VoiceGameRoom = ({
                     {messages.map((msg: any, index: number) => (
                         <div key={index} className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${msg.isSelf
-                                ? 'bg-zinc-900 text-zinc-100 border border-zinc-800'
-                                : 'bg-transparent text-zinc-400 border border-transparent'
+                                ? 'bg-pink-500 text-white shadow-sm'
+                                : 'bg-white text-zinc-600 border border-zinc-200 shadow-sm'
                                 }`}>
                                 <p className="leading-relaxed font-medium">{msg.text}</p>
                             </div>
@@ -313,7 +313,7 @@ export const VoiceGameRoom = ({
 
                 {/* Bottom Entry Area */}
                 <div className="mt-6 mb-10 px-2">
-                    <div className="relative flex items-center gap-3 bg-zinc-900/40 rounded-3xl px-4 py-2 border border-zinc-800/50 focus-within:border-zinc-700/50 transition-all duration-300">
+                    <div className="relative flex items-center gap-3 bg-white/60 rounded-3xl px-4 py-2 border border-zinc-200 focus-within:border-pink-300 transition-all duration-300 shadow-sm">
                         <div className="flex-1 relative">
                             <input
                                 type="text"
@@ -321,7 +321,7 @@ export const VoiceGameRoom = ({
                                 onChange={(e) => setInputText(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessageWrapper()}
                                 placeholder="Message..."
-                                className="w-full h-10 bg-transparent text-sm text-white placeholder-zinc-600 focus:outline-none"
+                                className="w-full h-10 bg-transparent text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none"
                                 disabled={!isConnected}
                             />
                         </div>
@@ -331,7 +331,7 @@ export const VoiceGameRoom = ({
                             </button>
                         )}
                         <div className="flex items-center gap-1">
-                            <button className="p-2 hover:bg-zinc-800/50 rounded-full transition-all text-zinc-600 hover:text-zinc-400">
+                            <button className="p-2 hover:bg-pink-50 rounded-full transition-all text-zinc-400 hover:text-zinc-600">
                                 <MoreHorizontal className="w-4 h-4" />
                             </button>
                         </div>

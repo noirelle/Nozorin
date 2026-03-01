@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
-import { FloatingMessages } from '@/features/voice-room/components/FloatingMessages';
 import { FeatureCards } from './FeatureCards';
 import { HomeUserList } from './HomeUserList';
 import { usePathname } from 'next/navigation';
@@ -46,8 +45,6 @@ export const DesktopHomeLayout = () => {
                 </div>
             </main>
 
-            {/* Floating Elements */}
-            <FloatingMessages />
         </>
     );
 };
