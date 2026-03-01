@@ -2,6 +2,7 @@ import React from 'react';
 import { RoomLayoutProps } from '../types';
 import ChatBox from './ChatBox';
 import { RoomNavbar } from '../../../components/RoomNavbar';
+import { Sidebar } from '@/components/Sidebar';
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '../../../hooks';
 

@@ -6,7 +6,7 @@ import { MobileTabbar } from './MobileTabbar';
 import { Stories } from './Stories';
 import { PostCard } from './PostCard';
 
-export const MobileAppLayout = () => {
+export const MobileExploreLayout = () => {
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Top Navbar */}

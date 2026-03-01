@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Sidebar } from './Sidebar';
+import { Sidebar } from '@/components/Sidebar';
 import { Stories } from './Stories';
 import { PostCard } from './PostCard';
 import { RightSidebar } from './RightSidebar';
 import { FloatingMessages } from './FloatingMessages';
 
-export const DesktopAppLayout = () => {
+export const DesktopExploreLayout = () => {
     return (
         <div className="min-h-screen bg-black text-white flex">
             {/* Fixed Sidebar */}

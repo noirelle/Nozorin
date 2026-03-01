@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DesktopAppLayout } from '@/features/social/components/DesktopAppLayout';
-import { MobileAppLayout } from '@/features/social/components/MobileAppLayout';
+import { DesktopHomeLayout } from '@/features/explore/components/DesktopHomeLayout';
+import { MobileNavbar } from '@/features/explore/components/MobileNavbar';
+import { MobileTabbar } from '@/features/explore/components/MobileTabbar';
 
 export default function AppPage() {
     const [isMobile, setIsMobile] = useState(false);
@@ -18,8 +19,18 @@ export default function AppPage() {
     }, []);
 
     if (isMobile) {
-        return <MobileAppLayout />;
+        return (
+            <div className="min-h-screen bg-black text-white flex flex-col">
+                <MobileNavbar />
+                <main className="flex-1 overflow-y-auto pb-[50px]">
+                    <div className="flex items-center justify-center h-full text-zinc-500">
+                        Content coming soon...
+                    </div>
+                </main>
+                <MobileTabbar />
+            </div>
+        );
     }
 
-    return <DesktopAppLayout />;
+    return <DesktopHomeLayout />;
 }

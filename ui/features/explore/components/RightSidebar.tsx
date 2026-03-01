@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { Sidebar } from '@/components/Sidebar';
 
 const suggestions = [
     { id: 1, username: 'Tephanieeeeeeeeeee', subtitle: 'Followed by lyraiei21', avatar: 'https://i.pravatar.cc/150?u=8' },

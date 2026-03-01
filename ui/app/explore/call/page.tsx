@@ -237,7 +237,7 @@ export default function AppPage() {
         setDirectMatchData(null);
         const s = getSocketClient();
         if (s) s.disconnect();
-        router.push('/');
+        router.push('/app');
     };
 
     const handleNavigateToHistory = () => {
