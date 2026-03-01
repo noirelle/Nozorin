@@ -1,6 +1,7 @@
 'use client';
 
 import { Sidebar } from '@/components/Sidebar';
+import { usePathname } from 'next/navigation';
 
 const suggestions = [
     { id: 1, username: 'Tephanieeeeeeeeeee', subtitle: 'Followed by lyraiei21', avatar: 'https://i.pravatar.cc/150?u=8' },
@@ -11,23 +12,27 @@ const suggestions = [
 ];
 
 export const RightSidebar = () => {
+    const pathname = usePathname();
+
     return (
         <aside className="w-[320px] pt-10 pl-8 hidden lg:block">
             {/* Current User */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                    <img
-                        src="/social/arisu.png"
-                        alt="Arisu"
-                        className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                        <p className="text-sm font-semibold text-white">a1r4su</p>
-                        <p className="text-sm text-zinc-400">Arisu</p>
+            {pathname === '/explore' && (
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                        <img
+                            src="/social/arisu.png"
+                            alt="Arisu"
+                            className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div>
+                            <p className="text-sm font-semibold text-white">a1r4su</p>
+                            <p className="text-sm text-zinc-400">Arisu</p>
+                        </div>
                     </div>
+                    <button className="text-xs font-semibold text-blue-500 hover:text-white">You</button>
                 </div>
-                <button className="text-xs font-semibold text-blue-500 hover:text-white">Switch</button>
-            </div>
+            )}
 
             {/* Suggestions Header */}
             <div className="flex items-center justify-between mb-4">

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Gamepad2, Mic2, Users2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const features = [
     {
@@ -31,11 +32,21 @@ const features = [
 ];
 
 export const FeatureCards = () => {
+    const router = useRouter();
+
+    const handleAction = (title: string, disabled: boolean) => {
+        if (disabled) return;
+        if (title === 'Voice Game') {
+            router.push('/app/voice');
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
             {features.map((feature) => (
                 <div
                     key={feature.title}
+                    onClick={() => handleAction(feature.title, feature.disabled)}
                     className={`group relative bg-zinc-900/80 border border-zinc-800/50 rounded-[2rem] p-5 flex flex-col items-center text-center transition-all duration-300 ${!feature.disabled ? 'hover:scale-[1.02] hover:bg-zinc-800/80 hover:shadow-2xl hover:shadow-black/50 cursor-pointer' : 'opacity-75'
                         } overflow-hidden min-h-[220px] justify-between`}
                 >
@@ -55,9 +66,13 @@ export const FeatureCards = () => {
 
                     <button
                         disabled={feature.disabled}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction(feature.title, feature.disabled);
+                        }}
                         className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all duration-200 shadow-lg ${feature.disabled
-                                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                : 'bg-white text-black hover:bg-zinc-200 active:scale-95'
+                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                            : 'bg-white text-black hover:bg-zinc-200 active:scale-95'
                             }`}
                     >
                         {feature.action}

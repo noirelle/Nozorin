@@ -30,15 +30,6 @@ const dummyUsers = [
 export const HomeUserList = () => {
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4 px-2">
-                <h2 className="text-zinc-500 text-sm font-bold uppercase tracking-widest">Discover People</h2>
-                <div className="flex items-center gap-2 group/filter cursor-not-allowed">
-                    <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full font-bold opacity-0 group-hover/filter:opacity-100 transition-opacity">
-                        Coming Soon
-                    </span>
-                    <SlidersHorizontal className="text-zinc-700 w-4 h-4 transition-colors group-hover/filter:text-zinc-600" />
-                </div>
-            </div>
             <div className="space-y-2">
                 {dummyUsers.map((user) => (
                     <div
