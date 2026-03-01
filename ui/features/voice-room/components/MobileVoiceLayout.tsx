@@ -1,7 +1,7 @@
 import React from 'react';
 import { RoomLayoutProps } from '../types';
 import { RoomNavbar } from '../../../components/RoomNavbar';
-import ChatBox from './ChatBox';
+// import ChatBox from './ChatBox'; // Deprecated in voice-room migration
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '../../../hooks';
 
@@ -345,14 +345,14 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                         </button>
                     </div>
                     <div className="flex-1 overflow-hidden p-2">
-                        <ChatBox
+                        {/* <ChatBox
                             messages={messages}
                             onSendMessage={onSendMessage}
                             isConnected={is_connected}
                             minimal={true}
                             showScrollbar={true}
                             theme="light"
-                        />
+                        /> */}
                     </div>
                 </div>
             </div>

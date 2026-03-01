@@ -11,7 +11,6 @@ import AboutUs from '../sections/AboutUs';
 import OurStory from '../sections/OurStory';
 import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
-import { HistoryDrawer } from '../features/call-room/components/HistoryDrawer';
 import { useHistory, useUser, useDirectCall } from '../hooks';
 import { useSocketEvent, SocketEvents } from '../lib/socket';
 import { getSocketClient } from '../lib/socket/core/socketClient';
@@ -21,11 +20,6 @@ import { OutgoingCallOverlay } from '../features/direct-call/components/Outgoing
 
 export default function Home() {
     const router = useRouter();
-    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
-    const handleCloseHistory = useCallback(() => {
-        setIsHistoryOpen(false);
-    }, []);
 
     const { token, ensureToken, user } = useUser({ skipCheck: true });
 
@@ -47,10 +41,9 @@ export default function Home() {
         declineCall: performDeclineCall,
         cancelCall,
         clearCallState
-    } = useDirectCall(handleCloseHistory);
+    } = useDirectCall();
 
     const handleMatchFound = useCallback((data: any) => {
-        setIsHistoryOpen(false);
         clearCallState();
         if (typeof window !== 'undefined') {
             sessionStorage.setItem('pendingMatch', JSON.stringify(data));
@@ -80,23 +73,6 @@ export default function Home() {
             <Dedications />
             <OurStory />
             <Footer />
-
-            <HistoryDrawer
-                isOpen={isHistoryOpen}
-                onClose={() => setIsHistoryOpen(false)}
-                history={history}
-                stats={stats}
-                isLoading={isLoading}
-                error={error}
-                onClearHistory={clearHistory}
-                onRefresh={fetchHistory}
-                onCall={(targetId: string) => initiateCall(targetId, 'voice')}
-                onAddFriend={() => { }}
-                friends={[]}
-                pendingRequests={[]}
-                sentRequests={[]}
-                isConnected={false}
-            />
 
             {incomingCall && (
                 <IncomingCallOverlay

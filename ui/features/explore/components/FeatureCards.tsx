@@ -31,6 +31,8 @@ const features = [
     }
 ];
 
+interface FeatureCardsProps { }
+
 export const FeatureCards = () => {
     const router = useRouter();
 

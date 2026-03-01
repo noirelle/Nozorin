@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Room from '@/features/call-room/components/Room';
-import { HistoryDrawer } from '@/features/call-room/components/HistoryDrawer';
-import { FriendsDrawer } from '@/features/call-room/components/FriendsDrawer';
+import { RightSidebar } from './RightSidebar';
+import { FloatingMessages } from './FloatingMessages';
+import { VoiceGameRoom } from './VoiceGameRoom';
+import { ArrowLeft } from 'lucide-react';
+
 import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
 import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
@@ -13,17 +15,13 @@ import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingC
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 import { FriendRequestNotification } from '@/features/friends/components/FriendRequestNotification';
 
-export default function AppPage() {
+interface DesktopVoiceLayoutProps { }
+
+export const DesktopVoiceLayout = () => {
     const router = useRouter();
-    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const [isFriendsOpen, setIsFriendsOpen] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
     const [friendRequestNotif, setFriendRequestNotif] = useState<any>(null);
-
-    const handleCloseHistory = useCallback(() => {
-        setIsHistoryOpen(false);
-    }, []);
 
     // History hooks
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
@@ -60,12 +58,12 @@ export default function AppPage() {
             if (pending) {
                 try {
                     const data = JSON.parse(pending);
-                    console.log('[App] Found pending match data, initializing room...');
+                    console.log('[DesktopVoiceLayout] Found pending match data, initializing room...');
                     setDirectMatchData(data);
                     // Clear it so we don't re-use it on refresh unless desired
                     sessionStorage.removeItem('pendingMatch');
                 } catch (e) {
-                    console.error('[App] Failed to parse pending match data', e);
+                    console.error('[DesktopVoiceLayout] Failed to parse pending match data', e);
                 }
             }
         }
@@ -81,7 +79,7 @@ export default function AppPage() {
         declineCall: performDeclineCall,
         cancelCall,
         clearCallState
-    } = useDirectCall(handleCloseHistory);
+    } = useDirectCall();
 
     // Friend System hook
     const {
@@ -98,57 +96,56 @@ export default function AppPage() {
         fetchSentRequests
     } = useFriends();
 
+    useEffect(() => {
+        if (token && user?.id) {
+            fetchHistory();
+            fetchFriends();
+            fetchPendingRequests();
+            fetchSentRequests();
+        }
+    }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
+
     const handleAddFriend = useCallback(async (targetId: string) => {
         const result = await sendRequest(targetId);
         if (result.success) {
-            alert('Friend request sent!');
+            console.log('Friend request sent!');
         } else {
-            alert(`Failed to send request: ${result.error}`);
+            console.error(`Failed to send request: ${result.error}`);
         }
     }, [sendRequest]);
 
-    // Handle successful match-found for direct calls (via useSocketEvent)
+    // Handle successful match-found for direct calls
     const handleMatchFound = useCallback((data: any) => {
-        setIsHistoryOpen(false);
         clearCallState();
-        console.log('[App] Match found via direct call, ensuring room readiness...');
+        console.log('[DesktopVoiceLayout] Match found via direct call, ensuring room readiness...');
         setDirectMatchData(data);
     }, [clearCallState]);
 
     const handleIdentifySuccess = useCallback(() => {
-        console.log('[App] Identification successful');
-    }, []);
-
-    const handleAuthError = useCallback((error: any) => {
-        console.error('[App] Socket authentication error:', error);
+        console.log('[DesktopVoiceLayout] Identification successful');
     }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
-        console.log('[App] Friend request received:', data);
+        console.log('[DesktopVoiceLayout] Friend request received:', data);
         setFriendRequestNotif({
             ...data.profile,
             country: data.profile.country
         });
-        // If drawer is open, refresh the list
-        if (isFriendsOpen) {
-            fetchPendingRequests();
-            fetchSentRequests();
-        }
-    }, [isFriendsOpen, fetchPendingRequests]);
+        // No longer checking isFriendsOpen, always refresh if a request comes in
+        fetchPendingRequests();
+        fetchSentRequests();
+    }, [fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRequestAccepted = useCallback((data: any) => {
-        console.log('[App] Friend request accepted:', data);
+        console.log('[DesktopVoiceLayout] Friend request accepted:', data);
         setFriendRequestNotif({ ...data.friend, isAcceptance: true });
-
-        // Refresh lists
         fetchFriends();
         fetchPendingRequests();
         fetchSentRequests();
     }, [fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRemoved = useCallback((data: any) => {
-        console.log('[App] Friend removed:', data);
-        // Refresh lists
+        console.log('[DesktopVoiceLayout] Friend removed:', data);
         fetchFriends();
     }, [fetchFriends]);
 
@@ -158,11 +155,17 @@ export default function AppPage() {
     useSocketEvent(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
     useSocketEvent(SocketEvents.FRIEND_REMOVED, handleFriendRemoved);
 
+    // Refresh history on session events
+    useSocketEvent(SocketEvents.CALL_ENDED, fetchHistory);
+    useSocketEvent(SocketEvents.MATCH_FOUND, fetchHistory);
+    useSocketEvent(SocketEvents.SESSION_END, fetchHistory);
+    useSocketEvent(SocketEvents.MATCH_CANCELLED, fetchHistory);
+
     const identifySocket = useCallback(() => {
         if (!token) return;
         const s = getSocketClient(token);
         if (s) {
-            console.log('[App] Identifying socket...', s.id);
+            console.log('[DesktopVoiceLayout] Identifying socket...', s.id);
             s.emit(SocketEvents.USER_IDENTIFY, { token });
         }
     }, [token]);
@@ -173,7 +176,6 @@ export default function AppPage() {
         updateSocketAuth(token);
         const s = getSocketClient(token);
         if (s && !s.connected) {
-            console.log('[App] Connecting socket with token...');
             connectSocket();
         }
 
@@ -184,24 +186,19 @@ export default function AppPage() {
                 err?.message === 'Invalid or expired token';
 
             if (isAuthError) {
-                console.log('[App] Socket token expired. Initiating seamless refresh...');
                 const newToken = await refreshUser();
                 if (newToken) {
-                    console.log('[App] Seamless refresh successful. Updating socket auth...');
                     updateSocketAuth(newToken);
                     if (s?.connected) s?.emit(SocketEvents.UPDATE_TOKEN, { token: newToken });
                     else connectSocket();
                 } else {
-                    console.warn('[App] Token refresh failed permanently. Disconnecting socket.');
                     s?.disconnect();
                 }
-            } else {
-                console.warn('[App] Socket encountered non-auth error:', err);
             }
         };
 
         const handleTokenUpdated = (data: { success: boolean }) => {
-            if (data.success) console.log('[App] Socket token updated successfully (Graceful Refresh)');
+            if (data.success) console.log('[DesktopVoiceLayout] Socket token updated successfully');
         };
 
         if (s?.connected && token && !isSocketIdentified()) identifySocket();
@@ -226,29 +223,23 @@ export default function AppPage() {
         };
     }, [token, refreshUser, identifySocket]);
 
-    // Also ensure token on mount so we can join room logic
     useEffect(() => {
         ensureToken();
     }, [ensureToken]);
-
 
     const handleLeave = () => {
         setIsConnected(false);
         setDirectMatchData(null);
         const s = getSocketClient();
         if (s) s.disconnect();
+
         router.push('/app');
     };
 
-    const handleNavigateToHistory = () => {
-        setIsHistoryOpen(true);
-    };
-
-    // Show loading or welcome screen - MOVED TO BOTTOM
     if (isChecking || isVerifyingSession) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-white">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-500 border-t-transparent"></div>
+            <div className="flex h-screen w-full items-center justify-center bg-black">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/20 border-t-white"></div>
             </div>
         );
     }
@@ -257,62 +248,65 @@ export default function AppPage() {
         return <WelcomeScreen onSuccess={refreshUser} />;
     }
 
+    const isWebRTCAvailable = true; // Placeholder for WebRTC availability check
+
     return (
-        <main className="min-h-screen bg-white font-sans selection:bg-pink-100">
-            <Room
-                mode="voice"
-                onLeave={handleLeave}
-                onNavigateToHistory={handleNavigateToHistory}
-                onNavigateToFriends={() => {
-                    setIsFriendsOpen(true);
-                    fetchFriends();
-                    fetchPendingRequests();
-                    fetchSentRequests();
-                }}
-                initialMatchData={directMatchData}
-                onConnectionChange={setIsConnected}
-                onAddFriend={handleAddFriend}
-                friends={friends}
-                pendingRequests={pendingRequests}
-                sentRequests={sentRequests}
-                initialReconnecting={initialReconnecting}
-                initialCallData={initialCallData}
-            />
+        <>
+            {/* Main Feed Container */}
+            <main className="flex-1 ml-[72px] flex justify-center">
+                <div className="w-full max-w-[935px] flex">
+                    {/* Content Column */}
+                    <div className="flex-1 max-w-[630px] pt-8 px-8">
+                        <div className="flex flex-col h-full">
+                            <div className="mb-8 flex items-center gap-4">
+                                <button
+                                    onClick={handleLeave}
+                                    className="p-2 hover:bg-zinc-900 rounded-full transition-colors"
+                                >
+                                    <ArrowLeft className="w-6 h-6" />
+                                </button>
+                                <h1 className="text-2xl font-bold">Voice Game</h1>
+                            </div>
+                            <VoiceGameRoom
+                                onLeave={handleLeave}
+                                onNavigateToHistory={() => { }}
+                                onNavigateToFriends={() => { }}
+                                initialMatchData={directMatchData}
+                                onConnectionChange={setIsConnected}
+                                onAddFriend={handleAddFriend}
+                                friends={friends}
+                                pendingRequests={pendingRequests}
+                                sentRequests={sentRequests}
+                                initialReconnecting={initialReconnecting}
+                                initialCallData={initialCallData}
+                            />
+                        </div>
+                    </div>
 
-            {/* Global Overlays */}
-            <HistoryDrawer
-                isOpen={isHistoryOpen}
-                onClose={() => setIsHistoryOpen(false)}
-                history={history}
-                stats={stats}
-                isLoading={isLoading}
-                error={error}
-                onClearHistory={clearHistory}
-                onRefresh={fetchHistory}
-                onCall={(targetId: string) => initiateCall(targetId, 'voice')}
-                onAddFriend={handleAddFriend}
-                friends={friends}
-                pendingRequests={pendingRequests}
-                sentRequests={sentRequests}
-                isConnected={isConnected}
-            />
+                    {/* Right Sidebar */}
+                    <RightSidebar
+                        variant="voice"
+                        history={history}
+                        friends={friends}
+                        pendingRequests={pendingRequests}
+                        sentRequests={sentRequests}
+                        onAcceptRequest={acceptRequest}
+                        onDeclineRequest={declineRequest}
+                        onAddFriend={handleAddFriend}
+                        onCall={(targetId) => {
+                            if (!isWebRTCAvailable) {
+                                alert('Direct calling is not available yet.');
+                                return;
+                            }
+                            initiateCall(targetId, 'voice');
+                        }}
+                        onRemoveFriend={removeFriend}
+                    />
+                </div>
+            </main>
 
-            <FriendsDrawer
-                isOpen={isFriendsOpen}
-                onClose={() => setIsFriendsOpen(false)}
-                friends={friends}
-                pendingRequests={pendingRequests}
-                sentRequests={sentRequests}
-                onAcceptRequest={acceptRequest}
-                onDeclineRequest={declineRequest}
-                onRemoveFriend={removeFriend}
-                onCall={(targetId: string) => {
-                    setIsFriendsOpen(false);
-                    initiateCall(targetId, 'voice');
-                }}
-                isConnected={isConnected}
-                isLoading={isLoadingFriendsData}
-            />
+            {/* Floating Elements */}
+            <FloatingMessages />
 
             {incomingCall && (
                 <IncomingCallOverlay
@@ -340,7 +334,6 @@ export default function AppPage() {
                     isAcceptance={friendRequestNotif.isAcceptance}
                     onView={() => {
                         setFriendRequestNotif(null);
-                        setIsFriendsOpen(true);
                         fetchFriends();
                         fetchPendingRequests();
                         fetchSentRequests();
@@ -348,8 +341,6 @@ export default function AppPage() {
                     onClose={() => setFriendRequestNotif(null)}
                 />
             )}
-
-
-        </main>
+        </>
     );
-}
+};

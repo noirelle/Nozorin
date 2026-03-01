@@ -1,21 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { RightSidebar } from './RightSidebar';
-import { FloatingMessages } from './FloatingMessages';
+import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
+import { FloatingMessages } from '@/features/voice-room/components/FloatingMessages';
 import { FeatureCards } from './FeatureCards';
 import { HomeUserList } from './HomeUserList';
 import { usePathname } from 'next/navigation';
+
+interface DesktopHomeLayoutProps { }
 
 export const DesktopHomeLayout = () => {
     const pathname = usePathname();
 
     return (
-        <div className="min-h-screen bg-black text-white flex">
-            {/* Fixed Sidebar */}
-            <Sidebar />
-
+        <>
             {/* Main Feed Container */}
             <main className="flex-1 ml-[72px] flex justify-center">
                 <div className="w-full max-w-[935px] flex">
@@ -44,12 +42,12 @@ export const DesktopHomeLayout = () => {
                     </div>
 
                     {/* Right Sidebar */}
-                    <RightSidebar />
+                    <RightSidebar variant="home" showProfile={false} />
                 </div>
             </main>
 
             {/* Floating Elements */}
             <FloatingMessages />
-        </div>
+        </>
     );
 };

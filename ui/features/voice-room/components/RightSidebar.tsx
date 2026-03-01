@@ -13,7 +13,7 @@ const suggestions = [
     { id: 5, username: 'Kylie', subtitle: 'Followed by ddzarjane', avatar: 'https://i.pravatar.cc/150?u=12' },
 ];
 
-const mockHistory = [
+const mockHistory: any[] = [
     { id: 1, username: 'Noirelle', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix', duration: '08:12', country: 'US', isActive: true, isFriend: false },
     { id: 2, username: 'Xenon', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xenon', duration: '03:45', country: 'CA', isActive: false, isFriend: true },
     { id: 3, username: 'Sakura', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
@@ -24,18 +24,159 @@ const mockHistory = [
     { id: 8, username: 'Viper', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
 ];
 
-const mockRequests = [
+const mockRequests: any[] = [
     { id: 1, username: 'Luna_M', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna', country: 'FR', time: '2m ago' },
 ];
 
-const mockPending = [
+const mockPending: any[] = [
     { id: 1, username: 'Ghost', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost', country: 'BR', status: 'Sent' },
 ];
 
-export const RightSidebar = () => {
-    const pathname = usePathname();
+const formatDuration = (seconds?: number): string => {
+    if (!seconds) return '0s';
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+};
+
+const formatDate = (timestamp: number | string): string => {
+    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+    if (!ts) return '';
+    const date = new Date(ts);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) {
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        return diffMinutes < 1 ? 'Just now' : `${diffMinutes}m ago`;
+    }
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+};
+
+const getReasonLabel = (reason?: string): string => {
+    switch (reason) {
+        case 'user-action': return 'You ended';
+        case 'partner-disconnect': return 'Partner left';
+        case 'partner-skip': return 'Partner skipped';
+        case 'skip': return 'You skipped';
+        case 'network': return 'Network issue';
+        case 'error': return 'Error';
+        case 'answered-another': return "Answered another";
+        case 'timeout': return "Timeout";
+        default: return 'Ended';
+    }
+};
+
+const getReasonColor = (reason?: string): string => {
+    switch (reason) {
+        case 'user-action': return 'text-zinc-500';
+        case 'partner-disconnect':
+        case 'partner-skip': return 'text-orange-500/80';
+        case 'skip': return 'text-yellow-500/80';
+        case 'network':
+        case 'error': return 'text-red-500/80';
+        case 'timeout': return 'text-zinc-600';
+        default: return 'text-zinc-600';
+    }
+};
+
+const formatLastActive = (timestamp: number): string => {
+    if (!timestamp) return 'Never';
+    const diffMs = Date.now() - timestamp;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+};
+
+interface RightSidebarProps {
+    history?: any[];
+    friends?: any[];
+    pendingRequests?: any[];
+    sentRequests?: any[];
+    onAcceptRequest?: (requestId: string) => void;
+    onDeclineRequest?: (requestId: string) => void;
+    onCall?: (targetId: string) => void;
+    onAddFriend?: (targetId: string) => void;
+    onRemoveFriend?: (targetId: string) => void;
+    variant?: 'home' | 'voice';
+    showProfile?: boolean;
+}
+
+export const RightSidebar = ({
+    history,
+    friends,
+    pendingRequests,
+    sentRequests,
+    onAcceptRequest,
+    onDeclineRequest,
+    onCall,
+    onAddFriend,
+    onRemoveFriend,
+    variant = 'voice',
+    showProfile = true
+}: RightSidebarProps = {}) => {
     const [activeTab, setActiveTab] = useState<'history' | 'requests' | 'pending'>('history');
-    const isVoiceGame = pathname === '/app/voice';
+    const isVoiceGame = variant === 'voice';
+
+    // Map history to UI format
+    const historyDisplay = (history || []).slice(0, 6).map((item: any) => {
+        const profile = item.partnerProfile || item.peerProfile || {};
+        const callDurationSec = item.duration || item.call_duration || 0;
+        const targetUserId = item.partner_id || item.peer_user_id || profile.id;
+
+        return {
+            id: item.session_id || item.id || Math.random().toString(),
+            userId: targetUserId,
+            username: item.partner_username || profile.username || 'Unknown',
+            avatar: item.partner_avatar || profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+            duration: formatDuration(callDurationSec),
+            country: item.partner_country || profile.country || 'US',
+            isActive: item.partner_status?.is_online || false,
+            lastSeen: item.partner_status?.last_seen || 0,
+            isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
+            disconnectReason: item.disconnect_reason,
+            createdAt: item.created_at
+        };
+    });
+
+    // Map requests to UI format
+    const requestsDisplay = (pendingRequests || []).slice(0, 6).map((req: any) => {
+        const profile = req.user || {};
+        return {
+            id: req.id,
+            userId: profile.id,
+            username: profile.username || 'Unknown',
+            avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+            country: profile.country || 'US',
+            time: req.created_at ? formatDate(req.created_at) : 'New request'
+        };
+    });
+
+    // Map pending (sent requests) to UI format
+    const pendingDisplay = (sentRequests || []).slice(0, 6).map((req: any) => {
+        const profile = req.user || {};
+        return {
+            id: req.id,
+            userId: profile.id,
+            username: profile.username || 'Unknown',
+            avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+            country: profile.country || 'US',
+            status: req.created_at ? formatDate(req.created_at) : 'Sent'
+        };
+    });
 
     return (
         <aside className="w-[320px] pt-8 pl-8 hidden lg:block flex flex-col h-screen overflow-hidden">
@@ -61,7 +202,7 @@ export const RightSidebar = () => {
                     </div>
                 ) : (
                     <>
-                        {pathname === '/explore' && (
+                        {showProfile && variant === 'home' && (
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-4">
                                     <img
@@ -90,37 +231,56 @@ export const RightSidebar = () => {
                 <div className="space-y-6">
                     {isVoiceGame ? (
                         <>
-                            {activeTab === 'history' && mockHistory.map((user) => (
+                            {activeTab === 'history' && historyDisplay.map((user) => (
                                 <div key={user.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full border border-white/5 bg-zinc-900 p-0.5" />
+                                            <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full border border-white/5 bg-zinc-900 p-0.5 object-cover" />
                                             {user.isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full" />}
                                         </div>
                                         <div className="max-w-[120px]">
                                             <div className="flex items-center gap-1.5">
                                                 <p className="text-sm font-bold text-white truncate">{user.username}</p>
-                                                <ReactCountryFlag countryCode={user.country} svg className="w-3 h-2 opacity-60" />
+                                                {user.disconnectReason && (
+                                                    <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(user.disconnectReason)}`}>
+                                                        {getReasonLabel(user.disconnectReason)}
+                                                    </span>
+                                                )}
+                                                {!user.disconnectReason && (
+                                                    <ReactCountryFlag countryCode={user.country} svg className="w-3 h-2 opacity-60" />
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-1 mt-0.5">
                                                 <Clock className="w-2.5 h-2.5 text-zinc-600" />
                                                 <p className="text-[10px] font-bold text-zinc-500 tracking-tighter tabular-nums">{user.duration}</p>
+                                                <span className="text-zinc-600 text-[10px]">•</span>
+                                                <p className="text-[9px] font-medium text-zinc-500">
+                                                    {user.createdAt ? formatDate(user.createdAt) : (user.lastSeen ? `Seen ${formatLastActive(user.lastSeen)}` : 'Recently')}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {!user.isFriend && (
-                                            <button className="p-2 hover:bg-zinc-900 text-zinc-500 hover:text-white rounded-xl transition-all">
+                                            <button
+                                                onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
+                                                className="p-2 hover:bg-zinc-900 text-zinc-500 hover:text-white rounded-xl transition-all"
+                                                title="Add Friend"
+                                            >
                                                 <UserPlus className="w-4 h-4" />
                                             </button>
                                         )}
-                                        <button className="p-2 bg-white/5 hover:bg-white text-zinc-400 hover:text-black rounded-xl transition-all">
+                                        <button
+                                            onClick={() => user.userId && onCall && onCall(user.userId)}
+                                            className="p-2 bg-white/5 hover:bg-white text-zinc-400 hover:text-black rounded-xl transition-all"
+                                            title="Call"
+                                        >
                                             <Phone className="w-3.5 h-3.5 fill-current" />
                                         </button>
                                     </div>
                                 </div>
                             ))}
-                            {activeTab === 'requests' && mockRequests.map(req => (
+                            {activeTab === 'requests' && requestsDisplay.map(req => (
                                 <div key={req.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
@@ -138,12 +298,15 @@ export const RightSidebar = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-[10px] font-black rounded-xl transition-all shadow-lg active:scale-95">
+                                    <button
+                                        onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
+                                        className="px-3 py-1.5 bg-white hover:bg-zinc-200 text-black text-[10px] font-black rounded-xl transition-all shadow-lg active:scale-95"
+                                    >
                                         Accept
                                     </button>
                                 </div>
                             ))}
-                            {activeTab === 'pending' && mockPending.map(p => (
+                            {activeTab === 'pending' && pendingDisplay.map(p => (
                                 <div key={p.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
@@ -159,7 +322,10 @@ export const RightSidebar = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="p-2 hover:bg-zinc-900 text-zinc-700 hover:text-red-500 rounded-xl transition-all">
+                                    <button
+                                        onClick={() => onDeclineRequest && onDeclineRequest(p.id)}
+                                        className="p-2 hover:bg-zinc-900 text-zinc-700 hover:text-red-500 rounded-xl transition-all"
+                                    >
                                         <Clock className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
