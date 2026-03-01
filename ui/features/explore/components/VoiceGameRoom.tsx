@@ -19,7 +19,7 @@ export const VoiceGameRoom = () => {
             <div className="flex justify-end mb-8">
                 <div className="flex items-center gap-2 group cursor-default">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                    <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase">Live • 00:05:42</span>
+                    <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase">00:05:42</span>
                 </div>
             </div>
 
