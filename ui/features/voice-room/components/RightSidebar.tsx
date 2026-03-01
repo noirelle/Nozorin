@@ -6,11 +6,11 @@ import ReactCountryFlag from "react-country-flag";
 import { UserPlus, Phone, Clock } from 'lucide-react';
 
 const suggestions = [
-    { id: 1, username: 'Tephanieeeeeeeeeee', subtitle: 'Followed by lyraiei21', avatar: 'https://i.pravatar.cc/150?u=8' },
-    { id: 2, username: 'Jim Villacorza', subtitle: 'Followed by lyraiei21', avatar: 'https://i.pravatar.cc/150?u=9' },
-    { id: 3, username: 'Ven', subtitle: 'Suggested for you', avatar: 'https://i.pravatar.cc/150?u=10' },
-    { id: 4, username: 'khate', subtitle: 'Suggested for you', avatar: 'https://i.pravatar.cc/150?u=11' },
-    { id: 5, username: 'Kylie', subtitle: 'Followed by ddzarjane', avatar: 'https://i.pravatar.cc/150?u=12' },
+    { id: 1, username: 'elara_sky', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
+    { id: 2, username: 'zeno_pulse', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zeno' },
+    { id: 3, username: 'kai_zenith', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kai' },
+    { id: 4, username: 'mira_vibe', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mira' },
+    { id: 5, username: 'nova_flow', subtitle: 'Followed by ddzarjane', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova' },
 ];
 
 const mockHistory: any[] = [
@@ -132,7 +132,7 @@ export const RightSidebar = ({
     const isVoiceGame = variant === 'voice';
 
     // Map history to UI format
-    const historyDisplay = (history || []).slice(0, 6).map((item: any) => {
+    const historyDisplay = (history || []).map((item: any) => {
         const profile = item.partnerProfile || item.peerProfile || {};
         const callDurationSec = item.duration || item.call_duration || 0;
         const targetUserId = item.partner_id || item.peer_user_id || profile.id;
@@ -153,7 +153,7 @@ export const RightSidebar = ({
     });
 
     // Map requests to UI format
-    const requestsDisplay = (pendingRequests || []).slice(0, 6).map((req: any) => {
+    const requestsDisplay = (pendingRequests || []).map((req: any) => {
         const profile = req.user || {};
         return {
             id: req.id,
@@ -166,7 +166,7 @@ export const RightSidebar = ({
     });
 
     // Map pending (sent requests) to UI format
-    const pendingDisplay = (sentRequests || []).slice(0, 6).map((req: any) => {
+    const pendingDisplay = (sentRequests || []).map((req: any) => {
         const profile = req.user || {};
         return {
             id: req.id,
@@ -183,7 +183,7 @@ export const RightSidebar = ({
             {/* 1. Fixed Header Area */}
             <div className="flex-none">
                 {isVoiceGame ? (
-                    <div className="flex items-center gap-6 mb-8 border-b border-zinc-900 pb-2">
+                    <div className="flex items-center gap-6 mb-8 pb-2">
                         {['history', 'requests', 'pending'].map((tab) => (
                             <button
                                 key={tab}
@@ -218,16 +218,16 @@ export const RightSidebar = ({
                                 <button className="text-xs font-semibold text-blue-500 hover:text-white">You</button>
                             </div>
                         )}
-                        <div className="flex items-center justify-between mb-4 mt-2">
+                        <div className="flex items-center gap-2 mb-4 mt-2">
                             <span className="text-sm font-semibold text-zinc-400">Suggested for you</span>
-                            <button className="text-xs font-semibold text-white">See All</button>
+                            <span className="text-[10px] font-bold text-zinc-600 bg-zinc-900/50 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm border border-zinc-800/50">Upcoming</span>
                         </div>
                     </>
                 )}
             </div>
 
             {/* 2. Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
+            <div className="flex-1 max-h-[420px] overflow-y-auto scrollbar-hide pr-2">
                 <div className="space-y-6">
                     {isVoiceGame ? (
                         <>
@@ -333,15 +333,22 @@ export const RightSidebar = ({
                         </>
                     ) : (
                         suggestions.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between">
+                            <div key={user.id} className="flex items-center justify-between opacity-30 grayscale pointer-events-none select-none filter blur-[0.2px] hover:blur-0 transition-all">
                                 <div className="flex items-center gap-3">
-                                    <img src={user.avatar} alt={user.username} className="w-8 h-8 rounded-full" />
+                                    <div className="relative">
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.username}
+                                            className="w-8 h-8 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+                                        />
+                                        <div className="absolute inset-0 rounded-full shadow-inner bg-black/20" />
+                                    </div>
                                     <div className="max-w-[150px]">
                                         <p className="text-sm font-semibold text-white truncate">{user.username}</p>
-                                        <p className="text-xs text-zinc-400 truncate">{user.subtitle}</p>
+                                        <p className="text-xs text-zinc-500 truncate">{user.subtitle}</p>
                                     </div>
                                 </div>
-                                <button className="text-xs font-semibold text-blue-500 hover:text-white">Follow</button>
+                                <button className="text-[10px] font-bold text-zinc-700 uppercase tracking-tighter">Add</button>
                             </div>
                         ))
                     )}
@@ -349,13 +356,13 @@ export const RightSidebar = ({
             </div>
 
             {/* 3. Fixed Footer Area */}
-            <footer className="flex-none pt-10 pb-12 mt-auto border-t border-zinc-900/50 bg-black shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-10">
+            <footer className="flex-none pt-6 pb-8 mt-auto bg-black shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-10">
                 <div className="flex flex-wrap gap-x-2 gap-y-1 mb-4">
                     {['About', 'Help', 'Press', 'API', 'Jobs', 'Privacy', 'Terms', 'Locations', 'Language', 'Meta Verified'].map((link) => (
                         <span key={link} className="cursor-pointer hover:underline text-[11px] text-zinc-500 font-medium">{link}</span>
                     ))}
                 </div>
-                <p className="font-black tracking-widest opacity-20 text-[9px] text-zinc-500 uppercase">© 2026 NOZORIN FROM NORELE</p>
+                <p className="font-black tracking-widest opacity-20 text-[9px] text-zinc-500 uppercase">© 2026 NOZORIN</p>
             </footer>
         </aside>
     );

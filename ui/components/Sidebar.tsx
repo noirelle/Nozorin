@@ -20,7 +20,7 @@ import Link from 'next/link';
 const navItems = [
     { icon: Home, label: 'Home', href: '/app', isActive: true },
     { icon: Search, label: 'Search', href: '#', isActive: false },
-    { icon: Compass, label: 'Explore', href: '/explore', isActive: true },
+    { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
     { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
     { icon: Heart, label: 'Notifications', href: '#', isActive: false },
     { icon: PlusSquare, label: 'Create', href: '#', isActive: false },

@@ -23,7 +23,7 @@ export const DesktopExploreLayout = () => {
                     </div>
 
                     {/* Right Sidebar */}
-                    <RightSidebar variant="home" showProfile={false} />
+                    <RightSidebar variant="home" showProfile={true} />
                 </div>
             </main>
 
