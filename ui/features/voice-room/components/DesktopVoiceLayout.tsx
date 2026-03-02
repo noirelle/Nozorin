@@ -299,6 +299,7 @@ export const DesktopVoiceLayout = () => {
                             initiateCall(targetId, 'voice');
                         }}
                         onRemoveFriend={removeFriend}
+                        isBusy={isConnected}
                     />
                 </div>
             </main>

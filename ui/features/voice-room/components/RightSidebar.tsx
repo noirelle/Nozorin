@@ -113,6 +113,7 @@ interface RightSidebarProps {
     onRemoveFriend?: (targetId: string) => void;
     variant?: 'home' | 'voice';
     showProfile?: boolean;
+    isBusy?: boolean;
 }
 
 export const RightSidebar = ({
@@ -126,7 +127,8 @@ export const RightSidebar = ({
     onAddFriend,
     onRemoveFriend,
     variant = 'voice',
-    showProfile = true
+    showProfile = true,
+    isBusy = false
 }: RightSidebarProps = {}) => {
     const [activeTab, setActiveTab] = useState<'history' | 'requests' | 'pending'>('history');
     const isVoiceGame = variant === 'voice';
@@ -271,9 +273,12 @@ export const RightSidebar = ({
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => user.userId && onCall && onCall(user.userId)}
-                                            className="p-2 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl transition-all"
-                                            title="Call"
+                                            onClick={() => !isBusy && user.isActive && user.userId && onCall && onCall(user.userId)}
+                                            disabled={isBusy || !user.isActive}
+                                            className={`p-2 rounded-xl transition-all ${isBusy || !user.isActive
+                                                ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed grayscale'
+                                                : 'bg-pink-50 hover:bg-pink-100 text-pink-600'}`}
+                                            title={isBusy ? 'Finish current call first' : !user.isActive ? 'User is offline' : 'Call'}
                                         >
                                             <Phone className="w-3.5 h-3.5 fill-current" />
                                         </button>
