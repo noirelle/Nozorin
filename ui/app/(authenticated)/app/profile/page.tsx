@@ -46,7 +46,7 @@ const ProfilePage = () => {
                         </div>
 
                         <div className="mb-4">
-                            <h2 className="text-sm font-semibold text-zinc-900">{user.username || 'Arisu'}</h2>
+                            <h2 className="text-sm font-semibold text-zinc-500">#{user.id}</h2>
                         </div>
 
                         <div className="flex gap-6 md:gap-10 mb-6 text-sm">
