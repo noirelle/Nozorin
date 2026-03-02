@@ -38,8 +38,8 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
         {
             icon: User,
             label: 'Profile',
-            href: '/app',
-            isActive: false,
+            href: '/app/profile',
+            isActive: true,
             avatar: user?.avatar
         },
     ];

@@ -31,8 +31,8 @@ export const MobileTabbar = ({ user: propUser }: MobileTabbarProps) => {
             <div className="relative">
                 <Heart className="text-zinc-600 w-6 h-6 cursor-not-allowed" />
             </div>
-            <Link href="/app">
-                <div className={`w-6 h-6 rounded-full border overflow-hidden cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center ${pathname === '/app' ? 'border-white' : 'border-zinc-600'}`}>
+            <Link href="/app/profile">
+                <div className={`w-6 h-6 rounded-full border overflow-hidden cursor-pointer hover:opacity-70 transition-opacity flex items-center justify-center ${pathname === '/app/profile' ? 'border-white' : 'border-zinc-600'}`}>
                     {user?.avatar ? (
                         <img
                             src={user.avatar}
@@ -40,7 +40,7 @@ export const MobileTabbar = ({ user: propUser }: MobileTabbarProps) => {
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <User className={`w-4 h-4 ${pathname === '/app' ? 'text-white' : 'text-zinc-600'}`} />
+                        <User className={`w-4 h-4 ${pathname === '/app/profile' ? 'text-white' : 'text-zinc-600'}`} />
                     )}
                 </div>
             </Link>
