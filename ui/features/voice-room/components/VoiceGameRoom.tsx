@@ -213,12 +213,12 @@ export const VoiceGameRoom = ({
             </div>
 
             {/* Core Interaction Area: Discovery Stage */}
-            <div className="flex flex-col items-center justify-center px-12 pb-8 border-b border-zinc-200">
+            <div className="flex flex-col items-center justify-center px-10 pb-6 border-b border-zinc-200">
                 <div className="relative flex flex-col items-center">
                     {/* The Interactive Discovery Circle */}
                     <div
                         onClick={!isConnected && !isSearching ? handleNextWrapper : undefined}
-                        className={`relative w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all duration-700 ${!isConnected && !isSearching ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
+                        className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-700 ${!isConnected && !isSearching ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
                             }`}
                     >
                         {/* Pulse effect when ready */}
@@ -276,12 +276,12 @@ export const VoiceGameRoom = ({
                         <h4 className={`text-base font-bold ${isConnected ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'Scanning for voices...' : 'Start a Match'}
                         </h4>
-                        <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-2">
+                        <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
                             {isConnected ? 'In Call' : isSearching ? 'Tuning frequencies' : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}
-                        <div className="mt-4 flex items-center justify-center gap-3 h-10">
+                        <div className="mt-4 flex items-center justify-center gap-3">
                             {isConnected && partnerId && (
                                 <button
                                     onClick={() => !isFriends && !isPending && onAddFriend && onAddFriend(partnerId)}
