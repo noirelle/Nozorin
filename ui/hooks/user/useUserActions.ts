@@ -27,14 +27,23 @@ export const useUserActions = ({ token, user, login, logout, setToken, setChecke
                     headers: { 'Authorization': `Bearer ${currentToken}` },
                     credentials: 'include',
                 });
-                setChecked(true);
+
                 if (!apiError && userData) {
                     // Pull the absolute latest token from the store, in case it was refreshed during the request
                     const finalToken = (typeof window !== 'undefined' ? localStorage.getItem('nz_token') : null) || currentToken;
+                    // login() will handle setChecked(true) and setting the user atomically
                     login(finalToken, userData as UserProfile);
                     return finalToken;
                 } else {
-                    logout();
+                    const status = (typeof apiError === 'object' && apiError !== null) ? (apiError as any).status : null;
+
+                    // Only logout on definitive auth failures (401, 403)
+                    // If it's a 5xx or general error, we preserve the user/token state to allow subsequent retries
+                    if (status === 401 || status === 403) {
+                        logout();
+                    }
+
+                    setChecked(true); // Ensure checking is complete even on failure
                     return null;
                 }
             } catch (error) {

@@ -16,19 +16,33 @@ import {
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useUser } from '@/hooks';
+import { UserProfile } from '@/types/user';
 
-const navItems = [
-    { icon: Home, label: 'Home', href: '/app', isActive: true },
-    { icon: Search, label: 'Search', href: '#', isActive: false },
-    { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
-    { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
-    { icon: Heart, label: 'Notifications', href: '#', isActive: false },
-    { icon: PlusSquare, label: 'Create', href: '#', isActive: false },
-    { icon: User, label: 'Profile', href: '#', isActive: true },
-];
+interface SidebarProps {
+    user?: UserProfile | null;
+}
 
-export const Sidebar = () => {
+export const Sidebar = ({ user: propUser }: SidebarProps) => {
     const pathname = usePathname();
+    const { user: hookUser } = useUser();
+    const user = propUser || hookUser;
+
+    const navItems = [
+        { icon: Home, label: 'Home', href: '/app', isActive: true },
+        { icon: Search, label: 'Search', href: '#', isActive: false },
+        { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
+        { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
+        { icon: Heart, label: 'Notifications', href: '#', isActive: false },
+        { icon: PlusSquare, label: 'Create', href: '#', isActive: false },
+        {
+            icon: User,
+            label: 'Profile',
+            href: '/app',
+            isActive: true,
+            avatar: user?.avatar
+        },
+    ];
 
     return (
         <aside className="fixed left-0 top-0 h-screen w-[72px] hover:w-[245px] bg-transparent flex flex-col px-3 py-5 z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden">
@@ -41,6 +55,7 @@ export const Sidebar = () => {
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => {
                     const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
+                    const Icon = (item as any).icon;
 
                     return (
                         <Link
@@ -52,13 +67,19 @@ export const Sidebar = () => {
                                 } ${isCurrent ? 'font-bold bg-pink-50 text-pink-600' : ''}`}
                         >
                             <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
-                                <item.icon
-                                    className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
-                                    strokeWidth={isCurrent ? 3 : 2}
-                                />
-                                {item.badge && item.isActive && (
+                                {(item as any).avatar ? (
+                                    <div className={`w-6 h-6 rounded-full overflow-hidden border ${isCurrent ? 'border-pink-600' : 'border-zinc-300'}`}>
+                                        <img src={(item as any).avatar} alt="profile" className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <Icon
+                                        className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
+                                        strokeWidth={isCurrent ? 3 : 2}
+                                    />
+                                )}
+                                {(item as any).badge && item.isActive && (
                                     <span className="absolute -top-1 -right-1 bg-red-500 text-[10px] text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                        {item.badge}
+                                        {(item as any).badge}
                                     </span>
                                 )}
                             </div>

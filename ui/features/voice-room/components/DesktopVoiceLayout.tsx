@@ -11,7 +11,6 @@ import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocket
 import { getSocketClient } from '@/lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
-import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 import { FriendRequestNotification } from '@/features/friends/components/FriendRequestNotification';
 
 interface DesktopVoiceLayoutProps { }
@@ -242,10 +241,6 @@ export const DesktopVoiceLayout = () => {
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-500/20 border-t-pink-500"></div>
             </div>
         );
-    }
-
-    if (!user) {
-        return <WelcomeScreen onSuccess={refreshUser} />;
     }
 
     const isWebRTCAvailable = true; // Placeholder for WebRTC availability check
