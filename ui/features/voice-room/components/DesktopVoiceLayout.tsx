@@ -88,6 +88,7 @@ export const DesktopVoiceLayout = () => {
         sendRequest,
         acceptRequest,
         declineRequest,
+        cancelRequest,
         removeFriend,
         isLoading: isLoadingFriendsData,
         fetchFriends,
@@ -291,6 +292,7 @@ export const DesktopVoiceLayout = () => {
                         sentRequests={sentRequests}
                         onAcceptRequest={acceptRequest}
                         onDeclineRequest={declineRequest}
+                        onCancelRequest={cancelRequest}
                         onAddFriend={handleAddFriend}
                         onCall={(targetId) => {
                             if (!isWebRTCAvailable) {

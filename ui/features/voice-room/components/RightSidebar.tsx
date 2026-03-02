@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
-import { UserPlus, UserCheck, Phone, Clock } from 'lucide-react';
+import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2 } from 'lucide-react';
 
 const suggestions = [
     { id: 1, username: 'elara_sky', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
@@ -108,6 +108,7 @@ interface RightSidebarProps {
     sentRequests?: any[];
     onAcceptRequest?: (requestId: string) => void;
     onDeclineRequest?: (requestId: string) => void;
+    onCancelRequest?: (requestId: string) => void;
     onCall?: (targetId: string) => void;
     onAddFriend?: (targetId: string) => void;
     onRemoveFriend?: (targetId: string) => void;
@@ -123,6 +124,7 @@ export const RightSidebar = ({
     sentRequests,
     onAcceptRequest,
     onDeclineRequest,
+    onCancelRequest,
     onCall,
     onAddFriend,
     onRemoveFriend,
@@ -152,6 +154,7 @@ export const RightSidebar = ({
             isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
             isPendingReceived: (pendingRequests && pendingRequests.some(r => (r.user?.id || r.from_user_id) === targetUserId)) || item.friendship_status === 'pending_received',
             requestId: (pendingRequests && pendingRequests.find(r => (r.user?.id || r.from_user_id) === targetUserId))?.id,
+            sentRequestId: (sentRequests && sentRequests.find(r => (r.user?.id || r.target_user_id) === targetUserId))?.id,
             disconnectReason: item.disconnect_reason,
             createdAt: item.created_at
         };
@@ -267,21 +270,40 @@ export const RightSidebar = ({
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {user.isFriend ? (
-                                            <div className="p-2 text-emerald-500 bg-emerald-50 rounded-xl" title="Friends">
-                                                <UserCheck className="w-4 h-4" />
-                                            </div>
-                                        ) : user.isPendingReceived ? (
                                             <button
-                                                onClick={() => user.requestId && onAcceptRequest && onAcceptRequest(user.requestId)}
-                                                className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
-                                                title="Accept Request (Waiting for your acceptance)"
+                                                onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
+                                                className="p-2 text-emerald-500 bg-emerald-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group"
+                                                title="Remove Friend"
                                             >
-                                                <UserCheck className="w-4 h-4" />
+                                                <UserCheck className="w-4 h-4 group-hover:hidden" />
+                                                <UserMinus className="w-4 h-4 hidden group-hover:block" />
                                             </button>
-                                        ) : user.isPendingSent ? (
-                                            <div className="p-2 text-zinc-400 bg-zinc-50 rounded-xl" title="Request Pending">
-                                                <Clock className="w-4 h-4" />
+                                        ) : user.isPendingReceived ? (
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => user.requestId && onAcceptRequest && onAcceptRequest(user.requestId)}
+                                                    className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
+                                                    title="Accept Request"
+                                                >
+                                                    <UserCheck className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => user.requestId && onDeclineRequest && onDeclineRequest(user.requestId)}
+                                                    className="p-2 bg-zinc-100 text-zinc-400 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all"
+                                                    title="Decline Request"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
+                                        ) : user.isPendingSent ? (
+                                            <button
+                                                onClick={() => user.sentRequestId && onCancelRequest && onCancelRequest(user.sentRequestId)}
+                                                className="p-2 text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group"
+                                                title="Cancel Request"
+                                            >
+                                                <Clock className="w-4 h-4 group-hover:hidden" />
+                                                <Trash2 className="w-4 h-4 hidden group-hover:block" />
+                                            </button>
                                         ) : (
                                             <button
                                                 onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
@@ -322,12 +344,22 @@ export const RightSidebar = ({
                                             </div>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
-                                        className="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-600 text-[10px] font-black rounded-xl transition-all shadow-sm active:scale-95"
-                                    >
-                                        Accept
-                                    </button>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
+                                            className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
+                                            title="Accept"
+                                        >
+                                            <UserCheck className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => onDeclineRequest && onDeclineRequest(req.id)}
+                                            className="p-2 bg-zinc-100 text-zinc-400 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all"
+                                            title="Decline"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {activeTab === 'pending' && pendingDisplay.map(p => (
@@ -347,10 +379,12 @@ export const RightSidebar = ({
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => onDeclineRequest && onDeclineRequest(p.id)}
-                                        className="p-2 hover:bg-red-50 text-red-500/50 hover:text-red-500 rounded-xl transition-all"
+                                        onClick={() => onCancelRequest && onCancelRequest(p.id)}
+                                        className="p-2 text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group/btn"
+                                        title="Cancel Request"
                                     >
-                                        <Clock className="w-3.5 h-3.5" />
+                                        <Clock className="w-3.5 h-3.5 group-hover/btn:hidden" />
+                                        <Trash2 className="w-3.5 h-3.5 hidden group-hover/btn:block" />
                                     </button>
                                 </div>
                             ))}

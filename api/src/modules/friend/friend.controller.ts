@@ -44,6 +44,26 @@ export const friendController = {
     },
 
     /**
+     * Cancel a sent friend request
+     */
+    async cancelRequest(req: Request, res: Response) {
+        const userId = (req as any).user.id;
+        const { request_id } = req.params;
+
+        if (!request_id) {
+            return res.status(400).json(errorResponse('request_id is required'));
+        }
+
+        try {
+            const result = await friendService.cancelRequest(userId, request_id);
+            return res.status(200).json(successResponse(result, 'Friend request cancelled'));
+        } catch (error: any) {
+            console.error('[FRIEND] Error cancelling request:', error.message);
+            return res.status(400).json(errorResponse(error.message));
+        }
+    },
+
+    /**
      * Decline a friend request
      */
     async declineRequest(req: Request, res: Response) {

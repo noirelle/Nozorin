@@ -129,6 +129,26 @@ class FriendService {
     }
 
     /**
+     * Cancel a sent friend request
+     */
+    async cancelRequest(senderId: string, requestId: string) {
+        const request = await this.requestRepository.findOne({
+            where: { id: requestId, sender_id: senderId, status: 'pending' }
+        });
+
+        if (!request) {
+            throw new Error('Friend request not found or unauthorized');
+        }
+
+        await this.requestRepository.remove(request);
+
+        return {
+            request_id: requestId,
+            status: 'cancelled'
+        };
+    }
+
+    /**
      * Decline a friend request
      */
     async declineRequest(receiverId: string, requestId: string) {

@@ -22,6 +22,9 @@ export const friends = {
     declineRequest: (requestId: string, headers?: HeadersInit) =>
         api.post(`/api/friends/${requestId}/decline`, {}, { headers }),
 
+    cancelRequest: (requestId: string, headers?: HeadersInit) =>
+        api.post(`/api/friends/${requestId}/cancel`, {}, { headers }),
+
     removeFriend: (friendId: string, headers?: HeadersInit) =>
         api.delete(`/api/friends/${friendId}`, { headers }),
 };

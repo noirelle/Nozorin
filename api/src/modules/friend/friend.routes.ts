@@ -10,6 +10,7 @@ router.get('/sent', authenticateToken, friendController.getSentRequests);
 router.post('/:friend_id/request', authenticateToken, friendController.sendRequest);
 router.post('/:request_id/accept', authenticateToken, friendController.acceptRequest);
 router.post('/:request_id/decline', authenticateToken, friendController.declineRequest);
+router.post('/:request_id/cancel', authenticateToken, friendController.cancelRequest);
 router.get('/:friend_id/status', authenticateToken, friendController.getStatus);
 router.delete('/:friend_id', authenticateToken, friendController.removeFriend);
 
