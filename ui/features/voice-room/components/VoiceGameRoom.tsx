@@ -304,7 +304,7 @@ export const VoiceGameRoom = ({
                                 ? 'bg-pink-500 text-white shadow-sm'
                                 : 'bg-white text-zinc-600 border border-zinc-200 shadow-sm'
                                 }`}>
-                                <p className="leading-relaxed font-medium">{msg.text}</p>
+                                <p className="leading-relaxed font-medium">{msg.message}</p>
                             </div>
                         </div>
                     ))}
