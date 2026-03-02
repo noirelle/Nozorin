@@ -38,15 +38,14 @@ const ProfilePage = () => {
 
                     {/* Meta Info */}
                     <div className="flex-1 pt-2">
-                        <div className="flex items-center gap-4 mb-4 flex-wrap">
-                            <h1 className="text-xl font-normal tracking-wide text-zinc-900">{user.username}</h1>
-                            <div className="flex items-center gap-2">
-                                <Settings className="w-5 h-5 cursor-pointer text-zinc-600 hover:text-zinc-900 transition-colors" />
+                        <div className="flex flex-col gap-0.5 mb-6">
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <h1 className="text-xl font-normal tracking-wide text-zinc-900">{user.username}</h1>
+                                <div className="flex items-center gap-2">
+                                    <Settings className="w-5 h-5 cursor-pointer text-zinc-600 hover:text-zinc-900 transition-colors" />
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="mb-4">
-                            <h2 className="text-sm font-semibold text-zinc-500">#{user.id}</h2>
+                            <h2 className="text-sm font-semibold text-zinc-500">@{user.id}</h2>
                         </div>
 
                         <div className="flex gap-6 md:gap-10 mb-6 text-sm">
@@ -66,20 +65,18 @@ const ProfilePage = () => {
                                 <span className="text-zinc-400 text-[9px] font-bold uppercase tracking-widest absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Upcoming</span>
                             </div>
                         </div>
-
-                        <div className="text-sm max-w-sm leading-relaxed text-zinc-600">
-                            <p>Me, myself, and I&apos;s dedication.</p>
-                        </div>
                     </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 mb-12">
-                    <button className="flex-1 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 py-1.5 rounded-lg text-sm font-semibold transition-all">
+                    <button className="flex-1 flex items-center justify-center bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 h-10 py-1 rounded-lg text-sm font-semibold transition-all cursor-not-allowed group relative">
                         Edit profile
+                        <span className="absolute right-3 text-zinc-500 text-[9px] font-bold uppercase tracking-widest bg-zinc-200/50 px-1.5 py-0.5 rounded group-hover:bg-zinc-300/50 transition-colors">Upcoming</span>
                     </button>
-                    <button className="flex-1 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 py-1.5 rounded-lg text-sm font-semibold transition-all">
+                    <button className="flex-1 flex items-center justify-center bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 h-10 py-1 rounded-lg text-sm font-semibold transition-all cursor-not-allowed group relative">
                         View archive
+                        <span className="absolute right-3 text-zinc-500 text-[9px] font-bold uppercase tracking-widest bg-zinc-200/50 px-1.5 py-0.5 rounded group-hover:bg-zinc-300/50 transition-colors">Upcoming</span>
                     </button>
                 </div>
 
