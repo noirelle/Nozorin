@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileNavbar } from '@/features/explore/components/MobileNavbar';
 import { MobileTabbar } from '@/features/explore/components/MobileTabbar';
+import { MultiSessionGuard } from '@/components/MultiSessionGuard';
 
 export default function AppLayout({
     children,
@@ -30,6 +31,7 @@ export default function AppLayout({
                     {children}
                 </main>
                 <MobileTabbar />
+                <MultiSessionGuard />
             </div>
         );
     }
@@ -41,6 +43,7 @@ export default function AppLayout({
 
             {/* Page Content */}
             {children}
+            <MultiSessionGuard />
         </div>
     );
 }

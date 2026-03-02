@@ -6,6 +6,8 @@ import { presenceService } from '../../modules/presence/presence.service';
 import { logger } from '../../core/logger';
 import { SocketEvents } from '../socket.events';
 
+import { authService } from '../../modules/auth/auth.service';
+
 export const initializeSocketConnection = async (io: Server, socket: Socket): Promise<void> => {
     logger.info({ socketId: socket.id }, '[CONNECT] New connection');
 
@@ -20,6 +22,10 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
     // Auto-register if auth middleware parsed a token
     if (socket.data.user?.user_id) {
         const { user_id } = socket.data.user;
+
+        // Cleanup other sessions BEFORE registering this new one
+        await authService.cleanupOtherSessions(io, user_id, socket.id);
+
         userService.setUserForSocket(socket.id, user_id);
         await userService.registerUser(user_id);
         logger.info({ socketId: socket.id, user_id: user_id.substring(0, 8) }, '[CONNECT] Auto-registered');

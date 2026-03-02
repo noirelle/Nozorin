@@ -46,6 +46,12 @@ export const userService = {
         return (sockets && sockets.size > 0) ? Array.from(sockets)[0] : null;
     },
 
+    /** Returns all socket IDs associated with a user */
+    getAllSockets(userId: string): string[] {
+        const sockets = userToSockets.get(userId);
+        return sockets ? Array.from(sockets) : [];
+    },
+
     /** Removes socket and returns true if user has NO MORE sockets left */
     removeSocket(socketId: string): boolean {
         const userId = socketToUser.get(socketId);

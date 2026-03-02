@@ -8,7 +8,7 @@ export const register = (io: Server, socket: Socket): void => {
     });
 
     socket.on(SocketEvents.UPDATE_TOKEN, async (data: { token: string }) => {
-        await authService.updateToken(socket, data.token);
+        await authService.updateToken(io, socket, data.token);
     });
 
     socket.on(SocketEvents.FORCE_RECONNECT, async (data: { token: string }) => {

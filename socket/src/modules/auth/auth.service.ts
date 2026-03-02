@@ -14,6 +14,9 @@ export const authService = {
             return null;
         }
 
+        // Cleanup other sessions BEFORE setting this one
+        await authService.cleanupOtherSessions(io, userId, socket.id);
+
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
         logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
@@ -22,13 +25,16 @@ export const authService = {
         return userId;
     },
 
-    updateToken: async (socket: Socket, token: string) => {
+    updateToken: async (io: Server, socket: Socket, token: string) => {
         if (!token) return;
         const userId = getUserIdFromToken(token);
         if (!userId) {
             socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid token during update' });
             return;
         }
+
+        // Cleanup other sessions if user changed or to enforce single session
+        await authService.cleanupOtherSessions(io, userId, socket.id);
 
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
@@ -40,14 +46,33 @@ export const authService = {
         const userId = getUserIdFromToken(token);
         if (!userId) return;
 
-        const oldSocketId = userService.setUserForSocket(socket.id, userId);
-        if (oldSocketId && oldSocketId !== socket.id) {
-            io.to(oldSocketId).emit(SocketEvents.MULTI_SESSION, { message: 'You have been disconnected because a new session was started elsewhere.' });
-            const oldSocket = io.sockets.sockets.get(oldSocketId);
-            if (oldSocket) oldSocket.disconnect(true);
-        }
+        await authService.cleanupOtherSessions(io, userId, socket.id);
+
+        userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
         await presenceService.broadcastUserStatus(io, userId);
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
+    },
+
+    /** Helper to disconnect all other active sessions for a user */
+    cleanupOtherSessions: async (io: Server, userId: string, currentSocketId: string) => {
+        const otherSocketIds = userService.getAllSockets(userId).filter(id => id !== currentSocketId);
+
+        if (otherSocketIds.length > 0) {
+            logger.info({ userId, count: otherSocketIds.length }, '[AUTH] Cleaning up redundant sessions');
+
+            for (const oldSocketId of otherSocketIds) {
+                // 1. Notify the old session
+                io.to(oldSocketId).emit(SocketEvents.MULTI_SESSION, {
+                    message: 'You have been disconnected because a new session was started elsewhere.'
+                });
+
+                // 2. Disconnect the old socket
+                const oldSocket = io.sockets.sockets.get(oldSocketId);
+                if (oldSocket) {
+                    oldSocket.disconnect(true);
+                }
+            }
+        }
     }
 };
