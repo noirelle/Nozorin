@@ -252,8 +252,8 @@ export const DesktopVoiceLayout = () => {
     return (
         <>
             {/* Main Feed Container */}
-            <main className="flex-1 ml-[72px] flex justify-center">
-                <div className="w-full max-w-[935px] flex">
+            <main className="flex-1 ml-[72px] flex justify-center h-screen overflow-hidden">
+                <div className="w-full max-w-[935px] flex h-full">
                     {/* Content Column */}
                     <div className="flex-1 max-w-[630px] pt-8 px-8">
                         <div className="flex flex-col h-full">
