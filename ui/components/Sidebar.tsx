@@ -39,7 +39,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
             icon: User,
             label: 'Profile',
             href: '/app',
-            isActive: true,
+            isActive: false,
             avatar: user?.avatar
         },
     ];
@@ -54,14 +54,15 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
 
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => {
-                    const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
+                    const isProfile = item.label === 'Profile';
+                    const isCurrent = !isProfile && (pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href)));
                     const Icon = (item as any).icon;
 
                     return (
                         <Link
                             key={item.label}
-                            href={item.isActive ? item.href : '#'}
-                            className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive
+                            href={item.isActive || isProfile ? item.href : '#'}
+                            className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive || isProfile
                                 ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
                                 : 'text-zinc-300 cursor-not-allowed'
                                 } ${isCurrent ? 'font-bold bg-pink-50 text-pink-600' : ''}`}
