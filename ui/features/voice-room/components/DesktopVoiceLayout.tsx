@@ -272,6 +272,7 @@ export const DesktopVoiceLayout = () => {
                                 initialMatchData={directMatchData}
                                 onConnectionChange={setIsConnected}
                                 onAddFriend={handleAddFriend}
+                                onAcceptFriend={acceptRequest}
                                 friends={friends}
                                 pendingRequests={pendingRequests}
                                 sentRequests={sentRequests}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { RoomLayoutProps } from '../types';
 import { RoomNavbar } from '../../../components/RoomNavbar';
-// import ChatBox from './ChatBox'; // Deprecated in voice-room migration
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '../../../hooks';
 
@@ -21,6 +20,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
     onNavigateToHistory,
     onNavigateToFriends,
     onAddFriend,
+    onAcceptFriend,
     friends = [],
     pendingRequests = [],
     sentRequests = [],
@@ -139,7 +139,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                 </div>
 
                 {/* Connection Card */}
-                <div className="w-full max-w-sm bg-white/70 backdrop-blur-xl rounded-[28px] p-5 shadow-[0_10px_30px_rgba(255,183,206,0.15)] border border-white">
+                <div className="w-full max-sm-xs bg-white/70 backdrop-blur-xl rounded-[28px] p-5 shadow-[0_10px_30px_rgba(255,183,206,0.15)] border border-white">
                     <div className="flex flex-col gap-4">
                         {/* Local User Section */}
                         <div className="flex items-center justify-between bg-white/60 p-3 rounded-2xl border border-pink-50/50">
@@ -204,23 +204,34 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                     </div>
                                     {partner_user_id && (() => {
                                         const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id);
-                                        const isPending = callRoomState.friendship_status === 'pending_sent' ||
-                                            callRoomState.friendship_status === 'pending_received' ||
-                                            pendingRequests?.some(r => r.user?.id === partner_user_id) ||
-                                            sentRequests?.some(r => r.user?.id === partner_user_id);
+                                        const pendingSentReq = sentRequests?.find(r => (r.user?.id || r.target_user_id) === partner_user_id);
+                                        const pendingReceivedReq = pendingRequests?.find(r => (r.user?.id || r.from_user_id) === partner_user_id);
+
+                                        const isPendingSent = callRoomState.friendship_status === 'pending_sent' || !!pendingSentReq;
+                                        const isPendingReceived = callRoomState.friendship_status === 'pending_received' || !!pendingReceivedReq;
+                                        const requestId = pendingReceivedReq?.id;
 
                                         return (
                                             <button
-                                                onClick={() => onAddFriend && onAddFriend(partner_user_id)}
-                                                disabled={isFriends || isPending}
-                                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm ${isFriends
+                                                onClick={() => {
+                                                    if (isFriends) return;
+                                                    if (isPendingReceived && requestId && onAcceptFriend) {
+                                                        onAcceptFriend(requestId);
+                                                    } else if (!isPendingSent && !isPendingReceived && onAddFriend) {
+                                                        onAddFriend(partner_user_id);
+                                                    }
+                                                }}
+                                                disabled={isFriends || (isPendingSent && !isPendingReceived)}
+                                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-all shadow-sm ${isFriends
                                                     ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                    : isPending
-                                                        ? 'bg-slate-400 cursor-not-allowed'
-                                                        : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
+                                                    : isPendingReceived
+                                                        ? 'bg-pink-500 hover:bg-pink-600 animate-pulse'
+                                                        : isPendingSent
+                                                            ? 'bg-slate-400 cursor-not-allowed'
+                                                            : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
                                                     }`}
                                             >
-                                                {isFriends ? 'FRIENDS' : isPending ? 'PENDING' : 'ADD FRIEND'}
+                                                {isFriends ? 'FRIENDS' : isPendingReceived ? 'ACCEPT' : isPendingSent ? 'PENDING' : 'ADD FRIEND'}
                                             </button>
                                         );
                                     })()}
@@ -346,13 +357,13 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                     </div>
                     <div className="flex-1 overflow-hidden p-2">
                         {/* <ChatBox
-                            messages={messages}
-                            onSendMessage={onSendMessage}
-                            isConnected={is_connected}
-                            minimal={true}
-                            showScrollbar={true}
-                            theme="light"
-                        /> */}
+                                messages={messages}
+                                onSendMessage={onSendMessage}
+                                isConnected={is_connected}
+                                minimal={true}
+                                showScrollbar={true}
+                                theme="light"
+                            /> */}
                     </div>
                 </div>
             </div>
@@ -370,5 +381,3 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
         </div>
     );
 };
-
-

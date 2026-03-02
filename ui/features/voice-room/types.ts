@@ -26,6 +26,7 @@ export interface RoomLayoutProps {
     onNavigateToHistory?: () => void;
     onNavigateToFriends?: () => void;
     onAddFriend?: (targetId: string) => void;
+    onAcceptFriend?: (requestId: string) => void;
     friends?: any[];
     pendingRequests?: any[];
     sentRequests?: any[];

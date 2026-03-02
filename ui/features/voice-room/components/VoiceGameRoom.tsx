@@ -21,6 +21,7 @@ interface VoiceGameRoomProps {
     onConnectionChange?: (connected: boolean) => void;
     initialMatchData?: any;
     onAddFriend?: (targetId: string) => void;
+    onAcceptFriend?: (requestId: string) => void;
     friends?: any[];
     pendingRequests?: any[];
     sentRequests?: any[];
@@ -35,6 +36,7 @@ export const VoiceGameRoom = ({
     onConnectionChange,
     initialMatchData,
     onAddFriend,
+    onAcceptFriend,
     friends = [],
     pendingRequests = [],
     sentRequests = [],
@@ -186,9 +188,14 @@ export const VoiceGameRoom = ({
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
     const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partnerId);
-    const isPending = callRoomState.friendship_status === 'pending_sent' ||
-        pendingRequests?.some(r => r.user?.id === partnerId) ||
-        sentRequests?.some(r => r.user?.id === partnerId);
+
+    // Distinguish pending states
+    const pendingSentReq = sentRequests?.find(r => (r.user?.id || r.target_user_id) === partnerId);
+    const pendingReceivedReq = pendingRequests?.find(r => (r.user?.id || r.from_user_id) === partnerId);
+
+    const isPendingSent = callRoomState.friendship_status === 'pending_sent' || !!pendingSentReq;
+    const isPendingReceived = callRoomState.friendship_status === 'pending_received' || !!pendingReceivedReq;
+    const requestId = pendingReceivedReq?.id;
 
 
     return (
@@ -284,15 +291,23 @@ export const VoiceGameRoom = ({
                         <div className="mt-4 flex items-center justify-center gap-3">
                             {isConnected && partnerId && (
                                 <button
-                                    onClick={() => !isFriends && !isPending && onAddFriend && onAddFriend(partnerId)}
-                                    disabled={isFriends || isPending}
+                                    onClick={() => {
+                                        if (isFriends) return;
+                                        if (isPendingReceived && requestId && onAcceptFriend) {
+                                            onAcceptFriend(requestId);
+                                        } else if (!isPendingSent && !isPendingReceived && onAddFriend) {
+                                            onAddFriend(partnerId);
+                                        }
+                                    }}
+                                    disabled={isFriends || (isPendingSent && !isPendingReceived)}
                                     className={`flex items-center gap-2 px-8 py-2.5 text-[10px] font-black rounded-full transition-all uppercase tracking-tight shadow-sm ${isFriends ? 'bg-emerald-500 text-white' :
-                                        isPending ? 'bg-pink-100 text-pink-600' :
-                                            'bg-zinc-900 hover:bg-zinc-800 text-white'
+                                        isPendingReceived ? 'bg-pink-500 hover:bg-pink-600 text-white animate-pulse' :
+                                            isPendingSent ? 'bg-pink-100 text-pink-600' :
+                                                'bg-zinc-900 hover:bg-zinc-800 text-white'
                                         }`}
                                 >
                                     <UserPlus className="w-3.5 h-3.5" strokeWidth={3} />
-                                    {isFriends ? 'Friends' : isPending ? 'Pending' : 'Add Friend'}
+                                    {isFriends ? 'Friends' : isPendingReceived ? 'Accept' : isPendingSent ? 'Pending' : 'Add Friend'}
                                 </button>
                             )}
 
@@ -361,6 +376,13 @@ export const VoiceGameRoom = ({
                 .scrollbar-hide {
                     -ms-overflow-style: none;
                     scrollbar-width: none;
+                }
+                @keyframes pulse-soft {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.05); opacity: 0.8; }
+                }
+                .pulse-soft {
+                    animation: pulse-soft 2s infinite ease-in-out;
                 }
             `}</style>
         </div>

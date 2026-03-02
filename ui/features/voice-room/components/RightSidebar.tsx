@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
-import { UserPlus, Phone, Clock } from 'lucide-react';
+import { UserPlus, UserCheck, Phone, Clock } from 'lucide-react';
 
 const suggestions = [
     { id: 1, username: 'elara_sky', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
@@ -149,6 +149,9 @@ export const RightSidebar = ({
             isActive: item.partner_status?.is_online || false,
             lastSeen: item.partner_status?.last_seen || 0,
             isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
+            isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
+            isPendingReceived: (pendingRequests && pendingRequests.some(r => (r.user?.id || r.from_user_id) === targetUserId)) || item.friendship_status === 'pending_received',
+            requestId: (pendingRequests && pendingRequests.find(r => (r.user?.id || r.from_user_id) === targetUserId))?.id,
             disconnectReason: item.disconnect_reason,
             createdAt: item.created_at
         };
@@ -263,7 +266,23 @@ export const RightSidebar = ({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {!user.isFriend && (
+                                        {user.isFriend ? (
+                                            <div className="p-2 text-emerald-500 bg-emerald-50 rounded-xl" title="Friends">
+                                                <UserCheck className="w-4 h-4" />
+                                            </div>
+                                        ) : user.isPendingReceived ? (
+                                            <button
+                                                onClick={() => user.requestId && onAcceptRequest && onAcceptRequest(user.requestId)}
+                                                className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
+                                                title="Accept Request (Waiting for your acceptance)"
+                                            >
+                                                <UserCheck className="w-4 h-4" />
+                                            </button>
+                                        ) : user.isPendingSent ? (
+                                            <div className="p-2 text-zinc-400 bg-zinc-50 rounded-xl" title="Request Pending">
+                                                <Clock className="w-4 h-4" />
+                                            </div>
+                                        ) : (
                                             <button
                                                 onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
                                                 className="p-2 hover:bg-pink-50 text-zinc-500 hover:text-pink-600 rounded-xl transition-all"
