@@ -289,6 +289,16 @@ export const VoiceGameRoom = ({
 
                         {/* Action buttons appear only when relevant */}
                         <div className="mt-4 flex items-center justify-center gap-3">
+                            {(isSearching || isConnected) && (
+                                <button
+                                    onClick={actions.handleUserStop}
+                                    className="px-8 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all active:scale-95 border border-zinc-200 shadow-sm"
+                                    title="Stop and leave"
+                                >
+                                    Stop
+                                </button>
+                            )}
+
                             {isConnected && partnerId && (
                                 <button
                                     onClick={() => {
