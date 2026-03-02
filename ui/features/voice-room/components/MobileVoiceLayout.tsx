@@ -199,7 +199,7 @@ export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
                                                     <ReactCountryFlag countryCode={partner_country} svg className="w-4 h-3 rounded-sm object-cover" />
                                                 )}
                                             </div>
-                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">{partner_country_name || 'Unknown Location'}</p>
+                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">In Call</p>
                                         </div>
                                     </div>
                                     {partner_user_id && (() => {

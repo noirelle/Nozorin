@@ -257,7 +257,7 @@ export const DesktopVoiceLayout = () => {
                     {/* Content Column */}
                     <div className="flex-1 max-w-[630px] pt-8 px-8">
                         <div className="flex flex-col h-full">
-                            <div className="mb-8 flex items-center gap-4">
+                            <div className="mb-6 flex items-center h-10">
                                 <button
                                     onClick={handleLeave}
                                     className="p-2 hover:bg-pink-50 text-zinc-900 rounded-full transition-colors"

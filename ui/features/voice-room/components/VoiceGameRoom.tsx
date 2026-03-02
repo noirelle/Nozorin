@@ -197,7 +197,7 @@ export const VoiceGameRoom = ({
             <audio ref={remoteAudioRef} autoPlay />
 
             {/* Top Bar: Minimal Timer */}
-            <div className="flex justify-end mb-8">
+            <div className="flex justify-end mb-4">
                 <div className="flex items-center gap-2 group cursor-default">
                     {isConnected ? (
                         <>
@@ -213,7 +213,7 @@ export const VoiceGameRoom = ({
             </div>
 
             {/* Core Interaction Area: Discovery Stage */}
-            <div className="flex flex-col items-center justify-center px-12 pb-12 border-b border-zinc-200">
+            <div className="flex flex-col items-center justify-center px-12 pb-8 border-b border-zinc-200">
                 <div className="relative flex flex-col items-center">
                     {/* The Interactive Discovery Circle */}
                     <div
@@ -272,16 +272,16 @@ export const VoiceGameRoom = ({
                     </div>
 
                     {/* Meta/Status block - Centered & Spaced */}
-                    <div className="mt-8 flex flex-col items-center w-full text-center">
+                    <div className="mt-4 flex flex-col items-center w-full text-center">
                         <h4 className={`text-base font-bold ${isConnected ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'Scanning for voices...' : 'Start a Match'}
                         </h4>
                         <p className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-2">
-                            {isConnected ? (callRoomState.partner_country_name || 'In Call') : isSearching ? 'Tuning frequencies' : 'Tap the circle to begin'}
+                            {isConnected ? 'In Call' : isSearching ? 'Tuning frequencies' : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}
-                        <div className="mt-6 flex items-center justify-center gap-3 h-10">
+                        <div className="mt-4 flex items-center justify-center gap-3 h-10">
                             {isConnected && partnerId && (
                                 <button
                                     onClick={() => !isFriends && !isPending && onAddFriend && onAddFriend(partnerId)}
@@ -296,7 +296,7 @@ export const VoiceGameRoom = ({
                                 </button>
                             )}
 
-                            {(isConnected || isSearching) && (
+                            {isConnected && (
                                 <button
                                     onClick={handleNextWrapper}
                                     className="px-8 py-2.5 bg-pink-50 hover:bg-pink-100 text-pink-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all active:scale-95 border border-pink-100 shadow-sm"
@@ -310,7 +310,7 @@ export const VoiceGameRoom = ({
             </div>
 
             {/* Discussion Layer */}
-            <div className={`flex-1 flex flex-col min-h-0 pt-8 transition-opacity duration-500 ${!isConnected ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`flex-1 flex flex-col min-h-0 pt-4 transition-opacity duration-500 ${!isConnected ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
                 {/* Messages List */}
                 <div className="flex-1 overflow-y-auto space-y-4 px-4 scrollbar-hide">
                     {messages.map((msg: any, index: number) => (
@@ -327,7 +327,7 @@ export const VoiceGameRoom = ({
                 </div>
 
                 {/* Bottom Entry Area */}
-                <div className="mt-6 mb-10 px-2">
+                <div className="mt-4 mb-6 px-2">
                     <div className="relative flex items-center gap-3 bg-white/60 rounded-3xl px-4 py-2 border border-zinc-200 focus-within:border-pink-300 transition-all duration-300 shadow-sm">
                         <div className="flex-1 relative">
                             <input

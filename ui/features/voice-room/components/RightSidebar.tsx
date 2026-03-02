@@ -183,7 +183,7 @@ export const RightSidebar = ({
             {/* 1. Fixed Header Area */}
             <div className="flex-none">
                 {isVoiceGame ? (
-                    <div className="flex items-center gap-6 mb-8 pb-2">
+                    <div className="flex items-center gap-6 mb-6 h-10">
                         {['history', 'requests', 'pending'].map((tab) => (
                             <button
                                 key={tab}
