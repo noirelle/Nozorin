@@ -309,7 +309,9 @@ export const MobileVoiceLayout = ({
                         {/* Search / Filter (Upcoming) */}
                         <div className="px-6 mb-4">
                             <div className="bg-zinc-50 rounded-2xl px-4 py-3 flex items-center justify-between opacity-50 cursor-not-allowed border border-zinc-100">
-                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Search {activeDrawer}...</span>
+                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                                    Search {activeDrawer === 'community' ? 'Friends' : activeDrawer}...
+                                </span>
                                 <UpcomingBadge variant="small" />
                             </div>
                         </div>
