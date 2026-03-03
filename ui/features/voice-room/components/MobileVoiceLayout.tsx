@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     X,
     Mic2,
@@ -8,7 +8,7 @@ import {
     MessageCircle,
     History,
     Users,
-    Plus,
+    SlidersHorizontal,
     ArrowLeft,
     ChevronDown,
     UserPlus,
@@ -73,6 +73,17 @@ export const MobileVoiceLayout = ({
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
 
+    // Prevent body scroll and rubber-banding
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+        return () => {
+            document.body.style.overflow = originalStyle;
+            document.body.style.touchAction = 'auto';
+        };
+    }, []);
+
     // Helper for friend status
     const isFriends = friends.some(f => f.id === partnerId);
     const pendingSent = sentRequests.some(r => (r.user?.id || r.target_user_id) === partnerId);
@@ -86,7 +97,7 @@ export const MobileVoiceLayout = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none">
+        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none touch-none">
             <audio ref={remoteAudioRef} autoPlay />
 
             {/* Premium Background Blobs */}
@@ -229,7 +240,7 @@ export const MobileVoiceLayout = ({
                         {history.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
                     </button>
 
-                    {/* Friends/Community Button */}
+                    {/* Friends Button */}
                     <button
                         onClick={() => setActiveDrawer('community')}
                         className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
@@ -259,9 +270,9 @@ export const MobileVoiceLayout = ({
                         {messages.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
                     </button>
 
-                    {/* Quick Add (Upcoming) */}
+                    {/* Quick Filter (Upcoming) */}
                     <button className="w-10 h-10 flex items-center justify-center text-zinc-200 cursor-not-allowed">
-                        <Plus className="w-6 h-6" strokeWidth={2} />
+                        <SlidersHorizontal className="w-6 h-6" strokeWidth={2} />
                     </button>
                 </div>
             </nav>
@@ -285,7 +296,7 @@ export const MobileVoiceLayout = ({
                         {/* Title & Close */}
                         <div className="px-6 py-4 flex items-center justify-between">
                             <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
-                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Community' : 'Discussion'}
+                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : 'Discussion'}
                             </h2>
                             <button
                                 onClick={() => setActiveDrawer(null)}
@@ -304,7 +315,7 @@ export const MobileVoiceLayout = ({
                         </div>
 
                         {/* Scrollable List */}
-                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto">
                             {activeDrawer === 'history' && (
                                 <div className="space-y-6">
                                     {history.length > 0 ? history.map((item: any, idx: number) => (
@@ -513,7 +524,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
     return (
         <div className="flex flex-col h-[50vh]">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide touch-auto">
                 {messages.length > 0 ? messages.map((m: any, i: number) => (
                     <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
