@@ -12,3 +12,4 @@ export * from '../features/voice-room/hooks/room-actions/useRoomActions';
 export * from '../features/voice-room/hooks/reconnect/useReconnect';
 export * from '../features/auth/hooks/guest-login/useGuestLogin';
 export * from './call/useCall';
+export * from './useIsMobile';

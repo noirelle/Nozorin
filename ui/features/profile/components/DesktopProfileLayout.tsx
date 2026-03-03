@@ -7,7 +7,9 @@ import {
     Bookmark,
     User,
     Settings,
-    Plus
+    Plus,
+    Mars,
+    Venus
 } from 'lucide-react';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 
@@ -37,7 +39,11 @@ export const DesktopProfileLayout = () => {
                         <div className="flex flex-col gap-0.5 mb-4">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h1 className="text-xl font-normal tracking-wide text-zinc-900">{user.username}</h1>
-                                <div className="flex items-center gap-2">
+                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${user.gender === 'female' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'} uppercase tracking-tight`}>
+                                    {user.gender === 'female' ? <Venus className="w-3 h-3" strokeWidth={3} /> : <Mars className="w-3 h-3" strokeWidth={3} />}
+                                    {user.age || 20}
+                                </div>
+                                <div className="flex items-center gap-2 ml-1">
                                     <Settings className="w-4 h-4 cursor-pointer text-zinc-500 hover:text-zinc-900 transition-colors" />
                                 </div>
                             </div>

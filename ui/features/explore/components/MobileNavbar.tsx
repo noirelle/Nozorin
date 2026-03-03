@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, Heart, Menu, ChevronDown, Settings } from 'lucide-react';
+import { Plus, Heart, Menu, ChevronDown, Settings, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/hooks';
@@ -10,6 +10,7 @@ export const MobileNavbar = () => {
     const pathname = usePathname();
     const { user } = useUser();
     const isProfile = pathname === '/app/profile';
+    const isHome = pathname === '/app';
 
     return (
         <nav className="h-[52px] bg-white flex items-center justify-between px-4 sticky top-0 z-50 border-b border-zinc-100">
@@ -43,7 +44,11 @@ export const MobileNavbar = () => {
                 <>
                     {/* Default Header Layout */}
                     <div className="w-10 flex items-center justify-start">
-                        <Plus className="text-zinc-300 w-7 h-7 cursor-not-allowed opacity-50" strokeWidth={2} />
+                        {isHome ? (
+                            <SlidersHorizontal className="text-zinc-900 w-6 h-6 cursor-pointer" strokeWidth={2.5} />
+                        ) : (
+                            <Plus className="text-zinc-300 w-7 h-7 cursor-not-allowed opacity-50" strokeWidth={2} />
+                        )}
                     </div>
 
                     <Link href="/app" className="flex-1 flex justify-center">

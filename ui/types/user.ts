@@ -8,4 +8,5 @@ export interface UserProfile {
     is_claimed: boolean;
     created_at: number;
     country_name?: string;
+    age?: number;
 }
