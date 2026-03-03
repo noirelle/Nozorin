@@ -5,9 +5,9 @@ import { PlusSquare, Heart } from 'lucide-react';
 
 export const MobileNavbar = () => {
     return (
-        <nav className="h-10 border-b border-zinc-800 bg-black flex items-center justify-between px-4 sticky top-0 z-50">
+        <nav className="h-10 border-b border-zinc-200 bg-white flex items-center justify-between px-4 sticky top-0 z-50">
             {/* Instagram-style Logo Font */}
-            <div className="text-2xl font-serif text-white italic tracking-tight select-none cursor-pointer">
+            <div className="text-2xl font-serif text-zinc-900 italic tracking-tight select-none cursor-pointer">
                 nozorin
             </div>
 
