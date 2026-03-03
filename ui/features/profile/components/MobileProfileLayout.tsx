@@ -16,7 +16,7 @@ export const MobileProfileLayout = () => {
     if (!user) return null;
 
     return (
-        <div className="flex flex-col min-h-screen bg-transparent text-zinc-900 animate-in fade-in duration-500 pb-10">
+        <div className="flex flex-col min-h-full bg-white text-zinc-900 animate-in fade-in duration-500">
             {/* 1. Profile Info Section */}
             <div className="px-4 pt-4">
                 <div className="flex items-center gap-4 mb-4">

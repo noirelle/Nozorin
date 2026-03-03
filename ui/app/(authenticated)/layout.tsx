@@ -101,7 +101,7 @@ export default function AppLayout({
 
     if (isMobile) {
         return (
-            <div className="min-h-screen bg-[#fdfbfc] text-zinc-900 flex flex-col selection:bg-pink-100 animate-in fade-in duration-700">
+            <div className="min-h-screen bg-white text-zinc-900 flex flex-col selection:bg-pink-100 animate-in fade-in duration-700">
                 <MobileNavbar />
                 <main className="flex-1 overflow-y-auto pb-[50px]">
                     {children}

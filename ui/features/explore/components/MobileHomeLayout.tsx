@@ -183,13 +183,7 @@ export const MobileHomeLayout = () => {
                 ))}
             </div>
 
-            {/* 4. Floating Status Button */}
-            <div className="fixed bottom-[72px] right-4 z-40">
-                <button className="flex items-center gap-2 bg-white border border-zinc-200 shadow-lg px-5 h-10 rounded-full text-zinc-900 font-bold text-[13px] uppercase tracking-wide active:scale-95 transition-all">
-                    <Plus className="w-5 h-5 text-zinc-900" strokeWidth={2.5} />
-                    Status
-                </button>
-            </div>
+
         </div>
     );
 };
