@@ -39,9 +39,8 @@ export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
 
 export const useMediaState = () => {
     const [state, setState] = useState<CallRoomState>(INITIAL_CALL_ROOM_STATE);
-    const mediaManager = useRef<MediaStreamManager | null>(null);
 
-    return { state, setState, mediaManager };
+    return { state, setState };
 };
 
 export type UseMediaStateReturn = ReturnType<typeof useMediaState>;

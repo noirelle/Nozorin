@@ -8,6 +8,7 @@ import { UserProfile } from '@/types/user';
 
 interface AuthContextType {
     user: UserProfile | null;
+    token: string | null;
     isChecked: boolean;
     isChecking: boolean;
     refreshUser: () => Promise<string | null>;
@@ -17,7 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isImageReady, setIsImageReady] = useState(false);
-    const { isChecking, user, isChecked, refreshUser } = useUser();
+    const { isChecking, user, token, isChecked, refreshUser } = useUser();
 
     // Preload user avatar to prevent blink
     useEffect(() => {
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, isChecked, isChecking, refreshUser }}>
+        <AuthContext.Provider value={{ user, token, isChecked, isChecking, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

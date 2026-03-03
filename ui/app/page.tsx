@@ -13,7 +13,6 @@ import Dedications from '../sections/Dedications';
 import Footer from '../sections/Footer';
 import { useHistory, useUser, useDirectCall } from '../hooks';
 import { useSocketEvent, SocketEvents } from '../lib/socket';
-import { getSocketClient } from '../lib/socket/core/socketClient';
 import { IncomingCallOverlay } from '../features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '../features/direct-call/components/OutgoingCallOverlay';
 

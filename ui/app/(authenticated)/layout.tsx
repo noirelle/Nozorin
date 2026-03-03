@@ -1,25 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileNavbar } from '@/components/MobileNavbar';
 import { MobileTabbar } from '@/components/MobileTabbar';
 import { MultiSessionGuard } from '@/components/MultiSessionGuard';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
+import { useUI, UIProvider } from '@/contexts/UIContext';
+import { SocketProvider } from '@/contexts/SocketContext';
+import { MediaProvider } from '@/contexts/MediaContext';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-    const [isMobile, setIsMobile] = useState(false);
+    const { isMobile } = useUI();
     const { user } = useAuth();
-
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
 
     if (isMobile) {
         return (
@@ -55,7 +47,13 @@ export default function AppLayout({
 }) {
     return (
         <AuthProvider>
-            <LayoutContent>{children}</LayoutContent>
+            <UIProvider>
+                <SocketProvider>
+                    <MediaProvider>
+                        <LayoutContent>{children}</LayoutContent>
+                    </MediaProvider>
+                </SocketProvider>
+            </UIProvider>
         </AuthProvider>
     );
 }
