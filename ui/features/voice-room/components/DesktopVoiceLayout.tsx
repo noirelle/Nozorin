@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { RightSidebar } from './RightSidebar';
 import { VoiceGameRoom } from './VoiceGameRoom';
+import { MobileVoiceLayout } from './MobileVoiceLayout';
 import { ArrowLeft } from 'lucide-react';
 
 import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
@@ -20,6 +21,14 @@ export const DesktopVoiceLayout = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
     const [friendRequestNotif, setFriendRequestNotif] = useState<any>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // History hooks
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
@@ -244,6 +253,52 @@ export const DesktopVoiceLayout = () => {
     }
 
     const isWebRTCAvailable = true; // Placeholder for WebRTC availability check
+
+    if (isMobile) {
+        return (
+            <>
+                <MobileVoiceLayout
+                    onLeave={handleLeave}
+                    history={history}
+                    friends={friends}
+                    pendingRequests={pendingRequests}
+                    sentRequests={sentRequests}
+                    onAcceptRequest={acceptRequest}
+                    onDeclineRequest={declineRequest}
+                    onCancelRequest={cancelRequest}
+                    onAddFriend={handleAddFriend}
+                    onRemoveFriend={removeFriend}
+                    onCall={(targetId) => {
+                        if (!isWebRTCAvailable) {
+                            alert('Direct calling is not available yet.');
+                            return;
+                        }
+                        initiateCall(targetId, 'voice');
+                    }}
+                />
+
+                {incomingCall && (
+                    <IncomingCallOverlay
+                        from_username={incomingCall.from_username}
+                        from_avatar={incomingCall.from_avatar}
+                        from_country_name={incomingCall.from_country_name}
+                        from_country={incomingCall.from_country}
+                        mode={incomingCall.mode}
+                        onAccept={performAcceptCall}
+                        onDecline={performDeclineCall}
+                        error={callError}
+                    />
+                )}
+
+                {isCalling && (
+                    <OutgoingCallOverlay
+                        onCancel={cancelCall}
+                        error={callError}
+                    />
+                )}
+            </>
+        );
+    }
 
     return (
         <>

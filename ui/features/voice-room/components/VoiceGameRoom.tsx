@@ -13,6 +13,7 @@ import { useChat } from '@/hooks';
 import { useReconnect } from '@/features/voice-room/hooks/reconnect/useReconnect';
 import { useCallDuration } from '@/features/voice-room/hooks/duration/useCallDuration';
 import { useHistory, useUser } from '@/hooks';
+import { useVoiceRoom } from '../hooks/useVoiceRoom';
 
 interface VoiceGameRoomProps {
     onLeave?: () => void;
@@ -45,127 +46,26 @@ export const VoiceGameRoom = ({
 }: VoiceGameRoomProps) => {
     const mode = 'voice';
 
-    // 1. Core State
     const {
-        state: callRoomState,
-        mediaManager,
-        initMediaManager,
-        cleanupMedia,
-        toggleMute: toggleLocalMute,
-        setSearching,
-        setConnected,
-        setPartner,
-        setPartnerSignalStrength,
-        setPermissionDenied,
-        setHasPromptedForPermission,
-        resetState,
-    } = useCallRoom(mode);
-
-    // 2. Extra UI State
-    const [inputText, setInputText] = useState('');
-    const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
-
-    const remoteAudioRef = useRef<HTMLAudioElement>(null);
-
-    // Native Permission Check
-    useEffect(() => {
-        if (!navigator.permissions) return;
-        navigator.permissions.query({ name: 'microphone' as PermissionName })
-            .then((permissionStatus) => {
-                setPermissionDenied(permissionStatus.state === 'denied');
-                permissionStatus.onchange = () => {
-                    setPermissionDenied(permissionStatus.state === 'denied');
-                };
-            })
-            .catch(err => console.warn('[VoiceGameRoom] Failed to query native mic permission:', err));
-    }, [setPermissionDenied]);
-
-    // Actions Ref
-    const actionsRef = useRef<ReturnType<typeof useRoomActions> | null>(null);
-
-    // WebRTC Hook
-    const { createOffer, closePeerConnection } = useWebRTC({
-        is_media_ready: callRoomState.is_media_ready,
-        mediaManager,
+        callRoomState,
+        messages,
+        messagesEndRef,
         remoteAudioRef,
-        onConnectionStateChange: (state) => {
-            if (state === 'failed') actionsRef.current?.handleStop();
-        },
-        onSignalQuality: (quality) => {
-            const partner_id = callRoomState.partner_id;
-            if (partner_id) emitSignalStrength(partner_id, quality);
-        },
-    });
-
-    // Chat
-    const { messages, messagesEndRef, sendMessage, clearMessages } = useChat(callRoomState.partner_id);
-
-    // Actions
-    const actions = useRoomActions({
-        mode,
-        callRoomState,
-        setSearching,
-        setConnected,
-        setPartner,
-        resetState,
-        createOffer,
-        closePeerConnection,
-        clearMessages,
-        sendMessage,
-        trackSessionStart: async () => { },
-        trackSessionEnd: async () => { }, // History tracking relies on history hook, if needed pass down
+        actions,
+        handleNext,
+        handleUserStop,
+        isReconnecting,
+        callDuration,
         selectedCountry,
-        toggleLocalMute,
-        initMediaManager,
-        cleanupMedia,
-        setHasPromptedForPermission,
-        isDirectCall: !!initialMatchData,
-    });
-    actionsRef.current = actions;
-
-    // Room Effects
-    useRoomEffects({
-        mode,
-        callRoomState,
-        setPartnerIsMuted: actions.setPartnerIsMuted,
-        setPartnerSignalStrength,
-        initMediaManager,
-        cleanupMedia,
-        onConnectionChange: onConnectionChange || (() => { }),
+        setSelectedCountry
+    } = useVoiceRoom({
+        onConnectionChange,
         initialMatchData,
-        createOffer,
-        handleStop: actions.handleStop,
-        handleNext: actions.handleNext,
-        findMatch: actions.findMatch,
-        handleUserStop: actions.handleUserStop,
-        onMatchFound: actions.onMatchFound,
-    });
-
-    // Reconnect
-    const { isReconnecting, clearReconnectState } = useReconnect({
-        rejoinCall: actions.matching.rejoinCall,
-        onRestorePartner: useCallback((data: any) => {
-            if (data.partnerProfile) {
-                const pp = data.partnerProfile;
-                setPartner(
-                    data.peerId,
-                    pp.country_name || '',
-                    pp.country || '',
-                    pp.username || '',
-                    pp.avatar || '',
-                    pp.gender || '',
-                    pp.id || pp.user_id || null,
-                    pp.friendship_status || 'none'
-                );
-            }
-        }, [setPartner]),
         initialReconnecting,
-        initialCallData,
+        initialCallData
     });
 
-    const callDuration = useCallDuration(callRoomState.is_connected);
-
-    const { user: localUser } = useUser();
+    const [inputText, setInputText] = useState('');
 
     const handleSendMessageWrapper = () => {
         if (inputText.trim()) {
@@ -173,15 +73,8 @@ export const VoiceGameRoom = ({
         }
     };
 
-    const handleNextWrapper = useCallback(() => {
-        clearReconnectState();
-        actions.handleNext();
-    }, [clearReconnectState, actions]);
-
-    const handleUserStopWrapper = useCallback(() => {
-        clearReconnectState();
-        actions.handleUserStop();
-    }, [clearReconnectState, actions]);
+    const handleNextWrapper = handleNext;
+    const handleUserStopWrapper = handleUserStop;
 
     const isConnected = callRoomState.is_connected;
     const isSearching = callRoomState.is_searching;
@@ -213,7 +106,7 @@ export const VoiceGameRoom = ({
                         </>
                     ) : (
                         <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase truncate max-w-[150px]">
-                            {isSearching ? actions.matching.status : 'Ready to Join'}
+                            {isSearching ? actions.matching.status : 'Ready'}
                         </span>
                     )}
                 </div>

@@ -1,383 +1,564 @@
-import React from 'react';
-import { RoomLayoutProps } from '../types';
-import { RoomNavbar } from '../../../components/RoomNavbar';
-import ReactCountryFlag from "react-country-flag";
-import { useUser } from '../../../hooks';
+'use client';
 
-export const MobileRoomLayout: React.FC<RoomLayoutProps> = ({
-    callRoomState,
-    partnerIsMuted,
-    showChat,
-    messages,
-    remoteAudioRef,
-    onStop,
-    onNext,
-    onToggleMute,
-    onSendMessage,
-    setShowChat,
-    filtersOpen,
-    setFiltersOpen,
-    onNavigateToHistory,
-    onNavigateToFriends,
-    onAddFriend,
-    onAcceptFriend,
+import React, { useState } from 'react';
+import {
+    X,
+    Mic2,
+    MicOff,
+    MessageCircle,
+    History,
+    Users,
+    Plus,
+    ArrowLeft,
+    ChevronDown,
+    UserPlus,
+    UserCheck,
+    UserMinus,
+    Phone,
+    Trash2,
+    Clock
+} from 'lucide-react';
+import ReactCountryFlag from "react-country-flag";
+import { useUser } from '@/hooks';
+import { useVoiceRoom } from '../hooks/useVoiceRoom';
+import { UpcomingBadge } from '@/components/UpcomingBadge';
+
+interface MobileVoiceLayoutProps {
+    onLeave: () => void;
+    history?: any[];
+    friends?: any[];
+    pendingRequests?: any[];
+    sentRequests?: any[];
+    onAcceptRequest?: (id: string) => void;
+    onDeclineRequest?: (id: string) => void;
+    onCancelRequest?: (id: string) => void;
+    onAddFriend?: (id: string) => void;
+    onRemoveFriend?: (id: string) => void;
+    onCall?: (id: string) => void;
+}
+
+export const MobileVoiceLayout = ({
+    onLeave,
+    history = [],
     friends = [],
     pendingRequests = [],
     sentRequests = [],
-    selectedCountry,
-    matchmakingStatus,
-    queuePosition,
-    isReconnecting,
-    reconnectCountdown,
-    callDuration,
-}) => {
-    const { is_connected, is_searching, partner_country_name, partner_country, partner_username, partner_avatar, partner_gender, partner_user_id, is_muted } = callRoomState;
+    onAcceptRequest,
+    onDeclineRequest,
+    onCancelRequest,
+    onAddFriend,
+    onRemoveFriend,
+    onCall
+}: MobileVoiceLayoutProps) => {
+    const {
+        callRoomState,
+        messages,
+        messagesEndRef,
+        remoteAudioRef,
+        actions,
+        handleNext,
+        handleUserStop,
+        isReconnecting,
+        callDuration,
+    } = useVoiceRoom({
+        onConnectionChange: () => { },
+    });
+
+    const [activeDrawer, setActiveDrawer] = useState<'history' | 'community' | 'chat' | null>(null);
+    const [inputText, setInputText] = useState('');
+
     const { user: localUser } = useUser();
+    const isConnected = callRoomState.is_connected;
+    const isSearching = callRoomState.is_searching;
+    const isMuted = callRoomState.is_muted;
+    const partnerId = callRoomState.partner_user_id;
+
+    // Helper for friend status
+    const isFriends = friends.some(f => f.id === partnerId);
+    const pendingSent = sentRequests.some(r => (r.user?.id || r.target_user_id) === partnerId);
+    const pendingReceived = pendingRequests.some(r => (r.user?.id || r.from_user_id) === partnerId);
+    const requestId = pendingRequests.find(r => (r.user?.id || r.from_user_id) === partnerId)?.id;
+
+    const handleSendMessage = () => {
+        if (inputText.trim()) {
+            actions.handleSendMessage(inputText, setInputText);
+        }
+    };
 
     return (
-        <div className="lg:hidden flex flex-col w-full h-screen bg-white relative overflow-hidden font-sans text-[#7C6367]">
-            {/* Soft White-to-Pink Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white via-[#FFF9FA] to-[#FFEBF0] pointer-events-none" />
+        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none">
+            <audio ref={remoteAudioRef} autoPlay />
 
-            {/* Subtle light grey grid pattern overlay */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-                style={{
-                    backgroundImage: `linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)`,
-                    backgroundSize: '40px 40px'
-                }}
-            />
+            {/* Premium Background Blobs */}
+            <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-pink-50/50 to-transparent blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-[20%] right-[-10%] w-64 h-64 bg-pink-100/20 rounded-full blur-[80px] pointer-events-none" />
 
-            {/* Ambient Background Blobs */}
-            <div className="absolute top-[-5%] left-[-10%] w-64 h-64 bg-[#FFE4E9] rounded-full blur-[90px] opacity-40 pointer-events-none" />
-            <div className="absolute bottom-[20%] right-[-15%] w-80 h-80 bg-[#FFD6E0] rounded-full blur-[110px] opacity-30 pointer-events-none" />
+            {/* 1. Header Area */}
+            <header className="relative z-50 h-16 flex items-center justify-between px-4">
+                <button
+                    onClick={onLeave}
+                    className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-900 active:scale-90 transition-all"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
 
-            {/* Header */}
-            <div className="relative z-50">
-                <RoomNavbar
-                    onNavigateToHistory={onNavigateToHistory}
-                    variant="mobile"
-                />
-            </div>
+                <div className="flex flex-col items-center">
+                    <span style={{ fontFamily: "'Satisfy', cursive" }} className="text-xl font-bold text-zinc-900">nozorin</span>
+                    <div className="flex items-center gap-1.5 ">
+                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300'}`} />
+                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
+                            {isConnected ? callDuration : isSearching ? 'Scanning' : 'Ready'}
+                        </span>
+                    </div>
+                </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col items-center justify-center px-6 pb-32 relative z-10">
+                <div className="w-10" />
+            </header>
 
-                {/* Large Pulsing Connect Button */}
+            {/* 2. Main Stage: Interaction Area */}
+            <main className="flex-1 flex flex-col items-center justify-center relative z-10 px-6">
                 <div className="relative mb-12">
-                    {/* Pulse Layers - Only when searching or idle */}
-                    {!is_connected && (
+                    {/* Ring Layers */}
+                    {!isConnected && (
                         <>
-                            <div className="absolute inset-0 rounded-full bg-[#FFB7CE] animate-ping opacity-20" style={{ animationDuration: '3s' }} />
-                            <div className="absolute inset-0 rounded-full scale-110 bg-[#FFB7CE] animate-pulse opacity-10" style={{ animationDuration: '4s' }} />
+                            <div className="absolute inset-0 rounded-full bg-pink-100 animate-ping opacity-20" />
+                            <div className="absolute inset-[-15px] rounded-full border border-pink-50 animate-pulse opacity-50" />
                         </>
                     )}
 
-                    <button
-                        onClick={is_connected ? onNext : (is_searching ? onStop : onNext)}
-                        disabled={callRoomState.permission_denied}
-                        className={`
-                            relative w-56 h-56 rounded-full flex flex-col items-center justify-center transition-all duration-500
-                            shadow-[0_20px_40px_-10px_rgba(255,183,206,0.3),inset_0_4px_12px_rgba(255,255,255,0.4)]
-                            group disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale-[0.5]
-                            ${!callRoomState.permission_denied ? 'active:scale-95' : ''}
-                            ${is_connected
-                                ? 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597]'
-                                : 'bg-gradient-to-br from-[#FFC2D1] to-[#FF8BA7]'}
-                        `}
+                    {/* Central Interaction Circle */}
+                    <div
+                        onClick={!isConnected && !isSearching ? handleNext : undefined}
+                        className={`relative w-56 h-56 rounded-full flex items-center justify-center transition-all duration-700 active:scale-95 shadow-[0_20px_50px_-10px_rgba(236,72,153,0.15)] ring-1 ring-zinc-100 ${!isConnected && !isSearching ? 'cursor-pointer' : ''}`}
                     >
-                        {/* Inner soft shadow overlay */}
-                        <div className="absolute inset-0 rounded-full shadow-[inset_0_-8px_20px_rgba(0,0,0,0.03)] pointer-events-none" />
+                        {/* Background Layer */}
+                        <div className="absolute inset-0 rounded-full bg-white overflow-hidden">
+                            {/* Subtle grid pattern inside */}
+                            <div className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+                        </div>
 
-                        {is_searching ? (
-                            <div className="flex flex-col items-center">
-                                <div className="relative w-12 h-12 mb-4">
-                                    <div className="absolute inset-0 border-4 border-white/20 rounded-full" />
-                                    {matchmakingStatus === 'FINDING' && (
-                                        <div className="absolute inset-0 border-4 border-t-white rounded-full animate-spin" />
-                                    )}
-                                </div>
-                                <span className="text-white font-semibold tracking-widest text-[10px] uppercase">
-                                    {queuePosition ? `Position: ${queuePosition}` : (matchmakingStatus === 'CONNECTING' || matchmakingStatus === 'IDLE' ? 'Connecting...' : 'Searching...')}
-                                </span>
-                            </div>
-                        ) : is_connected ? (
-                            <div className="flex flex-col items-center animate-in zoom-in duration-500">
-                                <div className="flex items-center gap-1.5 h-8 mb-4">
-                                    {[1, 2, 3, 4, 3, 2, 1].map((h, i) => (
-                                        <div
-                                            key={i}
-                                            className="w-1.5 bg-white rounded-full transition-all duration-300"
-                                            style={{
-                                                height: `${Math.max(10, Math.random() * 32)}px`,
-                                                animation: `bounce 1.2s ease-in-out infinite ${i * 0.1}s`
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                                <span className="text-white font-bold tracking-[0.2em] text-[20px] mb-1">{callDuration}</span>
-                                <span className="text-white font-bold tracking-widest text-[9px] uppercase opacity-80">Skip to Next</span>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center">
-                                <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mb-4 border border-white/30">
-                                    {callRoomState.permission_denied ? (
-                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                        </svg>
+                        {/* Partner Avatar / Pulse Icon */}
+                        <div className="relative z-10 w-full h-full p-1">
+                            {isConnected ? (
+                                <img
+                                    src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                                    alt="Partner"
+                                    className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
+                                />
+                            ) : (
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-pink-50/50 flex flex-col items-center justify-center">
+                                    {isSearching ? (
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center gap-1 mb-3">
+                                                {[1, 2, 3, 2, 1].map((h, i) => (
+                                                    <div key={i} className="w-1 bg-pink-400 rounded-full animate-pulse" style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">{actions.matching.status}</span>
+                                        </div>
                                     ) : (
-                                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 3l14 9-14 9V3z" />
-                                        </svg>
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-12 h-12 rounded-full border border-pink-100 flex items-center justify-center mb-4">
+                                                <div className="w-4 h-4 bg-pink-500 rounded-full animate-pulse" />
+                                            </div>
+                                            <span className="text-[11px] font-black text-zinc-900 uppercase tracking-widest">Tap to start</span>
+                                        </div>
                                     )}
                                 </div>
-                                <span className="text-white font-bold tracking-widest text-[11px] uppercase">
-                                    {callRoomState.permission_denied ? 'Blocked' : 'Tap to Connect'}
-                                </span>
+                            )}
+                        </div>
+
+                        {/* Location Badge */}
+                        {isConnected && callRoomState.partner_country && (
+                            <div className="absolute top-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-50 z-30 animate-in zoom-in duration-500">
+                                <ReactCountryFlag countryCode={callRoomState.partner_country} svg className="w-6 h-4" />
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* Connection Details Card */}
+                <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <div className="flex flex-col items-center text-center">
+                        <h3 className="text-lg font-bold text-zinc-900 mb-1 truncate w-full">
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : 'Looking for someone...'}
+                        </h3>
+                        <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-6">
+                            {isConnected ? 'In Call' : 'Tuning frequencies'}
+                        </p>
+
+                        <div className="flex items-center gap-3 w-full">
+                            {isConnected && partnerId && (
+                                <button
+                                    onClick={() => {
+                                        if (isFriends) return;
+                                        if (pendingReceived && requestId && onAcceptRequest) onAcceptRequest(requestId);
+                                        else if (!pendingSent && !pendingReceived && onAddFriend) onAddFriend(partnerId);
+                                    }}
+                                    className={`flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm ${isFriends ? 'bg-emerald-50 text-emerald-600' :
+                                        pendingReceived ? 'bg-pink-500 text-white animate-pulse' :
+                                            pendingSent ? 'bg-zinc-50 text-zinc-400' :
+                                                'bg-zinc-900 text-white'
+                                        }`}
+                                >
+                                    {isFriends ? 'Friends' : pendingReceived ? 'Accept' : pendingSent ? 'Pending' : 'Add Friend'}
+                                </button>
+                            )}
+                            {(isConnected || isSearching) && (
+                                <button
+                                    onClick={isConnected ? handleNext : handleUserStop}
+                                    className="flex-1 h-11 bg-pink-50 border border-pink-100 text-pink-600 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                                >
+                                    {isConnected ? 'Next' : 'Stop'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            {/* 3. Bottom Action Bar */}
+            <nav className="relative z-[60] pb-8 pt-4 px-6 bg-white/80 backdrop-blur-3xl border-t border-zinc-100 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                    {/* History Button */}
+                    <button
+                        onClick={() => setActiveDrawer('history')}
+                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
+                    >
+                        <History className="w-6 h-6" strokeWidth={2} />
+                        {history.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                    </button>
+
+                    {/* Friends/Community Button */}
+                    <button
+                        onClick={() => setActiveDrawer('community')}
+                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
+                    >
+                        <Users className="w-6 h-6" strokeWidth={2} />
+                        {(pendingRequests.length > 0) && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white animate-pulse" />}
                     </button>
                 </div>
 
-                {/* Connection Card */}
-                <div className="w-full max-sm-xs bg-white/70 backdrop-blur-xl rounded-[28px] p-5 shadow-[0_10px_30px_rgba(255,183,206,0.15)] border border-white">
-                    <div className="flex flex-col gap-4">
-                        {/* Local User Section */}
-                        <div className="flex items-center justify-between bg-white/60 p-3 rounded-2xl border border-pink-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="relative">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FFE4E9] p-0.5 border-2 border-white shadow-sm">
-                                        <img src={localUser?.avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=transparent`} alt="Me" className="w-full h-full object-cover" />
-                                    </div>
-                                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 border-2 border-white rounded-full shadow-sm" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold text-[#5C4E50]">{localUser?.username || 'Alex'} (You)</h4>
-                                    <div className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase ${is_muted ? 'bg-rose-100 text-rose-500' : 'bg-[#E7F9F3] text-emerald-600'}`}>
-                                        {is_muted ? 'Muted' : 'Mic On'}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="text-[10px] font-bold text-[#A58E92] tracking-tighter uppercase px-2 py-1 bg-white/80 rounded-lg">Local</div>
+                {/* Primary Mic Button */}
+                <div className="absolute left-1/2 -translate-x-1/2 -top-10">
+                    <button
+                        onClick={actions.handleToggleMute}
+                        className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 border-white ${isMuted ? 'bg-rose-500 text-white' : 'bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-pink-200'} active:scale-90`}
+                    >
+                        {isMuted ? <MicOff className="w-7 h-7" strokeWidth={2.5} /> : <Mic2 className="w-7 h-7" strokeWidth={2.5} />}
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-6">
+                    {/* Chat Button */}
+                    <button
+                        onClick={() => setActiveDrawer('chat')}
+                        className={`relative w-10 h-10 flex items-center justify-center transition-colors ${isConnected ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
+                    >
+                        <MessageCircle className="w-6 h-6" strokeWidth={2} />
+                        {messages.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                    </button>
+
+                    {/* Quick Add (Upcoming) */}
+                    <button className="w-10 h-10 flex items-center justify-center text-zinc-200 cursor-not-allowed">
+                        <Plus className="w-6 h-6" strokeWidth={2} />
+                    </button>
+                </div>
+            </nav>
+
+            {/* 4. Drawers System */}
+            {activeDrawer && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-[70] animate-in fade-in duration-300"
+                        onClick={() => setActiveDrawer(null)}
+                    />
+
+                    {/* Drawer Content */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] max-h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500">
+                        {/* Pull handle */}
+                        <div className="flex justify-center pt-4 pb-2">
+                            <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
+                        </div>
+
+                        {/* Title & Close */}
+                        <div className="px-6 py-4 flex items-center justify-between">
+                            <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
+                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Community' : 'Discussion'}
+                            </h2>
+                            <button
+                                onClick={() => setActiveDrawer(null)}
+                                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-400 active:scale-90 transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Search / Filter (Upcoming) */}
+                        <div className="px-6 mb-4">
+                            <div className="bg-zinc-50 rounded-2xl px-4 py-3 flex items-center justify-between opacity-50 cursor-not-allowed border border-zinc-100">
+                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Search {activeDrawer}...</span>
+                                <UpcomingBadge variant="small" />
                             </div>
                         </div>
 
-                        {/* Partner Section (Dynamic) */}
-                        <div className="relative overflow-hidden min-h-[72px] flex items-center bg-pink-50/30 rounded-2xl border border-pink-100/20 transition-all duration-700">
-                            {isReconnecting ? (
-                                <div className="w-full p-3 flex items-center justify-between animate-in fade-in duration-500">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative w-12 h-12 rounded-full bg-amber-50 border-2 border-amber-200 flex items-center justify-center shadow-sm">
-                                            <svg className="w-5 h-5 text-amber-500 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-amber-700">Reconnecting...</h4>
-                                            <p className="text-[10px] text-amber-500 font-medium tracking-tight">
-                                                {reconnectCountdown ? `${reconnectCountdown}s remaining` : 'Restoring session'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="px-2 py-1 bg-amber-100 text-amber-600 text-[9px] font-bold rounded-lg uppercase tracking-wider">Wait</div>
+                        {/* Scrollable List */}
+                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide">
+                            {activeDrawer === 'history' && (
+                                <div className="space-y-6">
+                                    {history.length > 0 ? history.map((item: any, idx: number) => (
+                                        <HistoryItem
+                                            key={item.session_id || item.id || `history-${idx}`}
+                                            item={item}
+                                            friends={friends}
+                                            sentRequests={sentRequests}
+                                            pendingRequests={pendingRequests}
+                                            onAddFriend={onAddFriend}
+                                            onCall={onCall}
+                                            isBusy={isConnected}
+                                        />
+                                    )) : (
+                                        <EmptyState icon={History} title="No calls yet" subtitle="Your match history will appear here once you start talking." />
+                                    )}
                                 </div>
-                            ) : is_connected ? (
-                                <div className="w-full p-3 flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-500">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FFE4E9] p-0.5 border-2 border-white shadow-sm">
-                                            <img src={partner_avatar || `https://api.dicebear.com/9.x/notionists/svg?seed=Partner&backgroundColor=transparent`} alt="Partner" className="w-full h-full object-cover" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h4 className="text-sm font-bold text-[#5C4E50]">{partner_username || 'Stranger'}</h4>
-                                                {partner_gender && (
-                                                    <span className={`text-[9px] px-1 py-0.5 rounded-md font-bold uppercase tracking-wider ${partner_gender === 'male' ? 'bg-blue-50 text-blue-500' : partner_gender === 'female' ? 'bg-pink-50 text-pink-500' : 'bg-slate-50 text-slate-500'}`}>
-                                                        {partner_gender === 'male' ? '♂' : partner_gender === 'female' ? '♀' : partner_gender}
-                                                    </span>
-                                                )}
-                                                {partner_country && (
-                                                    <ReactCountryFlag countryCode={partner_country} svg className="w-4 h-3 rounded-sm object-cover" />
-                                                )}
-                                            </div>
-                                            <p className="text-[10px] text-[#A58E92] font-medium tracking-tight">In Call</p>
-                                        </div>
-                                    </div>
-                                    {partner_user_id && (() => {
-                                        const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partner_user_id);
-                                        const pendingSentReq = sentRequests?.find(r => (r.user?.id || r.target_user_id) === partner_user_id);
-                                        const pendingReceivedReq = pendingRequests?.find(r => (r.user?.id || r.from_user_id) === partner_user_id);
+                            )}
 
-                                        const isPendingSent = callRoomState.friendship_status === 'pending_sent' || !!pendingSentReq;
-                                        const isPendingReceived = callRoomState.friendship_status === 'pending_received' || !!pendingReceivedReq;
-                                        const requestId = pendingReceivedReq?.id;
+                            {activeDrawer === 'community' && (
+                                <CommunityView
+                                    friends={friends}
+                                    pendingRequests={pendingRequests}
+                                    sentRequests={sentRequests}
+                                    onAccept={onAcceptRequest}
+                                    onDecline={onDeclineRequest}
+                                    onCancel={onCancelRequest}
+                                    onCall={onCall}
+                                    isBusy={isConnected}
+                                />
+                            )}
 
-                                        return (
-                                            <button
-                                                onClick={() => {
-                                                    if (isFriends) return;
-                                                    if (isPendingReceived && requestId && onAcceptFriend) {
-                                                        onAcceptFriend(requestId);
-                                                    } else if (!isPendingSent && !isPendingReceived && onAddFriend) {
-                                                        onAddFriend(partner_user_id);
-                                                    }
-                                                }}
-                                                disabled={isFriends || (isPendingSent && !isPendingReceived)}
-                                                className={`px-3 py-1.5 text-white text-[10px] font-bold rounded-xl transition-all shadow-sm ${isFriends
-                                                    ? 'bg-emerald-500 hover:bg-emerald-600'
-                                                    : isPendingReceived
-                                                        ? 'bg-pink-500 hover:bg-pink-600 animate-pulse'
-                                                        : isPendingSent
-                                                            ? 'bg-slate-400 cursor-not-allowed'
-                                                            : 'bg-[#FF8BA7] hover:bg-[#FF7597]'
-                                                    }`}
-                                            >
-                                                {isFriends ? 'FRIENDS' : isPendingReceived ? 'ACCEPT' : isPendingSent ? 'PENDING' : 'ADD FRIEND'}
-                                            </button>
-                                        );
-                                    })()}
-                                </div>
-                            ) : (
-                                <div className="w-full flex flex-col items-center justify-center py-4 opacity-40">
-                                    <div className="flex gap-1.5 items-center">
-                                        <div className="w-1.5 h-1.5 bg-[#FF8BA7] rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-                                        <div className="w-1.5 h-1.5 bg-[#FF8BA7] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                                        <div className="w-1.5 h-1.5 bg-[#FF8BA7] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                                    </div>
-                                    <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[#A58E92]">
-                                        {matchmakingStatus === 'CONNECTING' || (is_searching && matchmakingStatus === 'IDLE') ? 'Connecting to server...' : 'Waiting for partner'}
-                                    </span>
-                                </div>
+                            {activeDrawer === 'chat' && (
+                                <ChatView
+                                    messages={messages}
+                                    onSend={handleSendMessage}
+                                    inputText={inputText}
+                                    setInputText={setInputText}
+                                    messagesEndRef={messagesEndRef}
+                                />
                             )}
                         </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
 
-            {/* Bottom Floating Bar */}
-            <div className="fixed bottom-8 left-6 right-6 z-[60] flex flex-col gap-3">
-                {callRoomState.permission_denied && (
-                    <div className="bg-rose-50 border border-rose-100 px-5 py-3 rounded-2xl flex items-center justify-center gap-2.5 animate-in slide-in-from-bottom-4 duration-500 shadow-sm self-center w-full">
-                        <svg className="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span className="text-[10px] font-bold text-rose-600 tracking-tight">Mic permission required to start.</span>
-                    </div>
-                )}
-                <div className="bg-white/90 backdrop-blur-2xl rounded-[32px] p-3 shadow-[0_15px_35px_-10px_rgba(255,183,206,0.25)] border border-white flex items-center justify-between px-6">
-                    {/* Left Icons */}
-                    <div className="flex items-center gap-5">
-                        <button
-                            onClick={onNavigateToHistory}
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#7C6367] hover:bg-pink-50 transition-colors"
-                        >
-                            <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={onNavigateToFriends}
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#7C6367] hover:bg-pink-50 transition-colors"
-                        >
-                            <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* Elevated Center Mic Button */}
-                    <div className="absolute left-1/2 -translate-x-1/2 -top-6">
-                        <button
-                            onClick={onToggleMute}
-                            className={`
-                                w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300
-                                border-4 border-white shadow-2xl
-                                ${is_muted
-                                    ? 'bg-rose-500 text-white shadow-rose-200'
-                                    : 'bg-gradient-to-br from-[#FF9EB5] to-[#FF7597] text-white shadow-pink-200'}
-                                hover:scale-105 active:scale-90
-                            `}
-                        >
-                            {is_muted ? (
-                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 3l18 18" />
-                                </svg>
-                            ) : (
-                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                </svg>
-                            )}
-                        </button>
-                    </div>
-
-                    {/* Right Icons */}
-                    <div className="flex items-center gap-5">
-                        <button
-                            onClick={() => setShowChat(!showChat)}
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors relative ${showChat ? 'bg-pink-100 text-[#FF7597]' : 'text-[#7C6367] hover:bg-pink-50'}`}
-                        >
-                            <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                            </svg>
-                            {messages.length > 0 && (
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setFiltersOpen && setFiltersOpen(!filtersOpen)}
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#7C6367] hover:bg-pink-50 transition-colors"
-                        >
-                            <svg className="w-5 h-5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Chat Popover */}
-            <div className={`fixed bottom-32 left-6 right-6 z-[70] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${showChat ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-12 scale-95 pointer-events-none'}`}>
-                <div className="bg-white/95 backdrop-blur-2xl rounded-[32px] border border-white shadow-[0_25px_60px_-15px_rgba(255,183,206,0.4)] h-[55vh] flex flex-col overflow-hidden">
-                    <div className="px-6 py-4 border-b border-pink-50 bg-white/50 flex justify-between items-center">
-                        <div>
-                            <span className="font-bold text-[#5C4E50] text-[15px]">Channel Chat</span>
-                            <div className="flex items-center gap-1.5 ">
-                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                                <span className="text-[10px] text-[#A58E92] font-semibold tracking-wide uppercase">Live now</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowChat(false)}
-                            className="p-2 hover:bg-pink-50 rounded-xl transition-colors text-[#A58E92]"
-                        >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-hidden p-2">
-                        {/* <ChatBox
-                                messages={messages}
-                                onSendMessage={onSendMessage}
-                                isConnected={is_connected}
-                                minimal={true}
-                                showScrollbar={true}
-                                theme="light"
-                            /> */}
-                    </div>
-                </div>
-            </div>
-
-            {/* Audio Component */}
-            <audio ref={remoteAudioRef} autoPlay />
-
-            {/* Custom Animations Style */}
             <style jsx>{`
-                @keyframes bounce {
-                    0%, 100% { transform: scaleY(1); }
-                    50% { transform: scaleY(2); }
-                }
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     );
+};
+
+// --- Subcomponents for Drawers ---
+
+const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onAddFriend, onCall, isBusy }: any) => {
+    const profile = item.partnerProfile || item.peerProfile || {};
+    const userId = item.partner_id || item.peer_user_id || profile.id;
+    const isFriend = friends.some((f: any) => f.id === userId);
+
+    return (
+        <div className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
+            <div className="flex items-center gap-4">
+                <div className="relative">
+                    <img
+                        src={item.partner_avatar || profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                        alt="Avatar"
+                        className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm"
+                    />
+                    {item.partner_status?.is_online && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
+                </div>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-zinc-900">{item.partner_username || profile.username || 'Unknown'}</span>
+                        <ReactCountryFlag countryCode={item.partner_country || profile.country || 'US'} svg className="w-3.5 h-2.5 opacity-60 rounded-[1px]" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5 text-zinc-400" />
+                            <span className="text-[10px] font-bold text-zinc-500 tabular-nums uppercase tracking-tighter">
+                                {Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s
+                            </span>
+                        </div>
+                        <span className="text-zinc-200 text-[10px]">•</span>
+                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{formatDate(item.created_at)}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+                {!isFriend ? (
+                    <button
+                        onClick={() => onAddFriend?.(userId)}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-600 active:scale-90"
+                    >
+                        <UserPlus className="w-4 h-4" />
+                    </button>
+                ) : (
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-50 text-pink-600">
+                        <UserCheck className="w-4 h-4" />
+                    </div>
+                )}
+                <button
+                    onClick={() => onCall?.(userId)}
+                    disabled={isBusy || !item.partner_status?.is_online}
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl active:scale-90 shadow-sm ${isBusy || !item.partner_status?.is_online ? 'bg-zinc-50 text-zinc-200' : 'bg-zinc-900 text-white shadow-zinc-200'}`}
+                >
+                    <Phone className="w-3.5 h-3.5 fill-current" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDecline, onCancel, onCall, isBusy }: any) => {
+    const [tab, setTab] = useState<'friends' | 'pending'>('friends');
+
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex gap-4 mb-8">
+                {['friends', 'pending'].map((t: any) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`text-[11px] font-black uppercase tracking-widest transition-all ${tab === t ? 'text-pink-600' : 'text-zinc-400'}`}
+                    >
+                        {t}
+                        {tab === t && <div className="h-0.5 bg-pink-600 mt-1.5 rounded-full" />}
+                    </button>
+                ))}
+            </div>
+
+            <div className="space-y-6">
+                {tab === 'friends' ? (
+                    friends.length > 0 ? friends.map((f: any, idx: number) => (
+                        <div key={f.id || `friend-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <img src={f.avatar} alt={f.username} className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm" />
+                                    {f.is_online && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-zinc-900">{f.username}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : 'Recent'}</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => onCall?.(f.id)}
+                                disabled={isBusy || !f.is_online}
+                                className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${isBusy || !f.is_online ? 'bg-zinc-50 text-zinc-200' : 'bg-zinc-900 text-white shadow-lg shadow-zinc-200'}`}
+                            >
+                                <Phone className="w-4 h-4 fill-current" />
+                            </button>
+                        </div>
+                    )) : <EmptyState icon={Users} title="Friendly neighborhood" subtitle="Your confirmed friends will be listed here." />
+                ) : (
+                    <div className="space-y-8">
+                        {pendingRequests.length > 0 && (
+                            <div>
+                                <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Received Requests</h3>
+                                <div className="space-y-4">
+                                    {pendingRequests.map((req: any, idx: number) => (
+                                        <div key={req.id || `pending-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
+                                            <div className="flex items-center gap-3">
+                                                <img src={req.user?.avatar} alt="" className="w-10 h-10 rounded-2xl object-cover" />
+                                                <span className="text-sm font-bold text-zinc-900">{req.user?.username}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => onDecline?.(req.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-400">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => onAccept?.(req.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-500 text-white shadow-sm">
+                                                    <UserCheck className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {sentRequests.length > 0 && (
+                            <div>
+                                <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Sent by You</h3>
+                                <div className="space-y-4">
+                                    {sentRequests.map((req: any, idx: number) => (
+                                        <div key={req.id || `sent-${idx}`} className="flex items-center justify-between opacity-70">
+                                            <div className="flex items-center gap-3">
+                                                <img src={req.user?.avatar} alt="" className="w-10 h-10 rounded-2xl object-cover grayscale" />
+                                                <span className="text-sm font-bold text-zinc-600">{req.user?.username}</span>
+                                            </div>
+                                            <button onClick={() => onCancel?.(req.id)} className="px-4 py-2 bg-zinc-50 text-zinc-400 text-[9px] font-black uppercase tracking-widest rounded-xl">Cancel</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {pendingRequests.length === 0 && sentRequests.length === 0 && <EmptyState icon={Clock} title="No pending" subtitle="Future connections waiting for response." />}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
+    return (
+        <div className="flex flex-col h-[50vh]">
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide">
+                {messages.length > 0 ? messages.map((m: any, i: number) => (
+                    <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
+                            {m.message}
+                        </div>
+                    </div>
+                )) : <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />}
+                <div ref={messagesEndRef} />
+            </div>
+            <div className="bg-zinc-50 rounded-3xl p-2.5 flex items-center gap-2 border border-zinc-100 shadow-inner">
+                <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && onSend()}
+                    placeholder="Message..."
+                    className="flex-1 bg-transparent px-3 text-sm focus:outline-none"
+                />
+                <button
+                    onClick={onSend}
+                    disabled={!inputText.trim()}
+                    className={`h-9 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${inputText.trim() ? 'bg-pink-500 text-white shadow-lg shadow-pink-200' : 'bg-zinc-200 text-zinc-400 opacity-50'}`}
+                >
+                    Send
+                </button>
+            </div>
+        </div>
+    );
+}
+
+const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
+    <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
+        <div className="w-16 h-16 rounded-3xl bg-zinc-50 flex items-center justify-center mb-6">
+            <Icon className="w-8 h-8 text-zinc-200" strokeWidth={1.5} />
+        </div>
+        <h3 className="text-sm font-bold text-zinc-900 mb-2">{title}</h3>
+        <p className="text-xs text-zinc-400 leading-relaxed">{subtitle}</p>
+    </div>
+);
+
+const formatDate = (ts: any) => {
+    if (!ts) return 'Recent';
+    const date = new Date(ts);
+    const diff = Date.now() - date.getTime();
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return date.toLocaleDateString();
 };
