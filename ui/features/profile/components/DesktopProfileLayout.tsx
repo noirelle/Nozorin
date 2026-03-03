@@ -88,7 +88,7 @@ export const DesktopProfileLayout = () => {
                     <div className="flex justify-center gap-16">
                         <button className="flex items-center gap-1 py-4 border-t border-zinc-900 -mt-[1px] text-[11px] font-bold tracking-widest uppercase text-zinc-900 transition-all px-16 group">
                             <Grid className="w-3 h-3" />
-                            Posts
+                            posts
                             <UpcomingBadge variant="small" />
                         </button>
                         <button className="flex items-center gap-1 py-4 text-zinc-400 text-[11px] font-bold tracking-widest uppercase group">
