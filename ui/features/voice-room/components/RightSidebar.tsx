@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2 } from 'lucide-react';
+import { useUser } from '@/hooks';
 
 const suggestions = [
     { id: 1, username: 'elara_sky', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
@@ -117,6 +118,27 @@ interface RightSidebarProps {
     isBusy?: boolean;
 }
 
+const ProfileSection = () => {
+    const { user } = useUser();
+    if (!user) return null;
+    return (
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+                <img
+                    src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                    alt={user.username}
+                    className="w-12 h-12 rounded-full object-cover border border-zinc-100"
+                />
+                <div>
+                    <p className="text-sm font-semibold text-zinc-900">{user.username}</p>
+                    <p className="text-xs text-zinc-500 font-medium tracking-tight">#{user.id}</p>
+                </div>
+            </div>
+            <button className="text-xs font-semibold text-blue-500 hover:text-blue-600">You</button>
+        </div>
+    );
+};
+
 export const RightSidebar = ({
     history,
     friends,
@@ -210,22 +232,7 @@ export const RightSidebar = ({
                     </div>
                 ) : (
                     <>
-                        {showProfile && variant === 'home' && (
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-4">
-                                    <img
-                                        src="/social/arisu.png"
-                                        alt="Arisu"
-                                        className="w-12 h-12 rounded-full object-cover"
-                                    />
-                                    <div>
-                                        <p className="text-sm font-semibold text-zinc-900">a1r4su</p>
-                                        <p className="text-sm text-zinc-500">Arisu</p>
-                                    </div>
-                                </div>
-                                <button className="text-xs font-semibold text-blue-500 hover:text-white">You</button>
-                            </div>
-                        )}
+                        {showProfile && variant === 'home' && <ProfileSection />}
                         <div className="flex items-center gap-2 mb-4 mt-2">
                             <span className="text-sm font-semibold text-zinc-600">Suggested for you</span>
                             <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm border border-pink-100">Upcoming</span>

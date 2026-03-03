@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { useUser } from '@/hooks';
 
 const stories = [
     { id: 1, username: 'historyisti...', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
@@ -13,17 +13,19 @@ const stories = [
 ];
 
 export const Stories = () => {
+    const { user } = useUser();
+
     return (
         <div className="flex flex-col gap-2">
             <div className="flex gap-4 overflow-x-auto pt-6 pb-2 scrollbar-hide">
                 {/* 1. Profile Note (Upcoming feature) */}
-                <div className="flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer">
+                <div className="flex flex-col items-center gap-1.5 shrink-0 group cursor-not-allowed">
                     <div className="relative">
                         <div className="p-[2px] rounded-full bg-gradient-to-tr from-pink-400 to-rose-500">
                             <div className="p-[2px] bg-white rounded-full">
                                 <img
-                                    src="/social/arisu.png"
-                                    alt="Arisu"
+                                    src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Arisu"}
+                                    alt={user?.username || "You"}
                                     className="w-14 h-14 rounded-full border border-zinc-200 object-cover"
                                 />
                             </div>
