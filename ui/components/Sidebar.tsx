@@ -56,7 +56,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => {
                     const isProfile = item.label === 'Profile';
-                    const isCurrent = !isProfile && (pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href)));
+                    const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
                     const Icon = (item as any).icon;
 
                     return (
@@ -66,17 +66,17 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
                             className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive || isProfile
                                 ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
                                 : 'text-zinc-300 cursor-not-allowed'
-                                } ${isCurrent ? 'font-bold bg-pink-50 text-pink-600' : ''}`}
+                                } ${isCurrent ? 'font-semibold bg-pink-50 text-pink-600' : ''}`}
                         >
                             <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
                                 {(item as any).avatar ? (
-                                    <div className={`w-6 h-6 rounded-full overflow-hidden border ${isCurrent ? 'border-pink-600' : 'border-zinc-300'}`}>
+                                    <div className={`w-6 h-6 rounded-full overflow-hidden ${isCurrent ? 'border-2 border-pink-600' : 'border border-zinc-300'}`}>
                                         <img src={(item as any).avatar} alt="profile" className="w-full h-full object-cover" />
                                     </div>
                                 ) : (
                                     <Icon
                                         className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
-                                        strokeWidth={isCurrent ? 3 : 2}
+                                        strokeWidth={isCurrent ? 2.5 : 2}
                                     />
                                 )}
                                 {(item as any).badge && item.isActive && (
@@ -86,7 +86,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
                                 )}
                             </div>
                             <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-                                <span className={`text-[16px] ${isCurrent ? 'font-bold' : 'font-normal'}`}>{item.label}</span>
+                                <span className={`text-[16px] ${isCurrent ? 'font-semibold' : 'font-normal'}`}>{item.label}</span>
                                 {!item.isActive && (
                                     <span className="text-[10px] text-zinc-400 font-medium -mt-1 tracking-wider">Upcoming</span>
                                 )}
