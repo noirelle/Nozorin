@@ -9,6 +9,7 @@ import {
     Settings,
     Plus
 } from 'lucide-react';
+import { UpcomingBadge } from '@/components/UpcomingBadge';
 
 export const DesktopProfileLayout = () => {
     const { user } = useUser();
@@ -44,17 +45,17 @@ export const DesktopProfileLayout = () => {
                         </div>
 
                         <div className="flex gap-4 md:gap-8 text-sm">
-                            <div className="flex items-center gap-1.5 group relative cursor-help">
-                                <span className="text-zinc-500">Posts</span>
-                                <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1">Upcoming</span>
+                            <div className="flex items-center gap-1 group relative cursor-help">
+                                <span className="text-zinc-500 font-medium">Posts</span>
+                                <UpcomingBadge variant="small" />
                             </div>
-                            <div className="flex items-center gap-1.5 group relative cursor-help">
-                                <span className="text-zinc-500">followers</span>
-                                <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1">Upcoming</span>
+                            <div className="flex items-center gap-1 group relative cursor-help">
+                                <span className="text-zinc-500 font-medium lowercase">followers</span>
+                                <UpcomingBadge variant="small" />
                             </div>
-                            <div className="flex items-center gap-1.5 group relative cursor-help">
-                                <span className="text-zinc-500">following</span>
-                                <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1">Upcoming</span>
+                            <div className="flex items-center gap-1 group relative cursor-help">
+                                <span className="text-zinc-500 font-medium lowercase">following</span>
+                                <UpcomingBadge variant="small" />
                             </div>
                         </div>
                     </div>
@@ -63,12 +64,12 @@ export const DesktopProfileLayout = () => {
                 {/* Action Buttons */}
                 <div className="flex gap-2 mb-6">
                     <button className="w-full max-w-[340px] flex items-center justify-center bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 h-11 py-1 rounded-lg text-sm font-semibold transition-all cursor-not-allowed group relative px-8">
-                        Edit profile
-                        <span className="absolute top-1.5 right-2 text-zinc-400 text-[7px] font-bold uppercase tracking-tighter bg-zinc-200/40 px-1 py-0.5 rounded-sm group-hover:bg-zinc-200/60 transition-colors">Upcoming</span>
+                        <span className="opacity-50">Edit profile</span>
+                        <UpcomingBadge className="absolute top-1.5 right-2 scale-[0.6] origin-right" />
                     </button>
                     <button className="w-full max-w-[340px] flex items-center justify-center bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-900 h-11 py-1 rounded-lg text-sm font-semibold transition-all cursor-not-allowed group relative px-8">
-                        View archive
-                        <span className="absolute top-1.5 right-2 text-zinc-400 text-[7px] font-bold uppercase tracking-tighter bg-zinc-200/40 px-1 py-0.5 rounded-sm group-hover:bg-zinc-200/60 transition-colors">Upcoming</span>
+                        <span className="opacity-50">View archive</span>
+                        <UpcomingBadge className="absolute top-1.5 right-2 scale-[0.6] origin-right" />
                     </button>
                 </div>
 
@@ -85,20 +86,20 @@ export const DesktopProfileLayout = () => {
                 {/* Tabs */}
                 <div className="border-t border-zinc-200 mt-12">
                     <div className="flex justify-center gap-16">
-                        <button className="flex items-center gap-1.5 py-4 border-t border-zinc-900 -mt-[1px] text-[11px] font-bold tracking-widest uppercase text-zinc-900 transition-all px-16">
+                        <button className="flex items-center gap-1 py-4 border-t border-zinc-900 -mt-[1px] text-[11px] font-bold tracking-widest uppercase text-zinc-900 transition-all px-16 group">
                             <Grid className="w-3 h-3" />
                             Posts
-                            <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1.5">Upcoming</span>
+                            <UpcomingBadge variant="small" />
                         </button>
-                        <button className="flex items-center gap-1.5 py-4 text-zinc-400 text-[11px] font-bold tracking-widest uppercase">
+                        <button className="flex items-center gap-1 py-4 text-zinc-400 text-[11px] font-bold tracking-widest uppercase group">
                             <Bookmark className="w-3 h-3" />
                             Saved
-                            <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1.5">Upcoming</span>
+                            <UpcomingBadge variant="small" />
                         </button>
-                        <button className="flex items-center gap-1.5 py-4 text-zinc-400 text-[11px] font-bold tracking-widest uppercase">
+                        <button className="flex items-center gap-1 py-4 text-zinc-400 text-[11px] font-bold tracking-widest uppercase group">
                             <User className="w-3 h-3" />
                             Tagged
-                            <span className="text-zinc-400 text-[8px] font-bold uppercase tracking-widest ml-1.5">Upcoming</span>
+                            <UpcomingBadge variant="small" />
                         </button>
                     </div>
                 </div>

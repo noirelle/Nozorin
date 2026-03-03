@@ -5,6 +5,7 @@ import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
 import { FeatureCards } from './FeatureCards';
 import { HomeUserList } from './HomeUserList';
 import { usePathname } from 'next/navigation';
+import { UpcomingBadge } from '@/components/UpcomingBadge';
 
 interface DesktopHomeLayoutProps { }
 
@@ -25,7 +26,7 @@ export const DesktopHomeLayout = () => {
                             <div className="mb-6 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Discover People</h2>
-                                    <span className="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm border border-pink-100">Upcoming</span>
+                                    <UpcomingBadge />
                                 </div>
                                 <button
                                     disabled

@@ -19,6 +19,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/hooks';
 import { UserProfile } from '@/types/user';
+import { UpcomingBadge } from './UpcomingBadge';
 
 interface SidebarProps {
     user?: UserProfile | null;
@@ -88,7 +89,9 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
                             <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                                 <span className={`text-[16px] ${isCurrent ? 'font-semibold' : 'font-normal'}`}>{item.label}</span>
                                 {!item.isActive && (
-                                    <span className="text-[10px] text-zinc-400 font-medium -mt-1 tracking-wider">Upcoming</span>
+                                    <div className="scale-75 origin-left -mt-1 -ml-1">
+                                        <UpcomingBadge />
+                                    </div>
                                 )}
                             </div>
                         </Link>
