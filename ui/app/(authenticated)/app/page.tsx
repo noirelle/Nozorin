@@ -1,7 +1,7 @@
 'use client';
 
-import { DesktopHomeLayout } from '@/features/explore/components/DesktopHomeLayout';
-import { MobileHomeLayout } from '@/features/explore/components/MobileHomeLayout';
+import { DesktopHomeLayout } from '@/features/home/components/DesktopHomeLayout';
+import { MobileHomeLayout } from '@/features/home/components/MobileHomeLayout';
 import { useIsMobile } from '@/hooks';
 
 export default function AppPage() {

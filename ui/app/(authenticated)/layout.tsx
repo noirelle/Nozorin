@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
-import { MobileNavbar } from '@/features/explore/components/MobileNavbar';
-import { MobileTabbar } from '@/features/explore/components/MobileTabbar';
+import { MobileNavbar } from '@/components/MobileNavbar';
+import { MobileTabbar } from '@/components/MobileTabbar';
 import { MultiSessionGuard } from '@/components/MultiSessionGuard';
 import { useUser } from '@/hooks';
 import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';

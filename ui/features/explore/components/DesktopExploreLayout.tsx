@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Sidebar } from '@/components/Sidebar';
-import { Stories } from './Stories';
-import { PostCard } from './PostCard';
+import { Stories } from '@/features/home/components/Stories';
+import { PostCard } from '@/features/home/components/PostCard';
 import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
 
 export const DesktopExploreLayout = () => {

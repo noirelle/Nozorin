@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Stories } from './Stories';
-import { PostCard } from './PostCard';
+import { Stories } from '@/features/home/components/Stories';
+import { PostCard } from '@/features/home/components/PostCard';
 
 export const MobileExploreLayout = () => {
     return (
