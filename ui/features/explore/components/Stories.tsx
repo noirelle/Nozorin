@@ -30,11 +30,6 @@ export const Stories = () => {
                                 />
                             </div>
                         </div>
-                        {/* Messenger-style Note Bubble - Fixed Alignment */}
-                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-pink-500 border border-pink-400 px-2 py-0.5 rounded-2xl shadow-[0_4px_12px_rgba(236,72,153,0.3)] animate-bounce-slow z-10 whitespace-nowrap">
-                            <span className="text-[9px] font-black text-white uppercase tracking-tighter">Upcoming</span>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-pink-500 border-r border-b border-pink-400 rotate-45" />
-                        </div>
                     </div>
                     <span className="text-[11px] font-bold text-zinc-600">Your Note</span>
                 </div>
