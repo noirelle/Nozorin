@@ -9,6 +9,7 @@ import {
     Compass,
     Heart,
     PlusSquare,
+    Plus,
     User,
     Menu,
     Instagram
@@ -34,7 +35,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
         { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
         { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
         { icon: Heart, label: 'Notifications', href: '#', isActive: false },
-        { icon: PlusSquare, label: 'Create', href: '#', isActive: false },
+        { icon: Plus, label: 'Create', href: '#', isActive: false },
         {
             icon: User,
             label: 'Profile',
