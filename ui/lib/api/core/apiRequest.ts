@@ -83,15 +83,15 @@ export async function apiRequest<T>(
         if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
             try {
                 console.log('[API] 401 detected, attempting token refresh...');
-                const newToken = await handleTokenRefresh();
+                const refreshResult = await handleTokenRefresh();
 
-                if (newToken) {
+                if (refreshResult?.token) {
                     console.log('[API] Token refresh successful, retrying request...');
 
                     // Retry original request with new token
                     const retryHeaders = {
                         ...headers,
-                        'Authorization': `Bearer ${newToken}`
+                        'Authorization': `Bearer ${refreshResult.token}`
                     };
 
                     const retryResponse = await fetch(url, {
@@ -104,7 +104,8 @@ export async function apiRequest<T>(
                     response = retryResponse;
                     logResponse(url, response.status);
                 } else if (!endpoint.includes('/matchmaking/leave')) {
-                    handleAuthError();
+                    // Pass the refresh status to handleAuthError to decide if logout is needed
+                    handleAuthError(refreshResult?.status);
                 }
             } catch (refreshErr) {
                 console.error('[API] Error during refresh:', refreshErr);

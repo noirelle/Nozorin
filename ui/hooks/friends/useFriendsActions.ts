@@ -75,9 +75,12 @@ export const useFriendsActions = ({
 
     const sendRequest = useCallback(async (receiverId: string) => {
         const response = await api.post<any>(`/api/friends/${receiverId}/request`, {});
-        if (!response.error) { fetchPendingRequests(); return { success: true }; }
+        if (!response.error) {
+            fetchSentRequests();
+            return { success: true };
+        }
         return { success: false, error: response.error };
-    }, [fetchPendingRequests]);
+    }, [fetchSentRequests]);
 
     const acceptRequest = useCallback(async (requestId: string) => {
         const response = await api.post<any>(`/api/friends/${requestId}/accept`, {});
@@ -88,6 +91,15 @@ export const useFriendsActions = ({
         }
         return { success: false, error: response.error };
     }, [fetchFriends, setPendingRequests]);
+
+    const cancelRequest = useCallback(async (requestId: string) => {
+        const response = await api.post<any>(`/api/friends/${requestId}/cancel`, {});
+        if (!response.error) {
+            setSentRequests(prev => prev.filter(r => r.id !== requestId));
+            return { success: true };
+        }
+        return { success: false, error: response.error };
+    }, [setSentRequests]);
 
     const declineRequest = useCallback(async (requestId: string) => {
         const response = await api.post<any>(`/api/friends/${requestId}/decline`, {});
@@ -114,6 +126,7 @@ export const useFriendsActions = ({
         sendRequest,
         acceptRequest,
         declineRequest,
+        cancelRequest,
         removeFriend
     };
 };

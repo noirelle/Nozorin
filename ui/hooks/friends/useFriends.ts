@@ -32,6 +32,7 @@ export const useFriends = () => {
         sendRequest: actions.sendRequest,
         acceptRequest: actions.acceptRequest,
         declineRequest: actions.declineRequest,
+        cancelRequest: actions.cancelRequest,
         removeFriend: actions.removeFriend,
     };
 };
