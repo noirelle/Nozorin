@@ -45,7 +45,7 @@ export const MobileNavbar = () => {
                     {/* Default Header Layout */}
                     <div className="w-10 flex items-center justify-start">
                         {isHome ? (
-                            <SlidersHorizontal className="text-zinc-900 w-6 h-6 cursor-pointer" strokeWidth={2.5} />
+                            <SlidersHorizontal className="text-zinc-200 w-6 h-6 cursor-not-allowed opacity-50" strokeWidth={2.5} />
                         ) : (
                             <Plus className="text-zinc-300 w-7 h-7 cursor-not-allowed opacity-50" strokeWidth={2} />
                         )}

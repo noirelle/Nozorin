@@ -42,7 +42,7 @@ export const FeatureCards = () => {
 
     const handleAction = (title: string, disabled: boolean) => {
         if (disabled) return;
-        if (title === 'Voice Game') {
+        if (title === 'Voice game') {
             router.push('/app/voice');
         }
     };
