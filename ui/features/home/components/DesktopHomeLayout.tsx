@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { RightSidebar } from '@/features/voice-room/components/RightSidebar';
+import { RightSidebar } from '@/components/RightSidebar';
 import { FeatureCards } from './FeatureCards';
 import { HomeUserList } from './HomeUserList';
 import { usePathname } from 'next/navigation';

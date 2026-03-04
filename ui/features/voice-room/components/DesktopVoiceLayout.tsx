@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { RightSidebar } from './RightSidebar';
+import { RightSidebar } from '@/components/RightSidebar';
 import { VoiceGameRoom } from './VoiceGameRoom';
 import { MobileVoiceLayout } from './MobileVoiceLayout';
 import { ArrowLeft } from 'lucide-react';

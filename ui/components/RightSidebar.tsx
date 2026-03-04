@@ -6,12 +6,26 @@ import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks';
 
+const mockUsernames = [
+    'nova_storm',
+    'crimson_fox',
+    'lunar_shadow',
+    'echo_wave',
+    'iron_claw',
+    'sky_blade',
+    'vortex_ray',
+    'silent_hawk',
+    'blaze_ryu',
+    'neon_fang'
+];
+const getRandomUsername = () => mockUsernames[Math.floor(Math.random() * mockUsernames.length)];
+
 const suggestions = [
-    { id: 1, username: 'elara_sky', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
-    { id: 2, username: 'zeno_pulse', subtitle: 'Followed by lyraiei21', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zeno' },
+    { id: 1, username: 'elara_sky', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
+    { id: 2, username: 'zeno_pulse', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zeno' },
     { id: 3, username: 'kai_zenith', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kai' },
     { id: 4, username: 'mira_vibe', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mira' },
-    { id: 5, username: 'nova_flow', subtitle: 'Followed by ddzarjane', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova' },
+    { id: 5, username: 'nova_flow', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova' },
 ];
 
 const mockHistory: any[] = [
