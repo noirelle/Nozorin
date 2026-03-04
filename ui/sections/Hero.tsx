@@ -43,7 +43,7 @@ export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => v
                         className="flex items-center justify-center gap-2 px-8 py-4 bg-[#FF8ba7] hover:bg-[#ff7b9c] text-white rounded-full font-bold text-lg shadow-xl shadow-pink-200/50 hover:shadow-2xl hover:shadow-pink-300/50 transition-all transform hover:-translate-y-1 active:scale-95 w-full sm:w-auto min-w-[200px]"
                     >
                         <MicIcon className="w-5 h-5" />
-                        Start Matching
+                        Enter
                     </button>
                 </div>
 

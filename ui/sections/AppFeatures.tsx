@@ -43,8 +43,8 @@ export default function AppFeatures() {
                             <span className="font-bold text-gray-700">No Sign Up Required</span>
                         </div>
 
-                        <Link href="/about" className="inline-flex items-center gap-3 text-gray-900 font-bold text-lg group hover:text-pink-500 transition-colors">
-                            <span className="border-b-2 border-gray-200 group-hover:border-pink-500 transition-colors">Start Matching</span>
+                        <Link href="/app" className="inline-flex items-center gap-3 text-gray-900 font-bold text-lg group hover:text-pink-500 transition-colors">
+                            <span className="border-b-2 border-gray-200 group-hover:border-pink-500 transition-colors">Enter</span>
                             <ArrowRightIcon className="group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>

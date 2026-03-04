@@ -59,7 +59,7 @@ export default function Home() {
 
     const handleJoin = async () => {
         await ensureToken();
-        router.push('/explore/call');
+        router.push('/app');
     };
 
     return (
