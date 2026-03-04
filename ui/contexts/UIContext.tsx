@@ -25,12 +25,33 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
                 // Ensure sidebar is conceptually open or reset on desktop
                 setIsSidebarOpen(false);
             }
-            setIsMounted(true);
         };
 
+        // Execute layout checks immediately on client mount
         checkMobile();
+
+        const handleMount = () => {
+            // Double requestAnimationFrame ensures that React has flushed updates to the DOM
+            // and the browser has actually painted those changes to the screen.
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setIsMounted(true);
+                });
+            });
+        };
+
+        if (document.readyState === 'complete') {
+            handleMount();
+        } else {
+            window.addEventListener('load', handleMount);
+        }
+
         window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+
+        return () => {
+            window.removeEventListener('load', handleMount);
+            window.removeEventListener('resize', checkMobile);
+        };
     }, []);
 
     const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
