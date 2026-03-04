@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface UIContextType {
     isMobile: boolean;
+    isMounted: boolean;
     isSidebarOpen: boolean;
     toggleSidebar: () => void;
     setSidebarOpen: (isOpen: boolean) => void;
@@ -13,6 +14,7 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 
 export const UIProvider = ({ children }: { children: React.ReactNode }) => {
     const [isMobile, setIsMobile] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
@@ -23,6 +25,7 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
                 // Ensure sidebar is conceptually open or reset on desktop
                 setIsSidebarOpen(false);
             }
+            setIsMounted(true);
         };
 
         checkMobile();
@@ -36,6 +39,7 @@ export const UIProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <UIContext.Provider value={{
             isMobile,
+            isMounted,
             isSidebarOpen,
             toggleSidebar,
             setSidebarOpen

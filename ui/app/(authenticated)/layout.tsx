@@ -4,14 +4,19 @@ import { Sidebar } from '@/components/Sidebar';
 import { MobileNavbar } from '@/components/MobileNavbar';
 import { MobileTabbar } from '@/components/MobileTabbar';
 import { MultiSessionGuard } from '@/components/MultiSessionGuard';
+import { GlobalLoader } from '@/components/GlobalLoader';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { useUI, UIProvider } from '@/contexts/UIContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { MediaProvider } from '@/contexts/MediaContext';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-    const { isMobile } = useUI();
+    const { isMobile, isMounted } = useUI();
     const { user } = useAuth();
+
+    if (!isMounted) {
+        return <GlobalLoader />;
+    }
 
     if (isMobile) {
         return (
