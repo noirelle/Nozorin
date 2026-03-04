@@ -9,6 +9,7 @@ import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { useUI, UIProvider } from '@/contexts/UIContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { MediaProvider } from '@/contexts/MediaContext';
+import { DirectCallProvider } from '@/contexts/DirectCallContext';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const { isMobile, isMounted } = useUI();
@@ -55,7 +56,9 @@ export default function AppLayout({
             <UIProvider>
                 <SocketProvider>
                     <MediaProvider>
-                        <LayoutContent>{children}</LayoutContent>
+                        <DirectCallProvider>
+                            <LayoutContent>{children}</LayoutContent>
+                        </DirectCallProvider>
                     </MediaProvider>
                 </SocketProvider>
             </UIProvider>

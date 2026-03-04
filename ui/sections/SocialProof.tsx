@@ -3,10 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { ArrowRightIcon } from '../components/icons';
-import { useStats } from '../hooks';
+import { useStatsContext } from '../contexts/StatsContext';
 
 export default function SocialProof() {
-    const { stats } = useStats();
+    const { stats } = useStatsContext();
 
     // Format large numbers (e.g., 7200000 -> "7.2m")
     const formatLargeNumber = (num: number) => {

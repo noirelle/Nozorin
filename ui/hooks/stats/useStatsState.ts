@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { StatsUpdatePayload } from '../../lib/socket';
 
-interface Stats {
+export interface StatsData {
     people_online: number;
     matches_today: number;
     total_connections: number;
 }
 
 export const useStatsState = () => {
-    const [stats, setStats] = useState<Stats>({
+    const [stats, setStats] = useState<StatsData>({
         people_online: 0,
         matches_today: 0,
         total_connections: 0,

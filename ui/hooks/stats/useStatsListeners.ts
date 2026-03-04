@@ -16,7 +16,6 @@ export const useStatsListeners = ({ setStats, setIsLoading, setError }: UseStats
     useEffect(() => {
         const socket = getSocketClient();
         if (!socket) return;
-        if (!socket.connected) connectSocket();
         // Optimistically set loading to false if already connected, otherwise wait for events/connect
         if (socket.connected) setIsLoading(false);
     }, [setIsLoading]);

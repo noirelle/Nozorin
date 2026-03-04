@@ -3,10 +3,10 @@
 import React from 'react';
 import { MessageIcon, MicIcon } from '../components/icons';
 import HeroVisual from './HeroVisual';
-import { useStats } from '../hooks';
+import { useStatsContext } from '../contexts/StatsContext';
 
 export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
-    const { stats } = useStats();
+    const { stats } = useStatsContext();
 
     // Format number for display (e.g., 12500 -> "12.5k+")
     const formatNumber = (num: number) => {
