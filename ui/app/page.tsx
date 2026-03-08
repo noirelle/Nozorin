@@ -3,14 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import Navbar from '../components/Navbar';
 import Hero from '../sections/Hero';
-import AppFeatures from '../sections/AppFeatures';
-import SocialProof from '../sections/SocialProof';
-import AboutUs from '../sections/AboutUs';
-import OurStory from '../sections/OurStory';
-import Dedications from '../sections/Dedications';
-import Footer from '../sections/Footer';
 import { useHistory, useUser } from '../hooks';
 import { useSocketEvent, SocketEvents } from '../lib/socket';
 
@@ -59,15 +52,8 @@ export default function Home() {
     }
 
     return (
-        <main className="min-h-screen bg-white font-sans selection:bg-pink-100">
-            <Navbar />
+        <main className="min-h-screen bg-white font-sans selection:bg-pink-100 flex flex-col items-center justify-center">
             <Hero onJoin={handleJoin} />
-            <AppFeatures />
-            <SocialProof />
-            <AboutUs />
-            <Dedications />
-            <OurStory />
-            <Footer />
         </main>
     );
 }

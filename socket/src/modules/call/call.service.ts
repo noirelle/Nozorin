@@ -74,7 +74,7 @@ export const callService = {
             if (startTime) {
                 const reason1 = reason;
                 const reason2: CallDisconnectReason = reason === 'skip' ? 'partner-skip' : 'partner-disconnect';
-                await callService.reportHistory(socketId, partnerId, duration, reason1, reason2);
+                await callService.reportHistory(io, socketId, partnerId, duration, reason1, reason2);
             }
 
             logger.info({ socketId, partnerId, reason }, '[CALL] Call ended');
@@ -168,7 +168,7 @@ export const callService = {
             io.to(partnerId).emit(SocketEvents.USER_LEFT, { socketId });
 
             if (startTime) {
-                await callService.reportHistory(socketId, partnerId, duration, 'user-action', 'partner-disconnect');
+                await callService.reportHistory(io, socketId, partnerId, duration, 'user-action', 'partner-disconnect');
             }
         }
     },
@@ -271,7 +271,7 @@ export const callService = {
         return null;
     },
 
-    reportHistory: async (userId1: string, userId2: string, duration: number, reason1: CallDisconnectReason = 'skip', reason2?: CallDisconnectReason) => {
+    reportHistory: async (io: Server, userId1: string, userId2: string, duration: number, reason1: CallDisconnectReason = 'skip', reason2?: CallDisconnectReason) => {
         const u1 = userService.getUserId(userId1);
         const u2 = userService.getUserId(userId2);
         if (!u1 || !u2) return;
@@ -294,6 +294,7 @@ export const callService = {
                 mode: 'voice',
                 reason: r
             });
+            await historyService.broadcastHistoryToUser(io, uid);
         };
 
         if (u1 && u1 !== 'unknown' && p2) await save(u1, { ...p2, id: u2 }, reason1);

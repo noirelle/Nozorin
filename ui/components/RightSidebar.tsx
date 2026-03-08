@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks';
+import { getAvatarUrl } from '@/utils/avatar';
 
 const mockUsernames = [
     'nova_storm',
@@ -264,7 +265,7 @@ export const RightSidebar = ({
                                 <div key={user.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={user.avatar} alt={user.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5 object-cover" />
+                                            <img src={getAvatarUrl(user.avatar)} alt={user.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5 object-cover" />
                                             {user.isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
                                         </div>
                                         <div className="max-w-[120px]">
@@ -351,7 +352,7 @@ export const RightSidebar = ({
                                 <div key={req.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={req.avatar} alt={req.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5" />
+                                            <img src={getAvatarUrl(req.avatar)} alt={req.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5" />
                                             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                                         </div>
                                         <div className="max-w-[120px]">
@@ -387,7 +388,7 @@ export const RightSidebar = ({
                                 <div key={p.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={p.avatar} alt={p.username} className="w-10 h-10 rounded-full border border-zinc-200 bg-white shadow-sm p-0.5 grayscale" />
+                                            <img src={getAvatarUrl(p.avatar)} alt={p.username} className="w-10 h-10 rounded-full border border-zinc-200 bg-white shadow-sm p-0.5 grayscale" />
                                         </div>
                                         <div className="max-w-[120px]">
                                             <div className="flex items-center gap-1.5">
@@ -416,7 +417,7 @@ export const RightSidebar = ({
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
                                         <img
-                                            src={user.avatar}
+                                            src={getAvatarUrl(user.avatar)}
                                             alt={user.username}
                                             className="w-8 h-8 rounded-full border border-zinc-200 shadow-sm"
                                         />

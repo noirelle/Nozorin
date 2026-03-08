@@ -1,7 +1,7 @@
 import { AppDataSource } from '../../core/config/database.config';
 import { CallHistory } from './history.entity';
 import { logger } from '../../core/logger';
-import { Socket } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { getUserIdFromToken } from '../../core/utils/jwt.utils';
 import { userService } from '../../shared/services/user.service';
@@ -63,26 +63,11 @@ export const historyService = {
             logger.error({ err, user_id: (data as any).user_id }, '[HISTORY] Failed to add history record');
             return null;
         }
-    }
-};
+    },
 
-export const register = (io: any, socket: Socket): void => {
-    socket.on(SocketEvents.GET_HISTORY, async (data: { token: string; limit?: number }) => {
-        const { token, limit = 15 } = data;
-        let userId = token ? getUserIdFromToken(token) : null;
-
-        // Fallback to session-based userId if token is invalid/expired
-        if (!userId) {
-            userId = userService.getUserId(socket.id);
-        }
-
-        if (!userId) {
-            socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Invalid or expired token' });
-            return;
-        }
-
+    async broadcastHistoryToUser(io: Server, userId: string, limit: number = 15) {
         try {
-            const history = await historyService.getHistory(userId, limit);
+            const history = await this.getHistory(userId, limit);
             const partner_ids = [...new Set(history.map((s: CallHistory) => s.partner_id).filter((id): id is string => !!(id && id !== 'unknown')))];
             const statuses = await userService.getUserStatuses(partner_ids);
 
@@ -100,7 +85,33 @@ export const register = (io: any, socket: Socket): void => {
                 partner_status: s.partner_id && s.partner_id !== 'unknown' ? statuses[s.partner_id] : { is_online: false, last_seen: 0 },
             }));
 
-            socket.emit(SocketEvents.HISTORY_DATA, { history: enhanced });
+            const sockets = userService.getAllSockets(userId);
+            for (const socketId of sockets) {
+                io.to(socketId).emit(SocketEvents.HISTORY_DATA, { history: enhanced });
+            }
+        } catch (err) {
+            logger.error({ err, userId }, '[HISTORY] Failed to broadcast history');
+        }
+    }
+};
+
+export const register = (io: Server, socket: Socket): void => {
+    socket.on(SocketEvents.GET_HISTORY, async (data: { token: string; limit?: number }) => {
+        const { token, limit = 15 } = data;
+        let userId = token ? getUserIdFromToken(token) : null;
+
+        // Fallback to session-based userId if token is invalid/expired
+        if (!userId) {
+            userId = userService.getUserId(socket.id);
+        }
+
+        if (!userId) {
+            socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Invalid or expired token' });
+            return;
+        }
+
+        try {
+            await historyService.broadcastHistoryToUser(io, userId, limit);
         } catch (err) {
             logger.error({ err }, '[HISTORY] Failed to retrieve history');
             socket.emit(SocketEvents.HISTORY_ERROR, { message: 'Failed to retrieve history' });

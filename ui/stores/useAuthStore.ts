@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { UserProfile } from '../types/user';
+import { getAvatarUrl } from '../utils/avatar';
 
 export interface AuthState {
     user: UserProfile | null;
@@ -100,7 +101,7 @@ export const useAuthStore = create<AuthState>()(
 
             login: (token, user) => set({
                 token,
-                user,
+                user: { ...user, avatar: getAvatarUrl(user.avatar) },
                 isAuthenticated: true,
                 isChecked: true
             }),

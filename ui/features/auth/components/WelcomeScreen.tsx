@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useGuestLogin } from '@/hooks';
+import { NozorinLogo } from '@/components/Logo';
+import { TermsModal } from './TermsModal';
 
 interface WelcomeScreenProps {
     onSuccess: () => void;
@@ -12,6 +14,7 @@ export const WelcomeScreen = ({ onSuccess }: WelcomeScreenProps) => {
     const [gender, setGender] = useState<string>('');
     const [agreed, setAgreed] = useState(false);
     const [validationError, setValidationError] = useState('');
+    const [showTermsModal, setShowTermsModal] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,62 +36,111 @@ export const WelcomeScreen = ({ onSuccess }: WelcomeScreenProps) => {
         }
     };
 
+    const handleTermsClick = () => {
+        if (!agreed) {
+            setShowTermsModal(true);
+        } else {
+            setAgreed(false);
+        }
+    };
+
+    const handleAgree = () => {
+        setAgreed(true);
+        setShowTermsModal(false);
+    };
+
     // Combine errors
     const error = validationError || apiError;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white p-4">
-            <div className="w-full max-w-md space-y-8 text-center">
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-500">
-                        Welcome
+            {/* Subtle background blurs */}
+            <div className="absolute -top-32 -left-32 w-96 h-96 bg-pink-50 rounded-full blur-3xl opacity-60 pointer-events-none" />
+            <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-pink-50/40 rounded-full blur-3xl opacity-50 pointer-events-none" />
+
+            <div className="w-full max-w-[420px] relative z-10">
+                {/* Logo + Brand */}
+                <div className="flex flex-col items-center mb-10">
+                    <NozorinLogo className="w-16 h-16 mb-4" />
+                    <h1 className="text-[28px] font-bold text-[#1c1e21] tracking-tight">
+                        Welcome to Nozorin
                     </h1>
-                    <p className="text-gray-500">Tell us a bit about yourself to get started.</p>
+                    <p className="text-[15px] text-gray-400 mt-1.5 font-medium">
+                        Tell us a bit about yourself to get started.
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6 text-left">
-                    <div className="space-y-4">
-                        <label className="block text-sm font-medium text-gray-700">I am a...</label>
-                        <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Gender Selection */}
+                    <div className="space-y-3">
+                        <label className="block text-[13px] font-semibold text-gray-500 uppercase tracking-wider">
+                            I am a...
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
                             {['male', 'female'].map((g) => (
                                 <button
                                     key={g}
                                     type="button"
                                     onClick={() => setGender(g)}
-                                    className={`p-4 rounded-xl border-2 transition-all ${gender === g
-                                        ? 'border-pink-500 bg-pink-50 text-pink-700'
-                                        : 'border-gray-200 hover:border-pink-200 hover:bg-gray-50'
+                                    className={`h-[52px] rounded-xl border-2 font-bold text-[16px] capitalize transition-all duration-200 cursor-pointer ${gender === g
+                                            ? 'border-[#ec4899] bg-[#fdf2f8] text-[#ec4899] shadow-sm shadow-[#ec4899]/10'
+                                            : 'border-[#fce7f3] bg-white text-gray-500 hover:border-[#ec4899]/40 hover:bg-[#fdf2f8]/50'
                                         }`}
                                 >
-                                    <span className="capitalize">{g}</span>
+                                    <span className="flex items-center justify-center gap-2">
+                                        {g === 'male' ? '👦' : '👧'}
+                                        {g}
+                                    </span>
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    <div className="flex items-start space-x-3">
+                    {/* Terms Checkbox */}
+                    <div className="flex items-start gap-3 px-1">
                         <input
                             id="terms"
                             type="checkbox"
                             checked={agreed}
-                            onChange={(e) => setAgreed(e.target.checked)}
-                            className="mt-1 h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                            onChange={handleTermsClick}
+                            className="mt-0.5 h-[18px] w-[18px] rounded border-[#fce7f3] text-[#ec4899] focus:ring-[#ec4899] cursor-pointer accent-[#ec4899]"
                         />
-                        <label htmlFor="terms" className="text-sm text-gray-500">
-                            I agree to the <a href="#" className="underline hover:text-gray-900">Terms of Service</a> and <a href="#" className="underline hover:text-gray-900">Privacy Policy</a>. I confirm I am 18 years or older.
+                        <label className="text-[13px] text-gray-400 font-medium leading-relaxed">
+                            I agree to the{' '}
+                            <button
+                                type="button"
+                                onClick={() => setShowTermsModal(true)}
+                                className="text-[#ec4899] hover:underline cursor-pointer font-semibold"
+                            >
+                                Terms of Service
+                            </button>
+                            {' '}and{' '}
+                            <button
+                                type="button"
+                                onClick={() => setShowTermsModal(true)}
+                                className="text-[#ec4899] hover:underline cursor-pointer font-semibold"
+                            >
+                                Privacy Policy
+                            </button>.
+                            I confirm I am 18 years or older.
                         </label>
                     </div>
 
+                    {/* Error */}
                     {error && (
-                        <div className="text-sm text-red-500 font-medium text-center">
+                        <div className="text-[13px] text-red-500 font-semibold text-center bg-red-50 rounded-xl py-2.5 px-4">
                             {error}
                         </div>
                     )}
 
+                    {/* Divider */}
+                    <div className="h-px bg-[#fce7f3] w-full opacity-60" />
+
+                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={isRegistering || !gender || !agreed}
-                        className="w-full py-4 px-6 rounded-full bg-black text-white font-bold text-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="w-full h-[48px] rounded-full bg-[#ec4899] hover:bg-[#db2777] text-white font-bold text-[17px] transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm shadow-[#ec4899]/20"
                     >
                         {isRegistering ? (
                             <span className="flex items-center justify-center gap-2">
@@ -96,11 +148,18 @@ export const WelcomeScreen = ({ onSuccess }: WelcomeScreenProps) => {
                                 Joining...
                             </span>
                         ) : (
-                            'Start Chatting'
+                            'Continue'
                         )}
                     </button>
                 </form>
             </div>
+
+            {/* Terms & Privacy Modal */}
+            <TermsModal
+                isOpen={showTermsModal}
+                onClose={() => setShowTermsModal(false)}
+                onAgree={handleAgree}
+            />
         </div>
     );
 };

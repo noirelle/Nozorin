@@ -1,76 +1,92 @@
 'use client';
 
 import React from 'react';
-import { MessageIcon, MicIcon } from '../components/icons';
 import HeroVisual from './HeroVisual';
-import { useStatsContext } from '../contexts/StatsContext';
+import NozorinLogo from '../components/Logo';
 
 export default function Hero({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
-    const { stats } = useStatsContext();
-
-    // Format number for display (e.g., 12500 -> "12.5k+")
-    const formatNumber = (num: number) => {
-        if (num >= 1000) {
-            return `${(num / 1000).toFixed(1)}k+`;
-        }
-        return `${num}+`;
-    };
-
     return (
-        <section className="relative flex flex-col lg:flex-row items-center justify-center lg:justify-between px-6 py-8 md:py-16 lg:py-20 max-w-7xl mx-auto gap-8 lg:gap-12 overflow-hidden lg:min-h-[600px]">
+        <section className="w-full h-[100dvh] flex flex-col lg:flex-row font-sans text-[#1c1e21] overflow-hidden bg-white">
 
-            {/* Background Decoration - simplified for elegance */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-pink-50/50 rounded-full blur-3xl opacity-60"></div>
-                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-50/30 rounded-full blur-3xl opacity-40"></div>
-            </div>
+            {/* ── LEFT PANEL (White) ── */}
+            <div className="lg:w-[57%] h-full relative flex flex-col justify-center items-center bg-white border-r border-[#fce7f3]">
 
-            <div className="flex-1 max-w-2xl z-10 w-full pt-4 lg:pt-0 text-center lg:text-left">
-
-
-                <h1 className="text-5xl sm:text-7xl lg:text-[5.5rem] font-bold text-gray-900 leading-[1] mb-4 md:mb-6 tracking-tight">
-                    Discover <br />
-                    <span className="text-[#FF8ba7]">People.</span>
-                </h1>
-
-                <p className="text-lg md:text-xl text-gray-500 mb-8 max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
-                    Connect instantly with people from over 190 countries. Start a conversation and make new friends today.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto justify-center lg:justify-start">
-                    <button
-                        onClick={() => onJoin('voice')}
-                        className="flex items-center justify-center gap-2 px-8 py-4 bg-[#FF8ba7] hover:bg-[#ff7b9c] text-white rounded-full font-bold text-lg shadow-xl shadow-pink-200/50 hover:shadow-2xl hover:shadow-pink-300/50 transition-all transform hover:-translate-y-1 active:scale-95 w-full sm:w-auto min-w-[200px]"
-                    >
-                        <MicIcon className="w-5 h-5" />
-                        Enter
-                    </button>
+                {/* Brand Logo */}
+                <div className="absolute top-8 left-8 lg:top-10 lg:left-12 z-30">
+                    <NozorinLogo className="w-[64px] h-[64px]" />
                 </div>
 
-                <div className="mt-8 md:mt-12 flex items-center justify-center lg:justify-start gap-4 text-sm font-medium text-gray-400">
-                    <div className="flex -space-x-3">
-                        <div className="w-10 h-10 rounded-full border-[3px] border-white shadow-sm bg-gray-100 overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" />
-                        </div>
-                        <div className="w-10 h-10 rounded-full border-[3px] border-white shadow-sm bg-gray-100 overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" alt="User" />
-                        </div>
-                        <div className="w-10 h-10 rounded-full border-[3px] border-white shadow-sm bg-gray-100 overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mark" alt="User" />
-                        </div>
+                {/* Content Container */}
+                <div className="flex flex-col lg:flex-row items-center justify-center gap-4 xl:gap-8 w-full px-20 lg:px-56 xl:px-72 z-10">
+
+                    {/* Headline */}
+                    <div className="shrink-0 text-left transform translate-y-24">
+                        <h1 className="text-[2.8rem] lg:text-[3.4rem] xl:text-[4.0rem] font-bold text-[#1c1e21] leading-[0.98] tracking-tight">
+                            Make<br />
+                            connections<br />
+                            that<br />
+                            <span className="text-[#ec4899]">matter.</span>
+                        </h1>
                     </div>
-                    <div>
-                        <span className="text-gray-900 font-bold block">{formatNumber(stats.people_online)} People Online</span>
-                        <span className="text-xs text-green-500 font-bold flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                            Live Now
-                        </span>
+
+                    {/* Media Collage */}
+                    <div className="shrink-0 scale-[0.55] lg:scale-[0.65] xl:scale-[0.8] -mr-8 xl:-mr-12">
+                        <HeroVisual />
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 w-full flex items-center justify-center lg:justify-end">
-                <HeroVisual />
+            {/* ── RIGHT PANEL (Interactive) ── */}
+            <div className="lg:w-[43%] h-full flex flex-col items-center justify-center bg-white relative">
+
+                {/* Login Form Container */}
+                <div className="flex flex-col items-start w-full max-w-[620px] px-8 lg:px-12">
+
+                    <h2 className="text-[20px] lg:text-[22px] font-medium text-[#1c1e21] mb-6">Login into Nozorin</h2>
+
+                    {/* Form Fields Stack */}
+                    <div className="w-full flex flex-col gap-3">
+                        <input
+                            type="text"
+                            disabled
+                            placeholder="Email or mobile number"
+                            className="w-full h-[52px] px-4 rounded-xl border border-[#fce7f3] bg-gray-50/50 cursor-not-allowed opacity-60 text-[17px] outline-none"
+                        />
+                        <input
+                            type="password"
+                            disabled
+                            placeholder="Password"
+                            className="w-full h-[52px] px-4 rounded-xl border border-[#fce7f3] bg-gray-50/50 cursor-not-allowed opacity-60 text-[17px] outline-none"
+                        />
+
+                        <div className="mt-3">
+                            <button
+                                disabled
+                                className="w-full h-[48px] bg-[#ec4899] opacity-40 cursor-not-allowed text-white rounded-full font-bold text-[17px]"
+                            >
+                                Log in
+                            </button>
+                        </div>
+
+                        <div className="flex justify-center mt-4">
+                            <button disabled className="text-[#ec4899] opacity-40 cursor-not-allowed text-[15px] font-medium transition-all">
+                                Forgot password?
+                            </button>
+                        </div>
+
+                        <div className="h-2 lg:h-4 border-b border-[#fce7f3] mb-8 lg:mb-10 w-full opacity-50"></div>
+
+                        {/* Guest Access Button (Pink Theme) */}
+                        <div className="w-full">
+                            <button
+                                onClick={() => onJoin('voice')}
+                                className="w-full h-[48px] border border-[#ec4899] bg-white hover:bg-[#fdf2f8] text-[#ec4899] rounded-full font-bold text-[17px] transition-all active:scale-[0.98] cursor-pointer shadow-sm shadow-[#ec4899]/10"
+                            >
+                                Continue as Guest
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     );

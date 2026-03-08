@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
+import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/useVoiceRoom';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 
@@ -384,7 +385,7 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onAddFriend
             <div className="flex items-center gap-4">
                 <div className="relative">
                     <img
-                        src={item.partner_avatar || profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                        src={getAvatarUrl(item.partner_avatar || profile.avatar)}
                         alt="Avatar"
                         className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm"
                     />
@@ -457,7 +458,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                         <div key={f.id || `friend-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
                             <div className="flex items-center gap-4">
                                 <div className="relative">
-                                    <img src={f.avatar} alt={f.username} className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm" />
+                                    <img src={getAvatarUrl(f.avatar)} alt={f.username} className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm" />
                                     {f.is_online && <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
                                 </div>
                                 <div className="flex flex-col">
@@ -483,7 +484,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                                     {pendingRequests.map((req: any, idx: number) => (
                                         <div key={req.id || `pending-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
                                             <div className="flex items-center gap-3">
-                                                <img src={req.user?.avatar} alt="" className="w-10 h-10 rounded-2xl object-cover" />
+                                                <img src={getAvatarUrl(req.user?.avatar)} alt="" className="w-10 h-10 rounded-2xl object-cover" />
                                                 <span className="text-sm font-bold text-zinc-900">{req.user?.username}</span>
                                             </div>
                                             <div className="flex gap-2">
@@ -506,7 +507,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                                     {sentRequests.map((req: any, idx: number) => (
                                         <div key={req.id || `sent-${idx}`} className="flex items-center justify-between opacity-70">
                                             <div className="flex items-center gap-3">
-                                                <img src={req.user?.avatar} alt="" className="w-10 h-10 rounded-2xl object-cover grayscale" />
+                                                <img src={getAvatarUrl(req.user?.avatar)} alt="" className="w-10 h-10 rounded-2xl object-cover grayscale" />
                                                 <span className="text-sm font-bold text-zinc-600">{req.user?.username}</span>
                                             </div>
                                             <button onClick={() => onCancel?.(req.id)} className="px-4 py-2 bg-zinc-50 text-zinc-400 text-[9px] font-black uppercase tracking-widest rounded-xl">Cancel</button>

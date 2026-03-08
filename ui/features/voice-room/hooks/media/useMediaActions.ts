@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { UseMediaStateReturn } from './useMediaState';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface UseMediaActionsProps {
     setState: UseMediaStateReturn['setState'];
@@ -31,7 +32,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
             partner_country_name: country_name || '',
             partner_country: country || '',
             partner_username: username || '',
-            partner_avatar: avatar || '',
+            partner_avatar: getAvatarUrl(avatar),
             partner_gender: gender || '',
             friendship_status: friendship_status || 'none',
         }));

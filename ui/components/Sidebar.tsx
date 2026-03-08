@@ -12,7 +12,6 @@ import {
     Plus,
     User,
     Menu,
-    Instagram
 } from 'lucide-react';
 
 import { usePathname } from 'next/navigation';
@@ -20,6 +19,7 @@ import Link from 'next/link';
 import { useUser } from '@/hooks';
 import { UserProfile } from '@/types/user';
 import { UpcomingBadge } from './UpcomingBadge';
+import { NozorinLogo } from './Logo';
 
 interface SidebarProps {
     user?: UserProfile | null;
@@ -50,7 +50,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
         <aside className="fixed left-0 top-0 h-screen w-[72px] hover:w-[245px] bg-transparent flex flex-col px-3 py-5 z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden">
             <div className="px-3 mb-10 mt-2">
                 <Link href="/">
-                    <Instagram className="text-zinc-900 w-7 h-7" />
+                    <NozorinLogo className="w-7 h-7" />
                 </Link>
             </div>
 

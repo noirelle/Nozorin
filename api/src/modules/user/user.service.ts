@@ -316,9 +316,8 @@ class UserService {
         // Resolve location
         const location = await this.resolveLocation(ip);
 
-        // Generate random avatar
-        const avatarIndex = Math.floor(Math.random() * 5) + 1;
-        const avatar = `/avatars/avatar-${avatarIndex}.webp`;
+        // Generate a separate avatar seed (distinct from userId)
+        const avatar = uuidv4();
 
         // Generate random username
         const adjectives = ['Happy', 'Lucky', 'Sunny', 'Cool', 'Fast', 'Smart'];
