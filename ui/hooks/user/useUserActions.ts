@@ -37,10 +37,13 @@ export const useUserActions = ({ token, user, login, logout, setToken, setChecke
                 } else {
                     const status = (typeof apiError === 'object' && apiError !== null) ? (apiError as any).status : null;
 
-                    // Only logout on definitive auth failures (401, 403)
-                    // If it's a 5xx or general error, we preserve the user/token state to allow subsequent retries
-                    if (status === 401 || status === 403) {
+                    // Logout and redirect to home on auth failures (401, 403) or missing account (404)
+                    if (status === 401 || status === 403 || status === 404 || apiError) {
                         logout();
+
+                        if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+                            window.location.href = '/';
+                        }
                     }
 
                     setChecked(true); // Ensure checking is complete even on failure
