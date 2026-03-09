@@ -6,10 +6,10 @@ import NozorinLogo from '../components/Logo';
 
 export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
     return (
-        <section className="w-full h-[100dvh] flex xl:hidden flex-col font-sans text-[#1c1e21] overflow-hidden bg-white">
+        <section className="w-full min-h-[100dvh] flex xl:hidden flex-col font-sans text-[#1c1e21] overflow-y-auto overflow-x-hidden bg-white">
 
             {/* ── LEFT PANEL (White) ── */}
-            <div className="w-full flex-1 relative flex flex-col justify-center items-center bg-white border-b border-[#fce7f3] py-4 overflow-hidden z-10">
+            <div className="w-full flex-1 relative flex flex-col justify-center items-center bg-white border-b border-[#fce7f3] py-4 min-h-[35vh] lg:min-h-[40vh] z-10 shrink-0">
 
                 {/* Brand Logo */}
                 <div className="absolute top-[clamp(12px,2vh,20px)] left-[clamp(16px,4vw,24px)] z-30">
@@ -35,7 +35,7 @@ export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | '
             </div>
 
             {/* ── RIGHT PANEL (Interactive) ── */}
-            <div className="w-full flex-1 flex flex-col items-center justify-center bg-white relative pt-4 pb-6 sm:pt-6 sm:pb-8 z-20 min-h-[360px]">
+            <div className="w-full flex-1 flex flex-col items-center justify-center bg-white relative pt-4 pb-6 sm:pt-6 sm:pb-8 z-20 shrink-0 min-h-fit">
 
                 {/* Login Form Container */}
                 <div className="flex flex-col items-start w-full max-w-[380px] px-6 sm:px-10 h-full">
@@ -77,7 +77,7 @@ export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | '
                         <div className="h-[2px] border-b-2 border-[#fce7f3] my-3 sm:my-5 w-full opacity-50 shrink-0"></div>
 
                         {/* Guest Access Button (Pink Theme) */}
-                        <div className="w-full mt-auto">
+                        <div className="w-full mt-auto mb-2">
                             <button
                                 onClick={() => onJoin('voice')}
                                 className="w-full h-[44px] sm:h-[48px] border-[3px] border-[#ec4899] bg-white hover:bg-[#fdf2f8] text-[#ec4899] rounded-[10px] sm:rounded-full font-extrabold text-[15px] sm:text-[16px] transition-all active:scale-[0.98] cursor-pointer shadow-sm shadow-[#ec4899]/10"
