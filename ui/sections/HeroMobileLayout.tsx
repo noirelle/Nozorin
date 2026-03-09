@@ -93,7 +93,7 @@ export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | '
                         <div className="w-full mt-auto mb-2">
                             <button
                                 onClick={() => onJoin('voice')}
-                                className="w-full h-[44px] sm:h-[48px] border-[3px] border-[#ec4899] bg-white hover:bg-[#fdf2f8] text-[#ec4899] rounded-[10px] sm:rounded-full font-extrabold text-[15px] sm:text-[16px] transition-all active:scale-[0.98] cursor-pointer shadow-sm shadow-[#ec4899]/10"
+                                className="w-full h-[44px] sm:h-[48px] border-2 border-[#ec4899] bg-white hover:bg-[#fdf2f8] text-[#ec4899] rounded-[10px] sm:rounded-full font-extrabold text-[15px] sm:text-[16px] transition-all active:scale-[0.98] cursor-pointer shadow-sm shadow-[#ec4899]/10"
                             >
                                 Continue as Guest
                             </button>
