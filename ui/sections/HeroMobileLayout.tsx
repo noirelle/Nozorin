@@ -1,12 +1,25 @@
-'use client';
+'   use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import HeroVisual from './HeroVisual';
 import NozorinLogo from '../components/Logo';
 
 export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        const originalTouchAction = window.getComputedStyle(document.body).touchAction;
+
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+
+        return () => {
+            document.body.style.overflow = originalStyle;
+            document.body.style.touchAction = originalTouchAction;
+        };
+    }, []);
+
     return (
-        <section className="w-full min-h-[100dvh] flex xl:hidden flex-col font-sans text-[#1c1e21] overflow-y-auto overflow-x-hidden bg-white">
+        <section className="w-full min-h-[100dvh] flex xl:hidden flex-col font-sans text-[#1c1e21] overflow-hidden overscroll-none bg-white">
 
             {/* ── LEFT PANEL (White) ── */}
             <div className="w-full flex-1 relative flex flex-col justify-center items-center bg-white border-b border-[#fce7f3] py-4 min-h-[35vh] lg:min-h-[40vh] z-10 shrink-0">
@@ -35,10 +48,10 @@ export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | '
             </div>
 
             {/* ── RIGHT PANEL (Interactive) ── */}
-            <div className="w-full flex-1 flex flex-col items-center justify-center bg-white relative pt-4 pb-6 sm:pt-6 sm:pb-8 z-20 shrink-0 min-h-fit">
+            <div className="w-full flex-1 flex flex-col items-center justify-center bg-white relative pt-4 pb-6 sm:pt-8 sm:pb-12 z-20 shrink-0">
 
-                {/* Login Form Container */}
-                <div className="flex flex-col items-start w-full max-w-[380px] px-6 sm:px-10 h-full">
+                {/* Login Form Container - Boxed vertically to prevent extreme stretching */}
+                <div className="flex flex-col items-start justify-center w-full max-w-[380px] px-6 sm:px-10 h-auto min-h-[360px] max-h-[500px] md:max-h-[600px]">
 
                     <h2 className="text-[clamp(18px,4.5vw,22px)] sm:text-[22px] font-semibold text-[#1c1e21] mb-3 sm:mb-4 w-full text-left shrink-0">Login into Nozorin</h2>
 
