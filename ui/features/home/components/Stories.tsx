@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@/hooks';
+import { getAvatarUrl } from '@/utils/avatar';
 import { Plus } from 'lucide-react';
 
 const stories = [
@@ -26,7 +27,7 @@ export const Stories = () => {
                         <div className="p-[2.5px] rounded-full bg-zinc-100">
                             <div className="p-[2px] bg-white rounded-full">
                                 <img
-                                    src={user?.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Arisu"}
+                                    src={getAvatarUrl(user?.avatar || user?.username || "Arisu")}
                                     alt={user?.username || "You"}
                                     className="w-[72px] h-[72px] rounded-full border border-zinc-100 object-cover"
                                 />
@@ -46,7 +47,7 @@ export const Stories = () => {
                         <div className="p-[2.5px] rounded-full bg-zinc-100">
                             <div className="p-[2px] bg-white rounded-full">
                                 <img
-                                    src={story.avatar}
+                                    src={getAvatarUrl(story.avatar || story.username)}
                                     alt={story.username}
                                     className="w-[72px] h-[72px] rounded-full border border-zinc-100 object-cover"
                                 />

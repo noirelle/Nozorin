@@ -22,30 +22,30 @@ const mockUsernames = [
 const getRandomUsername = () => mockUsernames[Math.floor(Math.random() * mockUsernames.length)];
 
 const suggestions = [
-    { id: 1, username: 'elara_sky', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elara' },
-    { id: 2, username: 'zeno_pulse', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zeno' },
-    { id: 3, username: 'kai_zenith', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kai' },
-    { id: 4, username: 'mira_vibe', subtitle: 'Suggested for you', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mira' },
-    { id: 5, username: 'nova_flow', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nova' },
+    { id: 1, username: 'elara_sky', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'Elara' },
+    { id: 2, username: 'zeno_pulse', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'Zeno' },
+    { id: 3, username: 'kai_zenith', subtitle: 'Suggested for you', avatar: 'Kai' },
+    { id: 4, username: 'mira_vibe', subtitle: 'Suggested for you', avatar: 'Mira' },
+    { id: 5, username: 'nova_flow', subtitle: `Followed by ${getRandomUsername()}`, avatar: 'Nova' },
 ];
 
 const mockHistory: any[] = [
-    { id: 1, username: 'Noirelle', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix', duration: '08:12', country: 'US', isActive: true, isFriend: false },
-    { id: 2, username: 'Xenon', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xenon', duration: '03:45', country: 'CA', isActive: false, isFriend: true },
-    { id: 3, username: 'Sakura', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
-    { id: 4, username: 'Viper', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
-    { id: 5, username: 'Sakura', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
-    { id: 6, username: 'Viper', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
-    { id: 7, username: 'Sakura', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
-    { id: 8, username: 'Viper', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
+    { id: 1, username: 'Noirelle', avatar: 'Felix', duration: '08:12', country: 'US', isActive: true, isFriend: false },
+    { id: 2, username: 'Xenon', avatar: 'Xenon', duration: '03:45', country: 'CA', isActive: false, isFriend: true },
+    { id: 3, username: 'Sakura', avatar: 'Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
+    { id: 4, username: 'Viper', avatar: 'Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
+    { id: 5, username: 'Sakura', avatar: 'Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
+    { id: 6, username: 'Viper', avatar: 'Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
+    { id: 7, username: 'Sakura', avatar: 'Sakura', duration: '12:20', country: 'JP', isActive: true, isFriend: false },
+    { id: 8, username: 'Viper', avatar: 'Viper', duration: '01:15', country: 'DE', isActive: false, isFriend: false },
 ];
 
 const mockRequests: any[] = [
-    { id: 1, username: 'Luna_M', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna', country: 'FR', time: '2m ago' },
+    { id: 1, username: 'Luna_M', avatar: 'Luna', country: 'FR', time: '2m ago' },
 ];
 
 const mockPending: any[] = [
-    { id: 1, username: 'Ghost', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost', country: 'BR', status: 'Sent' },
+    { id: 1, username: 'Ghost', avatar: 'Ghost', country: 'BR', status: 'Sent' },
 ];
 
 const formatDuration = (seconds?: number): string => {
@@ -140,7 +140,7 @@ const ProfileSection = () => {
         <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
                 <img
-                    src={user.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                    src={getAvatarUrl(user.avatar || user.username)}
                     alt={user.username}
                     className="w-12 h-12 rounded-full object-cover border border-zinc-100"
                 />
@@ -169,6 +169,7 @@ export const RightSidebar = ({
     showProfile = true,
     isBusy = false
 }: RightSidebarProps = {}) => {
+    const { user } = useUser();
     const [activeTab, setActiveTab] = useState<'history' | 'requests' | 'pending'>('history');
     const isVoiceGame = variant === 'voice';
 
@@ -182,7 +183,7 @@ export const RightSidebar = ({
             id: item.session_id || item.id || Math.random().toString(),
             userId: targetUserId,
             username: item.partner_username || profile.username || 'Unknown',
-            avatar: item.partner_avatar || profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+            avatar: getAvatarUrl(item.partner_avatar || profile.avatar || profile.username || 'Str'),
             duration: formatDuration(callDurationSec),
             country: item.partner_country || profile.country || 'US',
             isActive: item.partner_status?.is_online || false,

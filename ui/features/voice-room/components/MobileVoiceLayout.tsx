@@ -164,7 +164,7 @@ export const MobileVoiceLayout = ({
                                 </div>
                             ) : isConnected ? (
                                 <img
-                                    src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                                    src={getAvatarUrl(callRoomState.partner_avatar || callRoomState.partner_username)}
                                     alt="Partner"
                                     className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
                                 />

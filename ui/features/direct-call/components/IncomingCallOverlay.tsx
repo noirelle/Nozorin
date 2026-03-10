@@ -1,6 +1,7 @@
-
 import React from 'react';
 import ReactCountryFlag from 'react-country-flag';
+import { Phone, X } from 'lucide-react';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface IncomingCallOverlayProps {
     from_username: string;
@@ -23,68 +24,91 @@ export const IncomingCallOverlay: React.FC<IncomingCallOverlayProps> = ({
     onDecline,
     error
 }) => {
-    return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xl animate-in fade-in duration-500">
-            <div className="w-[340px] overflow-hidden rounded-[2.5rem] bg-zinc-900/90 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center p-8 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+    // Use the utility for avatar URL with fallback to username-based seed
+    const avatarSrc = getAvatarUrl(from_avatar || from_username);
 
-                {/* Visual Ring Element */}
-                <div className="relative mb-8 pt-4">
-                    <div className="absolute inset-0 scale-[2.5] bg-[#FF0055]/20 rounded-full blur-3xl animate-pulse" />
-                    <div className="relative w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-[#FF0055] to-[#FF8ba7] shadow-[0_0_30px_rgba(255,0,85,0.4)]">
-                        <div className="w-full h-full rounded-full bg-zinc-900 overflow-hidden border-4 border-zinc-900">
-                            {from_avatar ? (
-                                <img src={from_avatar} alt={from_username} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-3xl font-bold text-white">
-                                    {from_username?.charAt(0).toUpperCase() || 'V'}
+    return (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] w-[95%] max-w-[420px] animate-in slide-in-from-top-12 duration-500 ease-out">
+            <div className="relative group">
+                {/* Soft Glow Effect */}
+                {!error && (
+                    <div className="absolute inset-0 bg-[#FF0055]/10 blur-3xl rounded-[32px] -z-10 animate-pulse" />
+                )}
+
+                <div className="bg-white/95 backdrop-blur-2xl border border-zinc-100 rounded-[32px] p-4 shadow-[0_20px_60px_rgba(255,0,85,0.08),0_10px_20px_rgba(0,0,0,0.04)] flex items-center justify-between gap-4">
+
+                    {/* User Info Section */}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="relative shrink-0">
+                            <div className="w-12 h-12 rounded-2xl overflow-hidden ring-4 ring-pink-50/50 bg-zinc-50 border border-zinc-100 flex items-center justify-center">
+                                <img
+                                    src={avatarSrc}
+                                    alt={from_username}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        // Final fallback using the utility directly with username if something still fails
+                                        const fallback = getAvatarUrl(from_username);
+                                        if (e.currentTarget.src !== fallback) {
+                                            e.currentTarget.src = fallback;
+                                        }
+                                    }}
+                                />
+                            </div>
+                            {!error && (
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
+                                    <Phone className="w-2.5 h-2.5 text-white fill-white" />
                                 </div>
                             )}
                         </div>
-                    </div>
-                    {!error && (
-                        <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-green-500 border-4 border-zinc-900 flex items-center justify-center shadow-lg animate-bounce">
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                            </svg>
+
+                        <div className="flex flex-col min-w-0">
+                            <h3 className="text-sm font-black text-zinc-900 truncate uppercase tracking-widest">
+                                {error ? 'Missed Call' : from_username}
+                            </h3>
+                            <div className="flex items-center gap-1.5">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${error ? 'text-red-500' : 'text-zinc-500'}`}>
+                                    {error ? error : `Incoming ${mode}`}
+                                </span>
+                                {from_country && (
+                                    <ReactCountryFlag
+                                        countryCode={from_country}
+                                        svg
+                                        style={{ width: '12px', height: '9px', borderRadius: '1.5px', opacity: 0.8 }}
+                                    />
+                                )}
+                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
 
-                <div className="text-center w-full">
-                    <h2 className="text-2xl font-display font-black text-white mb-1 tracking-tight">
-                        {error ? 'Missed Call' : `@${from_username}`}
-                    </h2>
-                    <div className="flex items-center justify-center gap-2 mb-8">
-                        <span className="text-zinc-400 text-sm font-medium">
-                            {error ? error : `Incoming ${mode} call from ${from_country_name}`}
-                        </span>
-                        {from_country && <ReactCountryFlag countryCode={from_country} svg className="w-4 h-3 rounded-sm opacity-80" />}
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                        {!error ? (
+                            <>
+                                <button
+                                    onClick={onDecline}
+                                    className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 hover:bg-zinc-100 text-zinc-400 hover:text-red-500 transition-all active:scale-95 border border-zinc-100"
+                                    title="Decline"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={onAccept}
+                                    className="px-6 h-10 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#FF0055] to-[#FF4D88] hover:shadow-[0_8px_20px_rgba(255,0,85,0.4)] text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+                                >
+                                    <Phone className="w-3.5 h-3.5 fill-white" />
+                                    <span>Accept</span>
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                onClick={onDecline}
+                                className="px-6 h-10 flex items-center justify-center rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+                            >
+                                Close
+                            </button>
+                        )}
                     </div>
                 </div>
-
-                {!error ? (
-                    <div className="flex w-full gap-4 mt-2">
-                        <button
-                            onClick={onDecline}
-                            className="flex-1 group py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold rounded-2xl transition-all active:scale-[0.95] flex flex-col items-center gap-1 border border-white/5"
-                        >
-                            <span className="text-xs uppercase tracking-widest text-zinc-500 group-hover:text-zinc-400">Decline</span>
-                        </button>
-                        <button
-                            onClick={onAccept}
-                            className="flex-2 group py-4 px-8 bg-gradient-to-r from-[#FF0055] to-[#FF4D88] hover:shadow-[0_0_30px_rgba(255,0,85,0.4)] text-white font-bold rounded-2xl transition-all active:scale-[0.95] flex flex-col items-center gap-1"
-                        >
-                            <span className="text-xs uppercase tracking-widest opacity-70 group-hover:opacity-100">Accept</span>
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={onDecline}
-                        className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl transition-all active:scale-[0.98]"
-                    >
-                        Close
-                    </button>
-                )}
             </div>
         </div>
     );

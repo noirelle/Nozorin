@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { UserPlus, Mic2, MicOff, MoreHorizontal, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { FilterModal } from './FilterModal';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface DesktopVoiceFeedProps {
     onLeave?: () => void;
@@ -159,7 +160,7 @@ export const DesktopVoiceFeed = ({
                                 </div>
                             ) : isConnected ? (
                                 <img
-                                    src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
+                                    src={getAvatarUrl(callRoomState.partner_avatar || callRoomState.partner_username)}
                                     alt={callRoomState.partner_username || 'Stranger'}
                                     className="w-full h-full rounded-full object-cover animate-in fade-in zoom-in duration-700"
                                 />

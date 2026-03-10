@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { getAvatarUrl } from '@/utils/avatar';
 import { Gamepad2, Mic2, Users2, MessageSquare, Plus, Mars, Venus } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { useRouter } from 'next/navigation';
@@ -149,7 +150,7 @@ export const MobileHomeLayout = () => {
                             <div className={`p-[2px] rounded-full ${user.isNew ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-zinc-200'}`}>
                                 <div className="p-[2px] bg-white rounded-full relative">
                                     <img
-                                        src={user.avatar}
+                                        src={getAvatarUrl(user.avatar || user.username)}
                                         alt={user.username}
                                         className="w-14 h-14 rounded-full object-cover bg-white"
                                     />
