@@ -1,7 +1,7 @@
 'use client';
 
-import { DesktopVoiceLayout } from '@/features/voice-room/components/DesktopVoiceLayout';
+import { VoiceGameRoom } from '@/features/voice-room/components/VoiceGameRoom';
 
 export default function VoicePage() {
-    return <DesktopVoiceLayout />;
+    return <VoiceGameRoom />;
 }

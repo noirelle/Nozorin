@@ -36,6 +36,8 @@ interface MobileVoiceLayoutProps {
     onAddFriend?: (id: string) => void;
     onRemoveFriend?: (id: string) => void;
     onCall?: (id: string) => void;
+    voiceRoomData: any;
+    searchTimer: number;
 }
 
 export const MobileVoiceLayout = ({
@@ -49,7 +51,9 @@ export const MobileVoiceLayout = ({
     onCancelRequest,
     onAddFriend,
     onRemoveFriend,
-    onCall
+    onCall,
+    voiceRoomData,
+    searchTimer
 }: MobileVoiceLayoutProps) => {
     const {
         callRoomState,
@@ -61,13 +65,10 @@ export const MobileVoiceLayout = ({
         handleUserStop,
         isReconnecting,
         callDuration,
-    } = useVoiceRoom({
-        onConnectionChange: () => { },
-    });
+    } = voiceRoomData;
 
     const [activeDrawer, setActiveDrawer] = useState<'history' | 'community' | 'chat' | null>(null);
     const [inputText, setInputText] = useState('');
-    const [searchTimer, setSearchTimer] = useState(0);
 
     const { user: localUser } = useUser();
     const isConnected = callRoomState.is_connected;
@@ -75,20 +76,6 @@ export const MobileVoiceLayout = ({
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
 
-    // Search Timer logic
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isSearching && !isConnected) {
-            interval = setInterval(() => {
-                setSearchTimer((prev) => prev + 1);
-            }, 1000);
-        } else {
-            setSearchTimer(0);
-        }
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isSearching, isConnected]);
 
     // Prevent body scroll and rubber-banding
     useEffect(() => {
@@ -115,7 +102,6 @@ export const MobileVoiceLayout = ({
 
     return (
         <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none touch-none">
-            <audio ref={remoteAudioRef} autoPlay />
 
             {/* Premium Background Blobs */}
             <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-pink-50/50 to-transparent blur-[100px] pointer-events-none" />
