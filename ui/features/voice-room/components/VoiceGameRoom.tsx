@@ -68,10 +68,38 @@ export const VoiceGameRoom = () => {
         }
     }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
-    const handleAddFriend = useCallback(async (targetId: string) => {
+    const handleAddFriend = useCallback(async (targetId: string, profile?: any) => {
         const result = await sendRequest(targetId);
-        if (!result.success) console.error(`Failed to send request: ${result.error}`);
+        if (result.success) {
+            setFriendRequestNotif({ ...(profile || { id: targetId, username: 'User' }), type: 'sent' });
+        } else {
+            console.error(`Failed to send request: ${result.error}`);
+        }
     }, [sendRequest]);
+
+    const handleAcceptRequest = useCallback(async (requestId: string) => {
+        const result = await acceptRequest(requestId);
+        if (result.success) {
+            const req = pendingRequests.find(r => r.id === requestId);
+            if (req) setFriendRequestNotif({ ...req.user, type: 'accepted' });
+        }
+    }, [acceptRequest, pendingRequests]);
+
+    const handleCancelRequest = useCallback(async (requestId: string) => {
+        const result = await cancelRequest(requestId);
+        if (result.success) {
+            const req = sentRequests.find(r => r.id === requestId);
+            if (req) setFriendRequestNotif({ ...req.user, type: 'cancelled' });
+        }
+    }, [cancelRequest, sentRequests]);
+
+    const handleRemoveFriend = useCallback(async (friendId: string) => {
+        const result = await removeFriend(friendId);
+        if (result.success) {
+            const friend = friends.find(f => f.id === friendId);
+            if (friend) setFriendRequestNotif({ ...friend, type: 'removed' });
+        }
+    }, [removeFriend, friends]);
 
     const handleMatchFound = useCallback((data: any) => {
         clearCallState();
@@ -81,13 +109,13 @@ export const VoiceGameRoom = () => {
     const handleIdentifySuccess = useCallback(() => { }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
-        setFriendRequestNotif({ ...data.profile, country: data.profile.country });
+        setFriendRequestNotif({ ...data.profile, country: data.profile.country, type: 'received' });
         fetchPendingRequests();
         fetchSentRequests();
     }, [fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRequestAccepted = useCallback((data: any) => {
-        setFriendRequestNotif({ ...data.friend, isAcceptance: true });
+        setFriendRequestNotif({ ...data.friend, type: 'accepted' });
         fetchFriends();
         fetchPendingRequests();
         fetchSentRequests();
@@ -205,11 +233,11 @@ export const VoiceGameRoom = () => {
         friends,
         pendingRequests,
         sentRequests,
-        onAcceptRequest: acceptRequest,
+        onAcceptRequest: handleAcceptRequest,
         onDeclineRequest: declineRequest,
-        onCancelRequest: cancelRequest,
+        onCancelRequest: handleCancelRequest,
         onAddFriend: handleAddFriend,
-        onRemoveFriend: removeFriend,
+        onRemoveFriend: handleRemoveFriend,
         onCall: (targetId: string) => {
             if (!isWebRTCAvailable) { alert('Direct calling is not available yet.'); return; }
             initiateCall(targetId, 'voice');
@@ -256,7 +284,7 @@ export const VoiceGameRoom = () => {
             {friendRequestNotif && (
                 <FriendRequestNotification
                     profile={friendRequestNotif}
-                    isAcceptance={friendRequestNotif.isAcceptance}
+                    type={friendRequestNotif.type}
                     onClose={() => setFriendRequestNotif(null)}
                 />
             )}

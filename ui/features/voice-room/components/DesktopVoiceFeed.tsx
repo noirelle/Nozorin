@@ -12,7 +12,7 @@ interface DesktopVoiceFeedProps {
     onNavigateToFriends?: () => void;
     onConnectionChange?: (connected: boolean) => void;
     initialMatchData?: any;
-    onAddFriend?: (targetId: string) => void;
+    onAddFriend?: (targetId: string, profile?: any) => void;
     onAcceptFriend?: (requestId: string) => void;
     friends?: any[];
     pendingRequests?: any[];
@@ -235,7 +235,12 @@ export const DesktopVoiceFeed = ({
                                         if (isPendingReceived && requestId && onAcceptFriend) {
                                             onAcceptFriend(requestId);
                                         } else if (!isPendingSent && !isPendingReceived && onAddFriend) {
-                                            onAddFriend(partnerId);
+                                            onAddFriend(partnerId, {
+                                                id: partnerId,
+                                                username: callRoomState.partner_username || 'Stranger',
+                                                avatar: callRoomState.partner_avatar,
+                                                country: callRoomState.partner_country
+                                            });
                                         }
                                     }}
                                     disabled={isFriends || (isPendingSent && !isPendingReceived)}

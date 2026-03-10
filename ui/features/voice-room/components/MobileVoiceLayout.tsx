@@ -34,7 +34,7 @@ interface MobileVoiceLayoutProps {
     onAcceptRequest?: (id: string) => void;
     onDeclineRequest?: (id: string) => void;
     onCancelRequest?: (id: string) => void;
-    onAddFriend?: (id: string) => void;
+    onAddFriend?: (id: string, profile?: any) => void;
     onRemoveFriend?: (id: string) => void;
     onCall?: (id: string) => void;
     voiceRoomData: any;
@@ -240,7 +240,14 @@ export const MobileVoiceLayout = ({
                                     onClick={() => {
                                         if (isFriends) return;
                                         if (pendingReceived && requestId && onAcceptRequest) onAcceptRequest(requestId);
-                                        else if (!pendingSent && !pendingReceived && onAddFriend) onAddFriend(partnerId);
+                                        else if (!pendingSent && !pendingReceived && onAddFriend) {
+                                            onAddFriend(partnerId, {
+                                                id: partnerId,
+                                                username: callRoomState.partner_username || 'Stranger',
+                                                avatar: callRoomState.partner_avatar,
+                                                country: callRoomState.partner_country
+                                            });
+                                        }
                                     }}
                                     className={`flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm flex items-center justify-center ${isFriends ? 'bg-emerald-50 text-emerald-600' :
                                         pendingReceived ? 'bg-pink-400 text-white animate-[pulse_2s_ease-in-out_infinite]' :
@@ -854,7 +861,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                     )}
 
                     {!isFriend && !isPendingSent && !isPendingReceived && (
-                        <button onClick={() => { onAdd?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
+                        <button onClick={() => { onAdd?.(user.id, user); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
                             <UserPlus className="w-5 h-5" />
                             <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
                         </button>
