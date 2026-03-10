@@ -119,9 +119,9 @@ export const MobileVoiceLayout = ({
                 <div className="flex flex-col items-center">
                     <span style={{ fontFamily: "'Satisfy', cursive" }} className="text-xl font-bold text-zinc-900">nozorin</span>
                     <div className="flex items-center gap-1.5 ">
-                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300'}`} />
+                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-500 animate-pulse' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
-                            {isConnected ? callDuration : isSearching ? 'Scanning' : 'Ready'}
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? 'Reconnecting' : isConnected ? callDuration : isSearching ? 'Scanning' : 'Ready'}
                         </span>
                     </div>
                 </div>
@@ -153,7 +153,16 @@ export const MobileVoiceLayout = ({
 
                         {/* Partner Avatar / Pulse Icon */}
                         <div className="relative z-10 w-full h-full p-1">
-                            {isConnected ? (
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                <div className="w-full h-full rounded-full bg-zinc-900/5 flex flex-col items-center justify-center animate-pulse">
+                                    <div className="flex items-center gap-1 mb-2">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                        ))}
+                                    </div>
+                                    <span className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">Syncing</span>
+                                </div>
+                            ) : isConnected ? (
                                 <img
                                     src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
                                     alt="Partner"
@@ -195,10 +204,14 @@ export const MobileVoiceLayout = ({
                 <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex flex-col items-center text-center">
                         <h3 className="text-lg font-bold text-zinc-900 mb-1 truncate w-full">
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : 'In Position Queue'}
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                actions.matching.reconnectCountdown !== null ? `Partner reconnecting` : `Linking Session`
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : 'In Position Queue'}
                         </h3>
                         <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-4">
-                            {isConnected ? 'In Call' : (
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                actions.matching.reconnectCountdown !== null ? `Awaiting return • ${actions.matching.reconnectCountdown}s` : `Restoring connection...`
+                            ) : isConnected ? 'In Call' : (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`

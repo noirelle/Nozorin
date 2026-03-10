@@ -120,7 +120,14 @@ export const DesktopVoiceFeed = ({
 
                         {/* Main Interaction Unit */}
                         <div className={`w-full h-full rounded-full p-1 bg-white ring-4 ${isConnected ? 'ring-pink-100' : 'ring-pink-50'} shadow-[0_8px_32px_rgba(236,72,153,0.12)] overflow-hidden transition-all duration-700`}>
-                            {isConnected ? (
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                <div className="w-full h-full rounded-full bg-zinc-900/10 flex items-center justify-center animate-pulse">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-bounce mb-1" />
+                                        <span className="text-[8px] font-black text-pink-500 uppercase tracking-tighter">Syncing</span>
+                                    </div>
+                                </div>
+                            ) : isConnected ? (
                                 <img
                                     src={callRoomState.partner_avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str"}
                                     alt={callRoomState.partner_username || 'Stranger'}
@@ -160,11 +167,15 @@ export const DesktopVoiceFeed = ({
 
                     {/* Meta/Status block - Centered & Spaced */}
                     <div className="mt-4 flex flex-col items-center w-full text-center">
-                        <h4 className={`text-base font-bold ${isConnected ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'In Position Queue' : 'Start a Match'}
+                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
-                            {isConnected ? 'In Call' : isSearching ? (
+                            {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                actions.matching.reconnectCountdown !== null ? `Awaiting return • ${actions.matching.reconnectCountdown}s` : `Restoring connection...`
+                            ) : isConnected ? 'In Call' : isSearching ? (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
