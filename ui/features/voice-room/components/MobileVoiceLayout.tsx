@@ -331,7 +331,7 @@ export const MobileVoiceLayout = ({
                     />
 
                     {/* Drawer Content */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] max-h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500">
                         {/* Pull handle */}
                         <div className="flex justify-center pt-4 pb-2">
                             <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
@@ -339,9 +339,14 @@ export const MobileVoiceLayout = ({
 
                         {/* Title & Close */}
                         <div className="px-6 py-4 flex items-center justify-between">
-                            <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
-                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : activeDrawer === ('filter' as any) ? 'Preferences' : activeDrawer === ('country-select' as any) ? 'Select Country' : 'Discussion'}
-                            </h2>
+                            <div>
+                                <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
+                                    {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : activeDrawer === ('filter' as any) ? 'Match Preferences' : activeDrawer === ('country-select' as any) ? 'Select Country' : 'Discussion'}
+                                </h2>
+                                {activeDrawer === ('filter' as any) && (
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mt-1">Select your preferred region</p>
+                                )}
+                            </div>
                             <button
                                 onClick={() => setActiveDrawer(null)}
                                 className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-400 active:scale-90 transition-all"
