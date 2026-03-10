@@ -188,7 +188,7 @@ export const VoiceGameRoom = () => {
         setDirectMatchData(null);
         const s = getSocketClient();
         if (s) s.disconnect();
-        router.push('/app/voice');
+        router.push('/app');
     };
 
     const isWebRTCAvailable = true;

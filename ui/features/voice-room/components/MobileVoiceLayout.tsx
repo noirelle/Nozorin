@@ -103,7 +103,7 @@ export const MobileVoiceLayout = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none">
+        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none touch-none overscroll-none">
 
             {/* Premium Background Blobs */}
             <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-zinc-50/50 to-transparent blur-[100px] pointer-events-none" />
@@ -525,11 +525,10 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                 id: userId,
                 requestId,
                 username: item.partner_username || profile.username || 'Unknown',
-                avatar: item.partner_avatar || profile.avatar,
-                isFriend,
                 isPendingSent,
                 isPendingReceived,
-                status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger'
+                status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger',
+                isOnline: item.partner_status?.is_online
             })}
             className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
         >
@@ -607,11 +606,9 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                         <div
                             key={f.id || `friend-${idx}`}
                             onClick={() => onSelectOptions({
-                                id: f.id,
-                                username: f.username,
-                                avatar: f.avatar,
                                 isFriend: true,
-                                status: 'Friend'
+                                status: 'Friend',
+                                isOnline: f.is_online
                             })}
                             className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
                         >
@@ -822,7 +819,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                     <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
                 </div>
 
-                <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain">
+                <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain touch-auto">
                     <div className="flex flex-col items-center mb-8">
                         <div className="relative">
                             <img src={getAvatarUrl(user.avatar)} className="w-20 h-20 rounded-[32px] border-4 border-zinc-50 shadow-sm mb-4 object-cover" />
@@ -831,7 +828,9 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                             </div>
                         </div>
                         <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
-                        <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] mt-1">{user.status}</p>
+                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${user.isOnline ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                            {user.isOnline ? 'Active Now' : 'Offline'} • {user.status}
+                        </p>
                     </div>
 
                     <div className="grid gap-3">
@@ -849,9 +848,18 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         )}
 
                         {(isFriend || (!isPendingSent && !isPendingReceived)) && (
-                            <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'}`}>
-                                <Phone className="w-5 h-5 fill-current" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
+                            <button
+                                onClick={() => { onCall?.(user.id); onClose(); }}
+                                disabled={isBusy || !user.isOnline}
+                                className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy || !user.isOnline
+                                    ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
+                                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'
+                                    }`}
+                            >
+                                <Phone className={`w-5 h-5 ${isBusy || !user.isOnline ? 'text-zinc-200' : 'fill-current'}`} />
+                                <span className="font-black uppercase tracking-widest text-[11px]">
+                                    {isBusy ? 'System Busy' : !user.isOnline ? 'User Offline' : 'Start Voice Call'}
+                                </span>
                             </button>
                         )}
 
