@@ -10,9 +10,6 @@ export const voiceQueue: User[] = [];
 /** Bucketed queues by country */
 export const voiceBuckets = new Map<string, User[]>();
 
-/** Track last partner user ID for each user to avoid immediate rematches */
-export const lastPartners = new Map<string, string>();
-
 export const removeUserFromQueues = (socketId: string, country?: string): void => {
     const voiceIdx = voiceQueue.findIndex(u => u.id === socketId);
     if (voiceIdx !== -1) voiceQueue.splice(voiceIdx, 1);
