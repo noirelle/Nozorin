@@ -350,16 +350,6 @@ export const MobileVoiceLayout = ({
                             </button>
                         </div>
 
-                        {/* Search / Filter (Upcoming) */}
-                        <div className="px-6 mb-4">
-                            <div className="bg-zinc-50 rounded-2xl px-4 py-3 flex items-center justify-between opacity-50 cursor-not-allowed border border-zinc-100">
-                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-                                    Search {activeDrawer === 'community' ? 'Friends' : activeDrawer}...
-                                </span>
-                                <UpcomingBadge variant="small" />
-                            </div>
-                        </div>
-
                         {/* Scrollable List */}
                         <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto">
                             {activeDrawer === ('filter' as any) && (
@@ -742,7 +732,6 @@ const formatDate = (ts: any) => {
 };
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
-    const [search, setSearch] = useState('');
     const countries = [
         { code: 'PH', name: 'Philippines' },
         { code: 'US', name: 'United States' },
@@ -769,8 +758,6 @@ const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountr
         { code: 'CA', name: 'Canada' },
     ].sort((a, b) => a.name.localeCompare(b.name));
 
-    const filtered = countries.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase()));
-
     return (
         <div className="flex flex-col h-full space-y-4 pt-2">
             <button onClick={onBack} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 transition-colors py-2">
@@ -778,19 +765,8 @@ const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountr
                 <span className="text-xs font-bold uppercase tracking-widest">Back</span>
             </button>
 
-            <div className="bg-zinc-50 rounded-2xl px-4 py-3 border border-zinc-100 flex items-center gap-3 focus-within:ring-2 focus-within:ring-pink-500/20 transition-all">
-                <input
-                    type="text"
-                    placeholder="Search countries..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 bg-transparent text-sm font-medium focus:outline-none placeholder:text-zinc-300"
-                    autoFocus
-                />
-            </div>
-
             <div className="space-y-2 pb-10">
-                {filtered.map((c) => (
+                {countries.map((c) => (
                     <button
                         key={c.code}
                         onClick={() => onSelect(c.code)}

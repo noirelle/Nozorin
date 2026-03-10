@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import ReactCountryFlag from "react-country-flag";
-import { X, Search, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
 const countries = [
     { code: 'PH', name: 'Philippines' },
@@ -41,15 +41,6 @@ export const FilterModal: React.FC<FilterModalProps> = ({
     currentCountry,
     onSelectCountry,
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-
-    const filteredCountries = useMemo(() => {
-        return countries.filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.code.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [searchTerm]);
-
     if (!isOpen) return null;
 
     return (
@@ -77,18 +68,8 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                     </button>
                 </div>
 
-                {/* Country List & Search */}
+                {/* Country List */}
                 <div className="flex-1 flex flex-col min-h-0">
-                    <div className="relative mb-6">
-                        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Search countries..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl py-3.5 pl-11 pr-4 text-sm font-medium text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-200 transition-all"
-                        />
-                    </div>
 
                     <div className="flex-1 overflow-y-auto pr-2 space-y-2 scrollbar-hide">
                         {/* Global Option */}
@@ -115,7 +96,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
                         <div className="h-px bg-zinc-100 my-4" />
 
-                        {filteredCountries.map((country) => (
+                        {countries.map((country) => (
                             <button
                                 key={country.code}
                                 onClick={() => {
@@ -145,7 +126,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                             </button>
                         ))}
 
-                        {filteredCountries.length === 0 && (
+                        {countries.length === 0 && (
                             <div className="text-center py-12">
                                 <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">No matching countries</p>
                             </div>
