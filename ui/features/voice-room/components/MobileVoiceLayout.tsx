@@ -306,9 +306,15 @@ export const MobileVoiceLayout = ({
                         {messages.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
                     </button>
 
-                    {/* Quick Filter (Upcoming) */}
-                    <button className="w-10 h-10 flex items-center justify-center text-zinc-200 cursor-not-allowed">
+                    {/* Filter Button */}
+                    <button
+                        onClick={() => setActiveDrawer('filter' as any)}
+                        className={`w-10 h-10 flex items-center justify-center transition-colors ${isSearching || !isConnected ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
+                    >
                         <SlidersHorizontal className="w-6 h-6" strokeWidth={2} />
+                        {voiceRoomData.selectedCountry !== 'GLOBAL' && (
+                            <div className="absolute top-2 right-1.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />
+                        )}
                     </button>
                 </div>
             </nav>
@@ -332,7 +338,7 @@ export const MobileVoiceLayout = ({
                         {/* Title & Close */}
                         <div className="px-6 py-4 flex items-center justify-between">
                             <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
-                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : 'Discussion'}
+                                {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : activeDrawer === ('filter' as any) ? 'Preferences' : activeDrawer === ('country-select' as any) ? 'Select Country' : 'Discussion'}
                             </h2>
                             <button
                                 onClick={() => setActiveDrawer(null)}
@@ -354,6 +360,74 @@ export const MobileVoiceLayout = ({
 
                         {/* Scrollable List */}
                         <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto">
+                            {activeDrawer === ('filter' as any) && (
+                                <div className="space-y-8 pt-4">
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">Match with</h3>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            <button
+                                                onClick={() => {
+                                                    voiceRoomData.setSelectedCountry('GLOBAL');
+                                                    setActiveDrawer(null);
+                                                }}
+                                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border ${voiceRoomData.selectedCountry === 'GLOBAL'
+                                                    ? 'bg-pink-50 border-pink-200 text-pink-600'
+                                                    : 'bg-zinc-50 border-zinc-100 text-zinc-600'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xl">🌍</span>
+                                                    <span className="text-sm font-bold">Global / Everyone</span>
+                                                </div>
+                                                {voiceRoomData.selectedCountry === 'GLOBAL' && (
+                                                    <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                                        <div className="w-2 h-2 bg-white rounded-full" />
+                                                    </div>
+                                                )}
+                                            </button>
+
+                                            <button
+                                                onClick={() => {
+                                                    setActiveDrawer('country-select' as any);
+                                                }}
+                                                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border ${voiceRoomData.selectedCountry !== 'GLOBAL'
+                                                    ? 'bg-pink-50 border-pink-200 text-pink-600'
+                                                    : 'bg-zinc-50 border-zinc-100 text-zinc-600'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {voiceRoomData.selectedCountry !== 'GLOBAL' ? (
+                                                        <ReactCountryFlag countryCode={voiceRoomData.selectedCountry} svg className="w-5 h-5 rounded-sm" />
+                                                    ) : (
+                                                        <span className="text-xl">🏳️</span>
+                                                    )}
+                                                    <span className="text-sm font-bold">
+                                                        {voiceRoomData.selectedCountry !== 'GLOBAL' ? `Country: ${voiceRoomData.selectedCountry}` : 'Select Country'}
+                                                    </span>
+                                                </div>
+                                                <ChevronDown className="w-4 h-4 text-zinc-400" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-[10px] text-zinc-400 leading-relaxed font-medium bg-zinc-50 p-4 rounded-xl">
+                                        Preferences take priority. If no matches are found for your selected country, we'll connect you with available users worldwide to keep you talking.
+                                    </p>
+                                </div>
+                            )}
+
+                            {activeDrawer === ('country-select' as any) && (
+                                <CountrySelectView
+                                    currentCountry={voiceRoomData.selectedCountry}
+                                    onSelect={(code) => {
+                                        voiceRoomData.setSelectedCountry(code);
+                                        setActiveDrawer('filter' as any);
+                                    }}
+                                    onBack={() => setActiveDrawer('filter' as any)}
+                                />
+                            )}
+
                             {activeDrawer === 'history' && (
                                 <div className="space-y-6">
                                     {history.length > 0 ? history.map((item: any, idx: number) => (
@@ -610,4 +684,74 @@ const formatDate = (ts: any) => {
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
     return date.toLocaleDateString();
+};
+
+const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
+    const [search, setSearch] = useState('');
+    const countries = [
+        { code: 'PH', name: 'Philippines' },
+        { code: 'US', name: 'United States' },
+        { code: 'ID', name: 'Indonesia' },
+        { code: 'VN', name: 'Vietnam' },
+        { code: 'MY', name: 'Malaysia' },
+        { code: 'TH', name: 'Thailand' },
+        { code: 'SG', name: 'Singapore' },
+        { code: 'JP', name: 'Japan' },
+        { code: 'KR', name: 'South Korea' },
+        { code: 'BR', name: 'Brazil' },
+        { code: 'MX', name: 'Mexico' },
+        { code: 'IN', name: 'India' },
+        { code: 'GB', name: 'United Kingdom' },
+        { code: 'FR', name: 'France' },
+        { code: 'DE', name: 'Germany' },
+        { code: 'ES', name: 'Spain' },
+        { code: 'IT', name: 'Italy' },
+        { code: 'RU', name: 'Russia' },
+        { code: 'TR', name: 'Turkey' },
+        { code: 'NG', name: 'Nigeria' },
+        { code: 'ZA', name: 'South Africa' },
+        { code: 'AU', name: 'Australia' },
+        { code: 'CA', name: 'Canada' },
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    const filtered = countries.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase()));
+
+    return (
+        <div className="flex flex-col h-full space-y-4 pt-2">
+            <button onClick={onBack} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 transition-colors py-2">
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">Back</span>
+            </button>
+
+            <div className="bg-zinc-50 rounded-2xl px-4 py-3 border border-zinc-100 flex items-center gap-3 focus-within:ring-2 focus-within:ring-pink-500/20 transition-all">
+                <input
+                    type="text"
+                    placeholder="Search countries..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="flex-1 bg-transparent text-sm font-medium focus:outline-none placeholder:text-zinc-300"
+                    autoFocus
+                />
+            </div>
+
+            <div className="space-y-2 pb-10">
+                {filtered.map((c) => (
+                    <button
+                        key={c.code}
+                        onClick={() => onSelect(c.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border ${currentCountry === c.code
+                            ? 'bg-pink-50 border-pink-200 text-pink-600'
+                            : 'bg-white border-zinc-50 text-zinc-600 hover:border-zinc-200'
+                            }`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <ReactCountryFlag countryCode={c.code} svg className="w-5 h-4 rounded-sm" />
+                            <span className="text-sm font-bold">{c.name}</span>
+                        </div>
+                        {currentCountry === c.code && <div className="w-2 h-2 bg-pink-500 rounded-full" />}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 };

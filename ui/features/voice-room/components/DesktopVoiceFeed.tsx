@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Mic2, MicOff, MoreHorizontal } from 'lucide-react';
+import { UserPlus, Mic2, MicOff, MoreHorizontal, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
+import { FilterModal } from './FilterModal';
 
 interface DesktopVoiceFeedProps {
     onLeave?: () => void;
@@ -49,7 +50,11 @@ export const DesktopVoiceFeed = ({
         handleUserStop,
         isReconnecting,
         callDuration,
+        selectedCountry,
+        setSelectedCountry
     } = voiceRoomData || {};
+
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const [inputText, setInputText] = useState('');
 
@@ -83,8 +88,24 @@ export const DesktopVoiceFeed = ({
             {/* Audio Component */}
             <audio ref={remoteAudioRef} autoPlay />
 
-            {/* Top Bar: Minimal Timer */}
-            <div className="flex justify-end mb-4">
+            {/* Top Bar: Minimal Timer & Filter */}
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsFilterOpen(true)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest ${isConnected
+                            ? 'bg-zinc-50 border-zinc-100 text-zinc-300 pointer-events-none'
+                            : selectedCountry !== 'GLOBAL'
+                                ? 'bg-pink-50 border-pink-100 text-pink-600 hover:bg-pink-100'
+                                : 'bg-white border-zinc-100 text-zinc-400 hover:text-zinc-600 hover:border-zinc-200'
+                            }`}
+                        disabled={isConnected}
+                    >
+                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                        <span>{selectedCountry === 'GLOBAL' ? 'Filter' : `Country: ${selectedCountry}`}</span>
+                    </button>
+                </div>
+
                 <div className="flex items-center gap-2 group cursor-default">
                     {isConnected ? (
                         <>
@@ -98,6 +119,15 @@ export const DesktopVoiceFeed = ({
                     )}
                 </div>
             </div>
+
+            <FilterModal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                currentCountry={selectedCountry}
+                onSelectCountry={(code) => {
+                    setSelectedCountry(code);
+                }}
+            />
 
             {/* Core Interaction Area: Discovery Stage */}
             <div className="flex flex-col items-center justify-center px-10 pb-6 border-b border-zinc-200">
