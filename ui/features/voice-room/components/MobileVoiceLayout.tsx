@@ -338,7 +338,7 @@ export const MobileVoiceLayout = ({
                     />
 
                     {/* Drawer Content */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500 overflow-hidden">
                         {/* Pull handle */}
                         <div className="flex justify-center pt-4 pb-2">
                             <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
@@ -363,7 +363,7 @@ export const MobileVoiceLayout = ({
                         </div>
 
                         {/* Scrollable List */}
-                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto">
+                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto overscroll-behavior-contain">
                             {activeDrawer === ('filter' as any) && (
                                 <div className="space-y-8 pt-4">
                                     <div className="space-y-4">
@@ -809,67 +809,69 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
     return (
         <div className="fixed inset-0 z-[110] flex flex-col justify-end">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
-            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100">
-                <div className="flex justify-center mb-6">
+            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100 max-h-[85vh] flex flex-col overflow-hidden">
+                <div className="flex justify-center mb-6 shrink-0">
                     <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
                 </div>
 
-                <div className="flex flex-col items-center mb-8">
-                    <div className="relative">
-                        <img src={getAvatarUrl(user.avatar)} className="w-20 h-20 rounded-[32px] border-4 border-zinc-50 shadow-sm mb-4 object-cover" />
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border border-zinc-100 shadow-sm">
-                            {isFriend ? <UserCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Plus className="w-3.5 h-3.5 text-zinc-400" />}
+                <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-behavior-contain">
+                    <div className="flex flex-col items-center mb-8">
+                        <div className="relative">
+                            <img src={getAvatarUrl(user.avatar)} className="w-20 h-20 rounded-[32px] border-4 border-zinc-50 shadow-sm mb-4 object-cover" />
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border border-zinc-100 shadow-sm">
+                                {isFriend ? <UserCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Plus className="w-3.5 h-3.5 text-zinc-400" />}
+                            </div>
                         </div>
+                        <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
+                        <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] mt-1">{user.status}</p>
                     </div>
-                    <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
-                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] mt-1">{user.status}</p>
-                </div>
 
-                <div className="grid gap-3">
-                    {isPendingReceived && (
-                        <>
-                            <button onClick={() => { onAccept?.(user.requestId); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
-                                <UserCheck className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Accept Friend Request</span>
+                    <div className="grid gap-3">
+                        {isPendingReceived && (
+                            <>
+                                <button onClick={() => { onAccept?.(user.requestId); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
+                                    <UserCheck className="w-5 h-5" />
+                                    <span className="font-black uppercase tracking-widest text-[11px]">Accept Friend Request</span>
+                                </button>
+                                <button onClick={() => { onDecline?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                                    <Trash2 className="w-5 h-5" />
+                                    <span className="font-black uppercase tracking-widest text-[11px]">Decline Request</span>
+                                </button>
+                            </>
+                        )}
+
+                        {(isFriend || (!isPendingSent && !isPendingReceived)) && (
+                            <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'}`}>
+                                <Phone className="w-5 h-5 fill-current" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
                             </button>
-                            <button onClick={() => { onDecline?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                        )}
+
+                        {isFriend && (
+                            <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                                <UserMinus className="w-5 h-5" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
+                            </button>
+                        )}
+
+                        {isPendingSent && (
+                            <button onClick={() => { onCancel?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
                                 <Trash2 className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Decline Request</span>
+                                <span className="font-black uppercase tracking-widest text-[11px]">Cancel Sent Request</span>
                             </button>
-                        </>
-                    )}
+                        )}
 
-                    {(isFriend || (!isPendingSent && !isPendingReceived)) && (
-                        <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'}`}>
-                            <Phone className="w-5 h-5 fill-current" />
-                            <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
+                        {!isFriend && !isPendingSent && !isPendingReceived && (
+                            <button onClick={() => { onAdd?.(user.id, user); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
+                                <UserPlus className="w-5 h-5" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
+                            </button>
+                        )}
+
+                        <button onClick={onClose} className="w-full h-14 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase tracking-widest">
+                            Dismiss
                         </button>
-                    )}
-
-                    {isFriend && (
-                        <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                            <UserMinus className="w-5 h-5" />
-                            <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
-                        </button>
-                    )}
-
-                    {isPendingSent && (
-                        <button onClick={() => { onCancel?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                            <Trash2 className="w-5 h-5" />
-                            <span className="font-black uppercase tracking-widest text-[11px]">Cancel Sent Request</span>
-                        </button>
-                    )}
-
-                    {!isFriend && !isPendingSent && !isPendingReceived && (
-                        <button onClick={() => { onAdd?.(user.id, user); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
-                            <UserPlus className="w-5 h-5" />
-                            <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
-                        </button>
-                    )}
-
-                    <button onClick={onClose} className="w-full h-14 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase tracking-widest">
-                        Dismiss
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>
