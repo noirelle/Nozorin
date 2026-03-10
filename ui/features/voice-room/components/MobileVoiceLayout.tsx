@@ -503,13 +503,17 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
     const profile = item.partnerProfile || item.peerProfile || {};
     const userId = item.partner_id || item.peer_user_id || profile.id;
     const isFriend = friends.some((f: any) => f.id === userId);
-    const isPendingSent = sentRequests.some((r: any) => (r.user?.id || r.target_user_id) === userId);
-    const isPendingReceived = pendingRequests.some((r: any) => (r.user?.id || r.from_user_id) === userId);
+    const sentReq = sentRequests.find((r: any) => (r.user?.id || r.target_user_id) === userId);
+    const receivedReq = pendingRequests.find((r: any) => (r.user?.id || r.from_user_id) === userId);
+    const isPendingSent = !!sentReq;
+    const isPendingReceived = !!receivedReq;
+    const requestId = sentReq?.id || receivedReq?.id;
 
     return (
         <div
             onClick={() => onSelectOptions({
                 id: userId,
+                requestId,
                 username: item.partner_username || profile.username || 'Unknown',
                 avatar: item.partner_avatar || profile.avatar,
                 isFriend,
@@ -626,7 +630,8 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                         <div
                                             key={req.id || `pending-${idx}`}
                                             onClick={() => onSelectOptions({
-                                                id: req.id,
+                                                id: req.user?.id,
+                                                requestId: req.id,
                                                 username: req.user?.username,
                                                 avatar: req.user?.avatar,
                                                 isPendingReceived: true,
@@ -656,7 +661,8 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                         <div
                                             key={req.id || `sent-${idx}`}
                                             onClick={() => onSelectOptions({
-                                                id: req.id,
+                                                id: req.user?.id,
+                                                requestId: req.id,
                                                 username: req.user?.username,
                                                 avatar: req.user?.avatar,
                                                 isPendingSent: true,
@@ -834,39 +840,40 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                 <div className="grid gap-3">
                     {isPendingReceived && (
                         <>
-                            <button onClick={() => { onAccept?.(user.id); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
+                            <button onClick={() => { onAccept?.(user.requestId); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
                                 <UserCheck className="w-5 h-5" />
                                 <span className="font-black uppercase tracking-widest text-[11px]">Accept Friend Request</span>
                             </button>
-                            <button onClick={() => { onDecline?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                            <button onClick={() => { onDecline?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
                                 <Trash2 className="w-5 h-5" />
                                 <span className="font-black uppercase tracking-widest text-[11px]">Decline Request</span>
                             </button>
                         </>
                     )}
 
+                    {(isFriend || (!isPendingSent && !isPendingReceived)) && (
+                        <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'}`}>
+                            <Phone className="w-5 h-5 fill-current" />
+                            <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
+                        </button>
+                    )}
+
                     {isFriend && (
-                        <>
-                            <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-zinc-900 text-white shadow-xl shadow-zinc-200'}`}>
-                                <Phone className="w-5 h-5 fill-current" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
-                            </button>
-                            <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                                <UserMinus className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
-                            </button>
-                        </>
+                        <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                            <UserMinus className="w-5 h-5" />
+                            <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
+                        </button>
                     )}
 
                     {isPendingSent && (
-                        <button onClick={() => { onCancel?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                        <button onClick={() => { onCancel?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
                             <Trash2 className="w-5 h-5" />
                             <span className="font-black uppercase tracking-widest text-[11px]">Cancel Sent Request</span>
                         </button>
                     )}
 
                     {!isFriend && !isPendingSent && !isPendingReceived && (
-                        <button onClick={() => { onAdd?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                        <button onClick={() => { onAdd?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
                             <UserPlus className="w-5 h-5" />
                             <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
                         </button>
