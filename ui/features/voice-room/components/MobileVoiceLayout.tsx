@@ -67,12 +67,28 @@ export const MobileVoiceLayout = ({
 
     const [activeDrawer, setActiveDrawer] = useState<'history' | 'community' | 'chat' | null>(null);
     const [inputText, setInputText] = useState('');
+    const [searchTimer, setSearchTimer] = useState(0);
 
     const { user: localUser } = useUser();
     const isConnected = callRoomState.is_connected;
     const isSearching = callRoomState.is_searching;
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
+
+    // Search Timer logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isSearching && !isConnected) {
+            interval = setInterval(() => {
+                setSearchTimer((prev) => prev + 1);
+            }, 1000);
+        } else {
+            setSearchTimer(0);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isSearching, isConnected]);
 
     // Prevent body scroll and rubber-banding
     useEffect(() => {
@@ -193,13 +209,31 @@ export const MobileVoiceLayout = ({
                 <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex flex-col items-center text-center">
                         <h3 className="text-lg font-bold text-zinc-900 mb-1 truncate w-full">
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : 'Looking for someone...'}
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : 'In Position Queue'}
                         </h3>
-                        <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-6">
-                            {isConnected ? 'In Call' : 'Tuning frequencies'}
+                        <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-4">
+                            {isConnected ? 'In Call' : (
+                                actions.matching.position !== null ?
+                                    `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
+                                    : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
+                            )}
                         </p>
 
-                        <div className="flex items-center gap-3 w-full">
+                        <div className="flex items-center justify-center gap-2 w-full">
+                            {/* Stop Button */}
+                            {(isConnected || isSearching) && (
+                                <button
+                                    onClick={handleUserStop}
+                                    className={isConnected
+                                        ? "w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center bg-zinc-50 border border-zinc-100 text-zinc-600 active:scale-95 transition-all shadow-sm"
+                                        : "flex-1 h-11 rounded-2xl flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 active:scale-95 transition-all shadow-sm text-[11px] font-black uppercase tracking-widest"
+                                    }
+                                >
+                                    {isConnected ? <div className="w-3.5 h-3.5 bg-current rounded-sm" /> : 'Stop'}
+                                </button>
+                            )}
+
+                            {/* Add Friend / Status Button */}
                             {isConnected && partnerId && (
                                 <button
                                     onClick={() => {
@@ -207,7 +241,7 @@ export const MobileVoiceLayout = ({
                                         if (pendingReceived && requestId && onAcceptRequest) onAcceptRequest(requestId);
                                         else if (!pendingSent && !pendingReceived && onAddFriend) onAddFriend(partnerId);
                                     }}
-                                    className={`flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm ${isFriends ? 'bg-emerald-50 text-emerald-600' :
+                                    className={`flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm flex items-center justify-center ${isFriends ? 'bg-emerald-50 text-emerald-600' :
                                         pendingReceived ? 'bg-pink-500 text-white animate-pulse' :
                                             pendingSent ? 'bg-zinc-50 text-zinc-400' :
                                                 'bg-zinc-900 text-white'
@@ -216,12 +250,14 @@ export const MobileVoiceLayout = ({
                                     {isFriends ? 'Friends' : pendingReceived ? 'Accept' : pendingSent ? 'Pending' : 'Add Friend'}
                                 </button>
                             )}
-                            {(isConnected || isSearching) && (
+
+                            {/* Next Button */}
+                            {isConnected && (
                                 <button
-                                    onClick={isConnected ? handleNext : handleUserStop}
-                                    className="flex-1 h-11 bg-pink-50 border border-pink-100 text-pink-600 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm"
+                                    onClick={handleNext}
+                                    className="flex-1 h-11 bg-pink-50 border border-pink-100 text-pink-600 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm flex items-center justify-center"
                                 >
-                                    {isConnected ? 'Next' : 'Stop'}
+                                    Next
                                 </button>
                             )}
                         </div>

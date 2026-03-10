@@ -162,6 +162,11 @@ export const useMatchingActions = ({
             } else {
                 const alreadyQueued = (data as any)?.alreadyQueued;
                 console.log(`[Matching] Join queue API success${alreadyQueued ? ' (already in queue)' : ''}`);
+
+                // Directly set position from the API response to avoid race conditions with socket events
+                if (data && typeof (data as any).queueLength === 'number') {
+                    setPosition((data as any).queueLength);
+                }
             }
         } catch (err) {
             console.error('[Matching] Join queue caught exception:', err);

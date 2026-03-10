@@ -66,6 +66,7 @@ export const VoiceGameRoom = ({
     });
 
     const [inputText, setInputText] = useState('');
+    const [searchTimer, setSearchTimer] = useState(0);
 
     const handleSendMessageWrapper = () => {
         if (inputText.trim()) {
@@ -81,6 +82,21 @@ export const VoiceGameRoom = ({
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
     const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partnerId);
+
+    // Search Timer logic
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isSearching && !isConnected) {
+            interval = setInterval(() => {
+                setSearchTimer((prev) => prev + 1);
+            }, 1000);
+        } else {
+            setSearchTimer(0);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isSearching, isConnected]);
 
     // Distinguish pending states
     const pendingSentReq = sentRequests?.find(r => (r.user?.id || r.target_user_id) === partnerId);
@@ -174,10 +190,14 @@ export const VoiceGameRoom = ({
                     {/* Meta/Status block - Centered & Spaced */}
                     <div className="mt-4 flex flex-col items-center w-full text-center">
                         <h4 className={`text-base font-bold ${isConnected ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'Scanning for voices...' : 'Start a Match'}
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
-                            {isConnected ? 'In Call' : isSearching ? 'Tuning frequencies' : 'Tap the circle to begin'}
+                            {isConnected ? 'In Call' : isSearching ? (
+                                actions.matching.position !== null ?
+                                    `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
+                                    : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
+                            ) : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}
