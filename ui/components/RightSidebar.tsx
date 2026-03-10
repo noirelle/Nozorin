@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
-import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2 } from 'lucide-react';
+import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon } from 'lucide-react';
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 
@@ -170,7 +170,7 @@ export const RightSidebar = ({
     isBusy = false
 }: RightSidebarProps = {}) => {
     const { user } = useUser();
-    const [activeTab, setActiveTab] = useState<'history' | 'requests' | 'pending'>('history');
+    const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'activity'>('friends');
     const isVoiceGame = variant === 'voice';
 
     // Map history to UI format
@@ -197,6 +197,17 @@ export const RightSidebar = ({
             createdAt: item.created_at
         };
     });
+
+    // Map friends to UI format
+    const friendsDisplay = (friends || []).map((friend: any) => ({
+        id: friend.id,
+        userId: friend.id,
+        username: friend.username || 'Unknown',
+        avatar: getAvatarUrl(friend.avatar || friend.username || 'Str'),
+        country: friend.country || 'US',
+        isActive: friend.is_online || false,
+        lastSeen: friend.last_seen || 0,
+    }));
 
     // Map requests to UI format
     const requestsDisplay = (pendingRequests || []).map((req: any) => {
@@ -229,20 +240,17 @@ export const RightSidebar = ({
             {/* 1. Fixed Header Area */}
             <div className="flex-none">
                 {isVoiceGame ? (
-                    <div className="flex items-center gap-6 mb-6 h-10">
-                        {['history', 'requests', 'pending'].map((tab) => (
+                    <div className="flex items-center gap-6 mb-6 h-10 border-b border-zinc-50">
+                        {['friends', 'activity', 'history'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
-                                className={`text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                    ? 'text-pink-600'
-                                    : 'text-zinc-500 hover:text-zinc-700'
+                                className={`text-[11px] font-black uppercase tracking-[0.2em] transition-all pb-3 -mb-px ${activeTab === tab
+                                    ? 'text-pink-600 border-b-2 border-pink-600'
+                                    : 'text-zinc-400 hover:text-zinc-600'
                                     }`}
                             >
                                 {tab}
-                                {activeTab === tab && (
-                                    <div className="h-0.5 bg-pink-600 mt-1.5 rounded-full" />
-                                )}
                             </button>
                         ))}
                     </div>
@@ -262,189 +270,223 @@ export const RightSidebar = ({
                 <div className="space-y-6">
                     {isVoiceGame ? (
                         <>
-                            {activeTab === 'history' && historyDisplay.map((user) => (
-                                <div key={user.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <img src={getAvatarUrl(user.avatar)} alt={user.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5 object-cover" />
-                                            {user.isActive && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
-                                        </div>
-                                        <div className="max-w-[120px]">
-                                            <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-zinc-900 truncate">{user.username}</p>
-                                                {user.disconnectReason && (
-                                                    <span className={`text-[9px] font-bold uppercase shrink-0 ${getReasonColor(user.disconnectReason)}`}>
-                                                        {getReasonLabel(user.disconnectReason)}
-                                                    </span>
-                                                )}
-                                                {!user.disconnectReason && (
-                                                    <ReactCountryFlag countryCode={user.country} svg className="w-3 h-2 opacity-60" />
-                                                )}
+                            {activeTab === 'friends' && (
+                                <div className="space-y-4">
+                                    {friendsDisplay.length > 0 ? friendsDisplay.map((user) => (
+                                        <div key={user.id} className="group flex items-center justify-between transition-all hover:bg-zinc-50/50 p-1.5 -m-1.5 rounded-2xl">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    <img src={getAvatarUrl(user.avatar)} alt={user.username} className="w-11 h-11 rounded-2xl border border-zinc-100 bg-white shadow-sm object-cover" />
+                                                    {user.isActive && <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="text-[13px] font-bold text-zinc-900">{user.username}</p>
+                                                        {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
+                                                    </div>
+                                                    <p className={`text-[10px] font-medium ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                                                        {user.isActive ? 'Active' : (user.lastSeen ? formatLastActive(user.lastSeen) : 'Recently')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                                <Clock className="w-2.5 h-2.5 text-zinc-600" />
-                                                <p className="text-[10px] font-bold text-zinc-500 tracking-tighter tabular-nums">{user.duration}</p>
-                                                <span className="text-zinc-600 text-[10px]">•</span>
-                                                <p className="text-[9px] font-medium text-zinc-500">
-                                                    {user.createdAt ? formatDate(user.createdAt) : (user.lastSeen ? `Seen ${formatLastActive(user.lastSeen)}` : 'Recently')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {user.isFriend ? (
-                                            <button
-                                                onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
-                                                className="p-2 text-emerald-500 bg-emerald-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group"
-                                                title="Remove Friend"
-                                            >
-                                                <UserCheck className="w-4 h-4 group-hover:hidden" />
-                                                <UserMinus className="w-4 h-4 hidden group-hover:block" />
-                                            </button>
-                                        ) : user.isPendingReceived ? (
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-1.5 transition-all">
                                                 <button
-                                                    onClick={() => user.requestId && onAcceptRequest && onAcceptRequest(user.requestId)}
-                                                    className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
-                                                    title="Accept Request"
+                                                    onClick={() => !isBusy && user.isActive && user.userId && onCall && onCall(user.userId)}
+                                                    disabled={isBusy || !user.isActive}
+                                                    className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${isBusy || !user.isActive ? 'bg-zinc-50 text-zinc-300 opacity-50 cursor-not-allowed' : 'bg-zinc-900 text-white shadow-lg shadow-zinc-200 hover:bg-zinc-800 active:scale-95'}`}
+                                                    title={isBusy ? 'Finish current call first' : !user.isActive ? 'User is offline' : 'Call'}
                                                 >
-                                                    <UserCheck className="w-4 h-4" />
+                                                    <Phone className="w-4 h-4 fill-current" />
                                                 </button>
                                                 <button
-                                                    onClick={() => user.requestId && onDeclineRequest && onDeclineRequest(user.requestId)}
-                                                    className="p-2 bg-zinc-100 text-zinc-400 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all"
-                                                    title="Decline Request"
+                                                    onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
+                                                    className="w-9 h-9 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-95"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
-                                        ) : user.isPendingSent ? (
-                                            <button
-                                                onClick={() => user.sentRequestId && onCancelRequest && onCancelRequest(user.sentRequestId)}
-                                                className="p-2 text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group"
-                                                title="Cancel Request"
-                                            >
-                                                <Clock className="w-4 h-4 group-hover:hidden" />
-                                                <Trash2 className="w-4 h-4 hidden group-hover:block" />
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
-                                                className="p-2 hover:bg-pink-50 text-zinc-500 hover:text-pink-600 rounded-xl transition-all"
-                                                title="Add Friend"
-                                            >
-                                                <UserPlus className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => !isBusy && user.isActive && user.userId && onCall && onCall(user.userId)}
-                                            disabled={isBusy || !user.isActive}
-                                            className={`p-2 rounded-xl transition-all ${isBusy || !user.isActive
-                                                ? 'bg-zinc-100 text-zinc-300 cursor-not-allowed grayscale'
-                                                : 'bg-pink-50 hover:bg-pink-100 text-pink-600'}`}
-                                            title={isBusy ? 'Finish current call first' : !user.isActive ? 'User is offline' : 'Call'}
-                                        >
-                                            <Phone className="w-3.5 h-3.5 fill-current" />
-                                        </button>
-                                    </div>
+                                        </div>
+                                    )) : (
+                                        <div className="py-12 text-center">
+                                            <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <Users className="w-6 h-6 text-zinc-200" />
+                                            </div>
+                                            <p className="text-xs font-bold text-zinc-400">No friends yet</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                            {activeTab === 'requests' && requestsDisplay.map(req => (
-                                <div key={req.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <img src={getAvatarUrl(req.avatar)} alt={req.username} className="w-10 h-10 rounded-full border border-pink-50 bg-white shadow-sm p-0.5" />
-                                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-                                        </div>
-                                        <div className="max-w-[120px]">
-                                            <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-zinc-900 truncate">{req.username}</p>
-                                                <ReactCountryFlag countryCode={req.country} svg className="w-3 h-2 opacity-60" />
+                            )}
+
+                            {activeTab === 'activity' && (
+                                <div className="space-y-8">
+                                    {/* Received Requests */}
+                                    {requestsDisplay.length > 0 && (
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4 px-1">Received</h4>
+                                            <div className="space-y-4">
+                                                {requestsDisplay.map(req => (
+                                                    <div key={req.id} className="flex items-center justify-between bg-zinc-50/50 p-2 rounded-2xl border border-zinc-100/50 transition-all hover:border-zinc-200">
+                                                        <div className="flex items-center gap-3">
+                                                            <img src={getAvatarUrl(req.avatar)} alt={req.username} className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+                                                            <div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <p className="text-[12px] font-bold text-zinc-900">{req.username}</p>
+                                                                    {req.country && <ReactCountryFlag countryCode={req.country} svg className="w-3 h-3 rounded-sm shadow-sm" />}
+                                                                </div>
+                                                                <p className="text-[9px] font-medium text-zinc-400">{req.time}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-1.5">
+                                                            <button
+                                                                onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
+                                                                className="w-8 h-8 flex items-center justify-center bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all shadow-sm active:scale-90"
+                                                            >
+                                                                <UserCheck className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => onDeclineRequest && onDeclineRequest(req.id)}
+                                                                className="w-8 h-8 flex items-center justify-center bg-white text-zinc-400 rounded-lg hover:bg-zinc-100 transition-all border border-zinc-200 active:scale-90"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                                <Clock className="w-2.5 h-2.5 text-zinc-400" />
-                                                <p className="text-[10px] font-bold text-zinc-500 tracking-tighter uppercase">{req.time}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Sent Requests */}
+                                    {pendingDisplay.length > 0 && (
+                                        <div>
+                                            <h4 className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4 px-1">Sent</h4>
+                                            <div className="space-y-3">
+                                                {pendingDisplay.map(p => (
+                                                    <div key={p.id} className="flex items-center justify-between px-2">
+                                                        <div className="flex items-center gap-3 opacity-60">
+                                                            <img src={getAvatarUrl(p.avatar)} alt={p.username} className="w-8 h-8 rounded-lg object-cover grayscale" />
+                                                            <div className="flex items-center gap-1.5">
+                                                                <p className="text-[11px] font-bold text-zinc-600">{p.username}</p>
+                                                                {p.country && <ReactCountryFlag countryCode={p.country} svg className="w-3 h-3 rounded-sm grayscale" />}
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => onCancelRequest && onCancelRequest(p.id)}
+                                                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
-                                            className="p-2 bg-pink-100 text-pink-600 rounded-xl hover:bg-pink-200 transition-all pulse-soft"
-                                            title="Accept"
-                                        >
-                                            <UserCheck className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => onDeclineRequest && onDeclineRequest(req.id)}
-                                            className="p-2 bg-zinc-100 text-zinc-400 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all"
-                                            title="Decline"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                    )}
+
+                                    {requestsDisplay.length === 0 && pendingDisplay.length === 0 && (
+                                        <div className="py-12 text-center">
+                                            <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <Activity className="w-6 h-6 text-zinc-200" />
+                                            </div>
+                                            <p className="text-xs font-bold text-zinc-400">No activity</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
-                            {activeTab === 'pending' && pendingDisplay.map(p => (
-                                <div key={p.id} className="group flex items-center justify-between animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <img src={getAvatarUrl(p.avatar)} alt={p.username} className="w-10 h-10 rounded-full border border-zinc-200 bg-white shadow-sm p-0.5 grayscale" />
-                                        </div>
-                                        <div className="max-w-[120px]">
-                                            <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-bold text-zinc-500 truncate">{p.username}</p>
-                                                <ReactCountryFlag countryCode={p.country} svg className="w-3 h-2 opacity-30" />
+                            )}
+
+                            {activeTab === 'history' && (
+                                <div className="space-y-4">
+                                    {historyDisplay.length > 0 ? historyDisplay.map((user) => (
+                                        <div key={user.id} className="group flex items-center justify-between p-1.5 -m-1.5 rounded-2xl hover:bg-zinc-50/50 transition-all">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    <img src={getAvatarUrl(user.avatar)} alt={user.username} className="w-10 h-10 rounded-xl bg-zinc-50 object-cover shadow-sm" />
+                                                    {user.isActive && <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="text-[12px] font-bold text-zinc-900">{user.username}</p>
+                                                        {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
+                                                    </div>
+                                                    <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-tight">
+                                                        {user.createdAt ? formatDate(user.createdAt) : 'Recently'} • {user.duration}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{p.status}</p>
+                                            <div className="flex items-center gap-1.5 transition-all">
+                                                {!user.isFriend && !user.isPendingSent && !user.isPendingReceived && (
+                                                    <button
+                                                        onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
+                                                        className="w-8 h-8 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all active:scale-95"
+                                                        title="Add Friend"
+                                                    >
+                                                        <UserPlus className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {user.isFriend && (
+                                                    <button
+                                                        onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
+                                                        className="w-8 h-8 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-95"
+                                                        title="Remove Friend"
+                                                    >
+                                                        <UserMinus className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => !isBusy && user.isActive && user.userId && onCall && onCall(user.userId)}
+                                                    disabled={isBusy || !user.isActive}
+                                                    className={`w-8 h-8 flex items-center justify-center rounded-xl transition-all ${isBusy || !user.isActive ? 'bg-zinc-50 text-zinc-300 opacity-50 cursor-not-allowed' : 'bg-zinc-900 text-white shadow-sm shadow-zinc-200 hover:bg-zinc-800 active:scale-95'}`}
+                                                    title={isBusy ? 'Finish current call first' : !user.isActive ? 'User is offline' : 'Call'}
+                                                >
+                                                    <Phone className="w-3.5 h-3.5 fill-current" />
+                                                </button>
                                             </div>
                                         </div>
-                                    </div>
-                                    <button
-                                        onClick={() => onCancelRequest && onCancelRequest(p.id)}
-                                        className="p-2 text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all group/btn"
-                                        title="Cancel Request"
-                                    >
-                                        <Clock className="w-3.5 h-3.5 group-hover/btn:hidden" />
-                                        <Trash2 className="w-3.5 h-3.5 hidden group-hover/btn:block" />
-                                    </button>
+                                    )) : (
+                                        <div className="py-12 text-center">
+                                            <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <HistoryIcon className="w-6 h-6 text-zinc-200" />
+                                            </div>
+                                            <p className="text-xs font-bold text-zinc-400">No history yet</p>
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                            )}
                         </>
                     ) : (
-                        suggestions.map((user) => (
-                            <div key={user.id} className="flex items-center justify-between opacity-30 grayscale pointer-events-none select-none filter blur-[0.2px] hover:blur-0 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <div className="relative">
-                                        <img
-                                            src={getAvatarUrl(user.avatar)}
-                                            alt={user.username}
-                                            className="w-8 h-8 rounded-full border border-zinc-200 shadow-sm"
-                                        />
-                                        <div className="absolute inset-0 rounded-full shadow-inner bg-white/20 pointer-events-none" />
+                        <div className="space-y-4">
+                            {suggestions.map((user) => (
+                                <div key={user.id} className="flex items-center justify-between opacity-30 grayscale pointer-events-none select-none filter blur-[0.2px] hover:blur-0 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative">
+                                            <img
+                                                src={getAvatarUrl(user.avatar)}
+                                                alt={user.username}
+                                                className="w-8 h-8 rounded-full border border-zinc-200 shadow-sm"
+                                            />
+                                            <div className="absolute inset-0 rounded-full shadow-inner bg-white/20 pointer-events-none" />
+                                        </div>
+                                        <div className="max-w-[150px]">
+                                            <p className="text-sm font-semibold text-zinc-900 truncate">{user.username}</p>
+                                            <p className="text-[10px] text-zinc-400 truncate tracking-tight">{user.subtitle}</p>
+                                        </div>
                                     </div>
-                                    <div className="max-w-[150px]">
-                                        <p className="text-sm font-semibold text-zinc-900 truncate">{user.username}</p>
-                                        <p className="text-xs text-zinc-500 truncate">{user.subtitle}</p>
-                                    </div>
+                                    <button className="text-[10px] font-bold text-pink-600 uppercase tracking-widest">Connect</button>
                                 </div>
-                                <button className="text-[10px] font-bold text-zinc-700 uppercase tracking-tighter">Add</button>
-                            </div>
-                        ))
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* 3. Fixed Footer Area */}
-            <footer className="flex-none pt-6 pb-8 mt-auto z-10 px-2">
-                <div className="flex flex-wrap gap-x-2 gap-y-1 mb-4">
-                    {['About', 'Help', 'Press', 'API', 'Jobs', 'Privacy', 'Terms', 'Locations', 'Language', 'Meta Verified'].map((link) => (
-                        <span key={link} className="cursor-pointer hover:underline text-[11px] text-zinc-400 font-medium">{link}</span>
+            {/* 3. Footer Links Area */}
+            <div className="flex-none pt-4 pb-12 border-t border-zinc-50 mt-4 px-2">
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+                    {['About', 'Help', 'Terms', 'Privacy', 'Safety'].map(link => (
+                        <a key={link} href="#" className="text-[10px] font-bold text-zinc-300 hover:text-zinc-500 transition-colors uppercase tracking-widest">{link}</a>
                     ))}
                 </div>
-                <p className="font-black tracking-widest text-[9px] text-zinc-400 uppercase">© 2026 NOZORIN</p>
-            </footer>
+                <p className="text-[9px] font-bold text-zinc-200 uppercase tracking-[0.2em]">© 2026 NOZORIN</p>
+            </div>
         </aside>
     );
 };
