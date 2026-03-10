@@ -68,10 +68,8 @@ export const useDirectCallActions = ({
 
     const clearCallState = useCallback(() => {
         if (error) {
-            console.log('[DirectCall] Skipping manual clear - error message active:', error);
             return;
         }
-        console.log('[DirectCall] Manually clearing call state');
         setIsCalling(false);
         setCallTarget(null);
         setIncomingCall(null);

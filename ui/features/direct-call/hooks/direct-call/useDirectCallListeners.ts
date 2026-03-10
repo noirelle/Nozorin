@@ -17,13 +17,11 @@ export const useDirectCallListeners = ({
     setError,
 }: UseDirectCallListenersProps) => {
     const handleIncomingCall = useCallback((data: IncomingCallPayload) => {
-        console.log('[DirectCall] Incoming call from:', data.from_user_id);
         setError(null);
         setIncomingCall(data);
     }, [setError, setIncomingCall]);
 
     const handleCallCancelled = useCallback(() => {
-        console.log('[DirectCall] Call cancelled by caller');
         setError('User aborted the call');
         setTimeout(() => { setIncomingCall(null); setError(null); }, 3000);
     }, [setIncomingCall, setError]);
@@ -34,7 +32,6 @@ export const useDirectCallListeners = ({
     }, [setError, setIsCalling, setCallTarget]);
 
     const handleCallDeclined = useCallback(() => {
-        console.log('[DirectCall] Call declined by partner');
         setError('User declined');
         setTimeout(() => { setIsCalling(false); setCallTarget(null); setError(null); }, 3000);
     }, [setError, setIsCalling, setCallTarget]);

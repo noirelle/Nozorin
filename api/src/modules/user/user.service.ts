@@ -157,7 +157,6 @@ class UserService {
      * Deactivate user (set offline and update last active)
      */
     async deactivateUser(userId: string) {
-        console.log(`[USER] Deactivating user: ${userId}`);
         await this.updateUserStatus(userId, false);
 
         try {
@@ -276,25 +275,18 @@ class UserService {
             // Priority 2: IP + Fingerprint match (Fallback for cleared storage)
             // survives Local Storage clear, but prevents Same-Network collision
             if (fingerprint && fingerprint.length > 5) {
-                console.log(`[USER] Attempting recovery via Fingerprint: ${fingerprint.substring(0, 8)}... IP: ${ip}`);
                 const user = await this.userRepository.findOne({
                     where: { last_ip: ip, fingerprint: fingerprint, is_claimed: false },
                     order: { last_active_at: 'DESC' }
                 });
 
                 if (user) {
-                    console.log(`[USER] Found potential match by fingerprint: ${user.id}`);
                     // Safety: Ensure we aren't hijacking an ACTIVE session from another device
                     // (e.g. if fingerprint collision occurred, which is rare but possible)
                     const status = await this.getUserStatus(user.id);
                     if (!status.is_online) {
-                        console.log(`[USER] Recovery successful for ${user.id}`);
                         return user as UserProfile;
-                    } else {
-                        console.log(`[USER] Match found but user is ONLINE. Denying recovery.`);
                     }
-                } else {
-                    console.log(`[USER] No match found for Fingerprint + IP.`);
                 }
             }
 
@@ -359,7 +351,6 @@ class UserService {
         try {
             const user = this.userRepository.create(userProfile);
             await this.userRepository.save(user);
-            console.log(`[USER] Profile saved/updated in DB: ${user.id} | FP: ${user.fingerprint ? 'Yes' : 'No'}`);
         } catch (error) {
             console.error('[USER] DB error saving profile:', error);
         }
@@ -390,7 +381,6 @@ class UserService {
 
             // Ensure user is registered in the set of users if needed
             await this.registerUser(userProfile.id);
-            console.log(`[USER] Profile cached in Redis: ${userProfile.id}`);
         } catch (error) {
             console.error('[USER] Redis error caching profile:', error);
         }
@@ -440,9 +430,6 @@ class UserService {
                 .andWhere('last_active_at < :threshold', { threshold })
                 .execute();
 
-            if (result.affected && result.affected > 0) {
-                console.log(`[USER] 🧹 Cleaned up ${result.affected} ghost users older than ${olderThanDays} days`);
-            }
         } catch (error) {
             console.error('[USER] ❌ Error cleaning up ghost users:', error);
         }

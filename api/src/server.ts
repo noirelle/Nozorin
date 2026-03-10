@@ -4,7 +4,7 @@ import http from 'http';
 import app from './app';
 import { initDatabase } from './core/config/database.config';
 
-const startServer = async () => {
+async function startServer() {
     try {
         await initDatabase();
 
@@ -14,13 +14,14 @@ const startServer = async () => {
 
         const server = http.createServer(app);
         const PORT = process.env.PORT || 3001;
-        server.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
+        server.listen(PORT);
     } catch (err) {
         console.error('Failed to start server:', err);
         process.exit(1);
     }
-};
+}
 
-startServer();
+startServer().catch(err => {
+    console.error('Unhandled server error:', err);
+    process.exit(1);
+});

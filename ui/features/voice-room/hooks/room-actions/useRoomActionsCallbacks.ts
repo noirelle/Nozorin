@@ -88,7 +88,6 @@ export const useRoomActionsCallbacks = ({
         }
 
         if (!callRoomState.has_prompted_for_permission) {
-            console.log('[RoomActions] First time finding match, setting permission flag.');
             setHasPromptedForPermission(true);
         }
 
@@ -158,7 +157,6 @@ export const useRoomActionsCallbacks = ({
 
         trackSessionStart(data.partner_id, mode);
 
-        console.log('[RoomActions] Match found. Powering up mic.');
         await initMediaManager();
 
         if (mode === 'voice' && data.role === 'offerer') await createOffer(data.partner_id);
@@ -166,8 +164,6 @@ export const useRoomActionsCallbacks = ({
 
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
-
-        console.log('[RoomActions] CALL_ENDED received. Partner:', callRoomState.partner_id);
 
         // Even if partner_id is not yet set in state (race condition), we should cleanup if we are connected or searching
         if (!callRoomState.partner_id && !callRoomState.is_connected && !callRoomState.is_searching) return;
@@ -186,7 +182,6 @@ export const useRoomActionsCallbacks = ({
 
 
         if (roomActionsState.isDirectCall) {
-            console.log('[RoomActions] Direct call ended by partner, stopping.');
             roomActionsState.setIsDirectCall(false);
             return;
         }
@@ -219,8 +214,6 @@ export const useRoomActionsCallbacks = ({
         friendship_status?: string;
         your_role?: 'offerer' | 'answerer';
     }) => {
-        console.log('[RoomActions] Partner reconnected with new socket:', data.new_socket_id);
-
         // Ensure UI transitions to connected state (in dual-refresh, this may be the only event)
         closePeerConnection();
         setSearching(false);
@@ -242,10 +235,8 @@ export const useRoomActionsCallbacks = ({
 
         // Use assigned role from server
         if (data.your_role === 'offerer') {
-            console.log('[RoomActions] I am the assigned offerer for this reconnection.');
             await createOffer(data.new_socket_id);
         } else {
-            console.log('[RoomActions] I am the assigned answerer for this reconnection.');
         }
     }, [closePeerConnection, setSearching, setConnected, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, initMediaManager, createOffer]);
 
@@ -269,10 +260,8 @@ export const useRoomActionsCallbacks = ({
 
         // Use assigned role from server
         if (data.role === 'offerer') {
-            console.log('[RoomActions] I am the assigned offerer for this rejoined session.');
             if (mode === 'voice') await createOffer(data.partner_id);
         } else {
-            console.log('[RoomActions] I am the assigned answerer for this rejoined session. Waiting for offer...');
         }
     }, [setSearching, setConnected, setPartner, closePeerConnection, mode, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager, createOffer]);
 

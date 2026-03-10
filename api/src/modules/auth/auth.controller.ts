@@ -9,7 +9,6 @@ import { successResponse, errorResponse } from '../../core/utils/response.util';
 
 export const authController = {
     async guestLogin(req: Request, res: Response) {
-        console.log('[AUTH] guestLogin request received');
         try {
             const { gender, agreed, sessionId, footprint, deviceId, device_id, session_id } = req.body;
             const cleanDeviceId = device_id || deviceId;
@@ -17,8 +16,6 @@ export const authController = {
 
             // robust IP extraction
             const cleanIp = getClientIp(req);
-
-            console.log(`[AUTH] Extracted IP: ${cleanIp}`);
 
             if (!cleanIp) {
                 console.warn('[AUTH] Cannot determine IP');
@@ -29,7 +26,6 @@ export const authController = {
             let user = await userService.findExistingGuest(cleanIp, cleanDeviceId, footprint);
 
             if (user) {
-                console.log(`[AUTH] Reusing existing guest profile: ${user.id}`);
                 // Refresh activity on reuse
                 user.last_active_at = Date.now();
                 // Always update device_id to current one (even if changed) to ensure account retention
@@ -46,7 +42,6 @@ export const authController = {
                     fingerprint: footprint // Map footprint from request to fingerprint field
                 };
                 user = await userService.createGuestUser(createUserDto);
-                console.log(`[AUTH] New guest user created: ${user.id}`);
             }
 
             return res.status(200).json(successResponse({

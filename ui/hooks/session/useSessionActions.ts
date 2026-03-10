@@ -25,7 +25,6 @@ export const executeSessionVerification = async (callbacks: {
     onFinally?: () => void;
 }) => {
     if (verificationPromise) {
-        console.log('[Session] Verification already in progress, deduplicating...');
         // Await the existing promise, then propagate the cached result to this caller too
         try {
             await verificationPromise;
@@ -43,12 +42,10 @@ export const executeSessionVerification = async (callbacks: {
 
     verificationResult = null;
     verificationPromise = (async () => {
-        console.log('[Session] Starting explicit verified session check...');
         callbacks.onStart?.();
         try {
             const res = await apiRequest<{ active: boolean }>('/api/session/current');
             if (!res.error && res.data?.active) {
-                console.log('[Session] Active session found, fetching context...');
                 const fullRes = await apiRequest<any>('/api/session/call');
                 if (!fullRes.error && fullRes.data) {
                     verificationResult = fullRes.data;

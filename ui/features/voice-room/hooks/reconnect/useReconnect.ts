@@ -37,19 +37,15 @@ export const useReconnect = ({
     // We no longer rely on socket events. Instead, we pull session status when identified.
     const checkActiveSession = useCallback(async () => {
         if (hasCheckedRef.current || isCheckingRef.current) {
-            console.log(`[useReconnect] checkActiveSession skipped — hasChecked=${hasCheckedRef.current}, isChecking=${isCheckingRef.current}`);
             return;
         }
 
         isCheckingRef.current = true;
         rejoinStartTimeRef.current = performance.now();
-        console.log('[useReconnect] Checking for active session...');
 
         await executeSessionVerification({
             onStart: () => setIsReconnecting(true),
             onSuccess: (activeCall) => {
-                const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
-                console.log(`[useReconnect] ✓ Active room found: ${activeCall?.room_id || 'unknown'} (${elapsed}ms) — waiting for partner to join`);
                 activeCallRef.current = activeCall;
                 onRestorePartnerRef.current?.(activeCall);
             },
@@ -68,11 +64,9 @@ export const useReconnect = ({
     const rejoinRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleIdentified = useCallback(async () => {
-        console.log('[useReconnect] handleIdentified called');
         await checkActiveSession();
         // If we have an active call, tell the server we're back and wait for partner
         if (activeCallRef.current && !rejoinEmittedRef.current) {
-            console.log(`Trying to join ${activeCallRef.current.room_id}`);
             rejoinEmittedRef.current = true;
             rejoinRetryRef.current = 0;
             rejoinCall(activeCallRef.current.room_id);
@@ -82,7 +76,6 @@ export const useReconnect = ({
     // Bootstrap from initial data if provided from AppPage (saves a network roundtrip)
     useEffect(() => {
         if (!hasCheckedRef.current && initialCallData) {
-            console.log('[useReconnect] Bootstrapping from initial session data provided by parent');
             activeCallRef.current = initialCallData;
             onRestorePartnerRef.current?.(initialCallData);
             // We set hasChecked = true so handleIdentified knows it doesn't need to check API
@@ -90,7 +83,6 @@ export const useReconnect = ({
 
             waitForSocketConnection(10000).then((ready: boolean) => {
                 if (ready) {
-                    console.log('[useReconnect] Socket ready after bootstrap, triggering manual join');
                     handleIdentified();
                 } else {
                     console.error('[useReconnect] Socket failed to connect/identify after bootstrap');
@@ -105,7 +97,6 @@ export const useReconnect = ({
         const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
         if (data.reason === 'partner-not-ready') {
             if (!rejoinRetryTimerRef.current) {
-                console.log(`[useReconnect] Partner not ready (${elapsed}ms elapsed), waiting for server resolution. Failsafe timeout in 15s...`);
                 // Single 15-second failsafe timeout. If the server doesn't proactively send
                 // REJOIN_SUCCESS (via waitingForPartner resolution) by then, we give up.
                 rejoinRetryTimerRef.current = setTimeout(() => {
@@ -127,8 +118,6 @@ export const useReconnect = ({
     // The matching layer (useMatchingActions) handles the WebRTC re-establishment.
     // We just need to clear the reconnecting UI state.
     const handlePartnerReconnected = useCallback((_data: { new_socket_id: string; new_user_id: string }) => {
-        const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
-        console.log(`[useReconnect] Partner reconnected — reconnection completed in ${elapsed}ms`);
         if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
         rejoinRetryRef.current = 0;
         setIsReconnecting(false);
@@ -146,11 +135,7 @@ export const useReconnect = ({
     }, []);
 
     const clearImmediately = useCallback(() => {
-        const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
-        if (rejoinStartTimeRef.current > 0) {
-            console.log(`[useReconnect] Reconnection successful in ${elapsed}ms`);
-            rejoinStartTimeRef.current = 0;
-        }
+        rejoinStartTimeRef.current = 0;
         if (minDisplayTimerRef.current) { clearTimeout(minDisplayTimerRef.current); minDisplayTimerRef.current = null; }
         if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
         rejoinRetryRef.current = 0;

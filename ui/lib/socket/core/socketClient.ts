@@ -21,7 +21,6 @@ export function getSocketClient(token?: string | null): Socket | null {
 
         _socket.on(SocketEvents.IDENTIFY_SUCCESS, () => {
             last_identified_socket_id = _socket?.id || null;
-            console.log('[Socket] Identified successfully:', last_identified_socket_id);
         });
 
         _socket.on('disconnect', () => {
@@ -37,7 +36,6 @@ export function getSocketClient(token?: string | null): Socket | null {
 
             // If already connected, we must proactively update/identify
             if (_socket.connected && token) {
-                console.log('[Socket] Token updated on active connection, re-identifying...');
                 _socket.emit(SocketEvents.USER_IDENTIFY, { token });
             }
         }
@@ -129,7 +127,6 @@ export async function waitForSocketConnection(timeout_ms = 10000): Promise<boole
         if (!s.connected) {
             s.once('connect', on_connect);
         } else if (token && !is_identified) {
-            console.log('[Socket] Waiting for identification on active connection...');
             s.emit(SocketEvents.USER_IDENTIFY, { token });
         }
 

@@ -29,7 +29,6 @@ export const initRedis = (): void => {
 
         redisClient.connect()
             .then(() => {
-                console.log('[REDIS] ✓ Connected');
                 isRedisAvailable = true;
             })
             .catch((err) => {
@@ -40,7 +39,6 @@ export const initRedis = (): void => {
             });
 
         redisClient.on('close', () => {
-            console.warn('[REDIS] Connection closed');
             isRedisAvailable = false;
         });
 

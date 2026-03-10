@@ -60,13 +60,11 @@ export const useMatchingActions = ({
     const waitForUser = useCallback(async (timeoutMs = 5000): Promise<boolean> => {
         if (!isCheckingRef.current && userRef.current?.id) return true;
 
-        console.log('[Matching] Waiting for user identification...');
         return new Promise((resolve) => {
             const start = Date.now();
             const timer = setInterval(() => {
                 if (!isCheckingRef.current) {
                     clearInterval(timer);
-                    console.log('[Matching] User identification complete, user exists:', !!userRef.current?.id);
                     resolve(!!userRef.current?.id);
                 } else if (Date.now() - start > timeoutMs) {
                     clearInterval(timer);
@@ -88,7 +86,6 @@ export const useMatchingActions = ({
             return;
         }
 
-        console.log(`[Matching] Starting search flow, preference: ${options?.preferred_country || 'None'}`);
         lastOptionsRef.current = options;
         setStatus('CONNECTING');
         isJoiningRef.current = true;
@@ -106,7 +103,6 @@ export const useMatchingActions = ({
             }
 
             // 1. Ensure socket is connected and IDENTIFIED before joining the queue
-            console.log('[Matching] Waiting for socket connection & identification...');
             const isConnected = await waitForSocketConnection();
 
             if (!isConnected) {
@@ -116,9 +112,7 @@ export const useMatchingActions = ({
                 return;
             }
 
-            console.log('[Matching] Socket ready. Transitioning to FINDING status...');
             setStatus('FINDING');
-            console.log('[Matching] Calling joinQueue API...');
 
             // 2. Call the join queue API
             const requestId = Math.random().toString(36).substring(7);
@@ -143,7 +137,6 @@ export const useMatchingActions = ({
                 // Check for transient "not connected" error and retry once
                 const isNotConnectedError = typeof error === 'string' && error.includes('not connected');
                 if (isNotConnectedError && !options?.isRetry) {
-                    console.log('[Matching] Detected connection desync, attempting re-identification and retry...');
 
                     const s = getSocketClient();
                     const token = localStorage.getItem('nz_token');
@@ -161,7 +154,6 @@ export const useMatchingActions = ({
                 callbacksRef.current.onFatalError?.();
             } else {
                 const alreadyQueued = (data as any)?.alreadyQueued;
-                console.log(`[Matching] Join queue API success${alreadyQueued ? ' (already in queue)' : ''}`);
 
                 // Directly set position from the API response to avoid race conditions with socket events
                 if (data && typeof (data as any).queueLength === 'number') {
@@ -190,13 +182,11 @@ export const useMatchingActions = ({
     }, [setStatus]);
 
     const rejoinCall = useCallback((room_id?: string) => {
-        console.log('[Matching] Attempting to rejoin call...');
         setStatus('RECONNECTING');
         emitRejoinCall(room_id);
     }, [setStatus]);
 
     const cancelReconnect = useCallback(() => {
-        console.log('[Matching] Cancelling reconnect...');
         clearReconnectTimer();
         setStatus('IDLE');
         emitCancelReconnect();
@@ -204,7 +194,6 @@ export const useMatchingActions = ({
 
     const skipToNext = useCallback((preferred_country?: string) => {
         if (isSkipping) return;
-        console.log('[Matching] Skipping to next...');
         setIsSkipping(true);
         if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
         startSearch({ preferred_country });
@@ -247,7 +236,6 @@ export const useMatchingActions = ({
     }, [setStatus, setPosition]);
 
     const buildHandleCallEnded = useCallback(() => (data?: { reason?: string; by?: string }) => {
-        console.log('[Matching] Call ended. Resetting to IDLE. Reason:', data?.reason || data?.by || 'unknown');
         clearReconnectTimer();
         setStatus('IDLE');
         setPosition(null);
@@ -255,7 +243,6 @@ export const useMatchingActions = ({
     }, [clearReconnectTimer, setStatus, setPosition]);
 
     const buildHandlePartnerReconnecting = useCallback(() => (data: PartnerReconnectingPayload) => {
-        console.log(`[Matching] Partner reconnecting... timeout: ${data.timeout_ms}ms`);
         setStatus('RECONNECTING');
         const totalSeconds = Math.ceil(data.timeout_ms / 1000);
         setReconnectCountdown(totalSeconds);
@@ -270,14 +257,12 @@ export const useMatchingActions = ({
     }, [setStatus, setReconnectCountdown, reconnectTimerRef, clearReconnectTimer]);
 
     const buildHandlePartnerReconnected = useCallback(() => (data: PartnerReconnectedPayload) => {
-        console.log('[Matching] Partner reconnected!');
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onPartnerReconnected?.(data);
     }, [clearReconnectTimer, setStatus]);
 
     const buildHandleRejoinSuccess = useCallback(() => (data: RejoinSuccessPayload) => {
-        console.log('[Matching] Rejoin successful!', data);
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onRejoinSuccess?.(data);
@@ -294,19 +279,16 @@ export const useMatchingActions = ({
     }, [clearReconnectTimer, setStatus]);
 
     const buildHandleWaitingForMatch = useCallback(() => (data: { position: number }) => {
-        console.log(`[Matching] In queue, position: ${data.position}`);
         setStatus('FINDING');
         setPosition(data.position);
     }, [setStatus, setPosition]);
 
     const buildHandlePrepareMatch = useCallback(() => () => {
-        console.log('[Matching] Match prepared, acknowledging...');
         setStatus('NEGOTIATING');
         emitMatchReady();
     }, [setStatus]);
 
     const buildHandleUserLeft = useCallback(() => (data: { socketId: string }) => {
-        console.log('[Matching] User left:', data.socketId);
         // If we are matched, we might want to end the call or show a message
         // For now, let's treat it as a trigger to ensure UI remains deterministic
         callbacksRef.current.onCallEnded?.({ reason: 'partner-left' });

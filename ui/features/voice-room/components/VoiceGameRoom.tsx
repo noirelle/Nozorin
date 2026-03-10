@@ -160,7 +160,7 @@ export const VoiceGameRoom = () => {
         setDirectMatchData(null);
         const s = getSocketClient();
         if (s) s.disconnect();
-        router.push('/app');
+        router.push('/app/voice');
     };
 
     const isWebRTCAvailable = true;
@@ -257,12 +257,6 @@ export const VoiceGameRoom = () => {
                 <FriendRequestNotification
                     profile={friendRequestNotif}
                     isAcceptance={friendRequestNotif.isAcceptance}
-                    onView={() => {
-                        setFriendRequestNotif(null);
-                        fetchFriends();
-                        fetchPendingRequests();
-                        fetchSentRequests();
-                    }}
                     onClose={() => setFriendRequestNotif(null)}
                 />
             )}

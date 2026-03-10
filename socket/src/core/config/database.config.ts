@@ -23,7 +23,6 @@ export const AppDataSource = new DataSource({
 export const initDatabase = async () => {
     try {
         await AppDataSource.initialize();
-        console.log('[DB] Database connection established successfully in Socket service');
     } catch (error) {
         console.error('[DB] Error during Data Source initialization in Socket service:', error);
         throw error;

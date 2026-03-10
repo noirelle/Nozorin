@@ -2,7 +2,6 @@ import { useAuthStore } from '../../../stores/useAuthStore';
 import { ApiResponse, StandardApiResponse } from './types';
 import { getBaseApiUrl } from './config';
 import { handleTokenRefresh, handleAuthError } from './auth';
-import { logRequest, logResponse } from '../middleware/logging';
 
 export async function apiRequest<T>(
     endpoint: string,
@@ -44,8 +43,6 @@ export async function apiRequest<T>(
         }
     }
 
-    logRequest(url, options);
-
     try {
         let response: Response | undefined;
         let lastError: any;
@@ -77,17 +74,12 @@ export async function apiRequest<T>(
             throw lastError || new Error('Fetch failed completely.');
         }
 
-        logResponse(url, response.status);
-
         // Interceptor for 401 Unauthorized - Attempt Refresh
         if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
             try {
-                console.log('[API] 401 detected, attempting token refresh...');
                 const refreshResult = await handleTokenRefresh();
 
                 if (refreshResult?.token) {
-                    console.log('[API] Token refresh successful, retrying request...');
-
                     // Retry original request with new token
                     const retryHeaders = {
                         ...headers,
@@ -102,7 +94,6 @@ export async function apiRequest<T>(
 
                     // Replace original response with retry response
                     response = retryResponse;
-                    logResponse(url, response.status);
                 } else if (!endpoint.includes('/matchmaking/leave')) {
                     // Pass the refresh status to handleAuthError to decide if logout is needed
                     handleAuthError(refreshResult?.status);

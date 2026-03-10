@@ -37,7 +37,6 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
         if (isHealthy) return true;
 
         if (mediaManagerRef.current) {
-            console.log('[MediaContext] Existing media stream unhealthy, re-initializing...');
             cleanupMedia();
         }
 
@@ -51,7 +50,6 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
             // CRITICAL: If cleanupMedia was called while waiting for permission,
             // mediaManagerRef.current will be null.
             if (mediaManagerRef.current !== manager) {
-                console.log('[MediaContext] Initialization finished, but stream was already cleaned up. Shutting down immediately.');
                 manager.cleanup();
                 return false;
             }
@@ -63,7 +61,6 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
 
             const handleTrackEnded = () => {
                 if (mediaManagerRef.current === manager) {
-                    console.log('[MediaContext] Track ended unexpectedly');
                     cleanupMedia();
                     setPermissionDenied(true);
                 }

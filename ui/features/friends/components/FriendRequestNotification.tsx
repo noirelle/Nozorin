@@ -1,7 +1,7 @@
-'use client';
-
 import React from 'react';
 import ReactCountryFlag from 'react-country-flag';
+import { X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface FriendRequestNotificationProps {
     profile: {
@@ -11,60 +11,75 @@ interface FriendRequestNotificationProps {
         country_name?: string;
         country?: string;
     };
-    onView: () => void;
     onClose: () => void;
     isAcceptance?: boolean;
 }
 
 export const FriendRequestNotification: React.FC<FriendRequestNotificationProps> = ({
     profile,
-    onView,
     onClose,
     isAcceptance
 }) => {
-    return (
-        <div className="fixed top-6 right-6 z-[200] w-full max-w-sm animate-in slide-in-from-right-8 duration-500">
-            <div className={`backdrop-blur-2xl rounded-3xl p-4 shadow-[0_20px_50px_rgba(255,183,206,0.3)] border border-white flex items-center gap-4 relative group ${isAcceptance ? 'bg-emerald-50/90' : 'bg-white/90'}`}>
-                {/* Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-black/10"
-                >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+    // Use the utility for avatar URL with fallback to username-based seed
+    const avatarSrc = getAvatarUrl(profile.avatar || profile.username);
 
-                {/* Avatar with Ring */}
-                <div className="relative shrink-0">
-                    <div className={`w-14 h-14 rounded-full p-0.5 animate-pulse ${isAcceptance ? 'bg-gradient-to-tr from-emerald-400 to-teal-500' : 'bg-gradient-to-tr from-[#FF0055] to-[#FF8BA7]'}`}>
-                        <div className="w-full h-full rounded-full bg-white p-0.5 overflow-hidden">
-                            <img src={profile.avatar} alt={profile.username} className="w-full h-full object-cover rounded-full" />
+    return (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] w-[95%] max-w-[420px] animate-in slide-in-from-top-12 duration-500 ease-out">
+            <div className="relative group">
+                {/* Soft Glow Effect */}
+                <div className={`absolute inset-0 blur-3xl rounded-[32px] -z-10 animate-pulse ${isAcceptance ? 'bg-emerald-500/10' : 'bg-[#FF0055]/10'}`} />
+
+                <div className="bg-white/95 backdrop-blur-2xl border border-zinc-100 rounded-[32px] p-4 shadow-[0_20px_60px_rgba(255,0,85,0.08),0_10px_20px_rgba(0,0,0,0.04)] flex items-center justify-between gap-4">
+
+                    {/* User Info Section */}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="relative shrink-0">
+                            <div className={`w-12 h-12 rounded-2xl overflow-hidden ring-4 ring-offset-0 bg-zinc-50 border border-zinc-100 flex items-center justify-center ${isAcceptance ? 'ring-emerald-50/50' : 'ring-pink-50/50'}`}>
+                                <img
+                                    src={avatarSrc}
+                                    alt={profile.username}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-lg ${isAcceptance ? 'bg-emerald-500' : 'bg-[#FF0055]'}`}>
+                                {isAcceptance ? (
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                ) : (
+                                    <UserPlus className="w-2.5 h-2.5 text-white" />
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col min-w-0">
+                            <h3 className="text-sm font-black text-zinc-900 truncate uppercase tracking-widest">
+                                {profile.username}
+                            </h3>
+                            <div className="flex items-center gap-1.5">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${isAcceptance ? 'text-emerald-600' : 'text-zinc-500'}`}>
+                                    {isAcceptance ? 'Accepted your request!' : 'Sent a friend request'}
+                                </span>
+                                {profile.country && (
+                                    <ReactCountryFlag
+                                        countryCode={profile.country}
+                                        svg
+                                        style={{ width: '12px', height: '9px', borderRadius: '1.5px', opacity: 0.8 }}
+                                    />
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm">
-                        <span className="text-xs">{isAcceptance ? '🎉' : '👋'}</span>
-                    </div>
-                </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 pr-4">
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-bold text-slate-800 truncate">{profile.username}</span>
-                        {profile.country && (
-                            <ReactCountryFlag countryCode={profile.country} svg className="w-3 h-2" />
-                        )}
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onClose}
+                            className="px-6 h-10 flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+                            title="Close"
+                        >
+                            <X className="w-4 h-4 mr-1" />
+                            <span>Close</span>
+                        </button>
                     </div>
-                    <p className={`text-[11px] font-medium line-clamp-1 ${isAcceptance ? 'text-emerald-600' : 'text-slate-500'}`}>
-                        {isAcceptance ? 'Accepted your friend request!' : 'Sent you a friend request'}
-                    </p>
-
-                    <button
-                        onClick={onView}
-                        className={`mt-2 px-4 py-1.5 text-white text-[10px] font-bold rounded-xl transition-colors shadow-sm active:scale-95 ${isAcceptance ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-[#FF0055] hover:bg-[#E6004D]'}`}
-                    >
-                        {isAcceptance ? 'VIEW FRIENDS' : 'VIEW IN CIRCLE'}
-                    </button>
                 </div>
             </div>
         </div>

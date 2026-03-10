@@ -46,7 +46,6 @@ export const useRoomEffects = ({
     // Handle initial direct call match data
     useEffect(() => {
         if (initialMatchData) {
-            console.log('[Room] Processing initial direct call match data');
             onMatchFound(initialMatchData);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,13 +73,11 @@ export const useRoomEffects = ({
     useEffect(() => {
         if (!callRoomState.is_connected || callRoomState.is_searching) return;
 
-        console.log('[Room] Starting heartbeat ping interval');
         const interval = setInterval(() => {
             emitPing();
         }, 5000);
 
         return () => {
-            console.log('[Room] Stopping heartbeat ping interval');
             clearInterval(interval);
         };
     }, [callRoomState.is_connected, callRoomState.is_searching]);

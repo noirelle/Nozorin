@@ -14,7 +14,7 @@ export default function Home() {
 
     useEffect(() => {
         if (user) {
-            router.push('/app');
+            router.push('/app/voice');
         }
     }, [user, router]);
 
@@ -35,7 +35,6 @@ export default function Home() {
     }, [router]);
 
     const handleIdentifySuccess = useCallback(() => {
-        console.log('[Home] Identification successful');
     }, []);
 
     useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
@@ -43,7 +42,7 @@ export default function Home() {
 
     const handleJoin = async () => {
         await ensureToken();
-        router.push('/app');
+        router.push('/app/voice');
     };
 
     // Prevent blink for logged-in users while checking or waiting for redirect
