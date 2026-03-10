@@ -106,8 +106,8 @@ export const MobileVoiceLayout = ({
         <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none touch-none">
 
             {/* Premium Background Blobs */}
-            <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-pink-50/50 to-transparent blur-[100px] pointer-events-none" />
-            <div className="absolute bottom-[20%] right-[-10%] w-64 h-64 bg-pink-100/20 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-zinc-50/50 to-transparent blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-[20%] right-[-10%] w-64 h-64 bg-zinc-100/30 rounded-full blur-[80px] pointer-events-none" />
 
             {/* 1. Header Area */}
             <header className="relative z-50 h-16 flex items-center justify-between px-4">
@@ -121,7 +121,7 @@ export const MobileVoiceLayout = ({
                 <div className="flex flex-col items-center">
                     <span style={{ fontFamily: "'Satisfy', cursive" }} className="text-xl font-bold text-zinc-900">nozorin</span>
                     <div className="flex items-center gap-1.5 ">
-                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-500 animate-pulse' : 'bg-zinc-300'}`} />
+                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? 'Reconnecting' : isConnected ? callDuration : isSearching ? 'Scanning' : 'Ready'}
                         </span>
@@ -137,32 +137,32 @@ export const MobileVoiceLayout = ({
                     {/* Ring Layers */}
                     {!isConnected && (
                         <>
-                            <div className="absolute inset-0 rounded-full bg-pink-100 animate-ping opacity-20" />
-                            <div className="absolute inset-[-15px] rounded-full border border-pink-50 animate-pulse opacity-50" />
+                            <div className="absolute inset-0 rounded-full bg-pink-50/30 animate-[pulse_3s_ease-in-out_infinite] opacity-50 blur-sm pointer-events-none" />
+                            <div className="absolute inset-[-15px] rounded-full border border-zinc-100 animate-[pulse_2s_ease-in-out_infinite] opacity-40 pointer-events-none" />
                         </>
                     )}
 
                     {/* Central Interaction Circle */}
                     <div
                         onClick={!isConnected && !isSearching ? handleNext : undefined}
-                        className={`relative w-56 h-56 rounded-full flex items-center justify-center transition-all duration-700 active:scale-95 shadow-[0_20px_50px_-10px_rgba(236,72,153,0.15)] ring-1 ring-zinc-100 ${!isConnected && !isSearching ? 'cursor-pointer' : ''}`}
+                        className={`relative w-56 h-56 rounded-full flex items-center justify-center transition-all duration-700 active:scale-95 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] ring-1 ring-zinc-100/50 backdrop-blur-sm ${!isConnected && !isSearching ? 'cursor-pointer' : ''}`}
                     >
                         {/* Background Layer */}
-                        <div className="absolute inset-0 rounded-full bg-white overflow-hidden">
+                        <div className="absolute inset-0 rounded-full bg-white/90 overflow-hidden">
                             {/* Subtle grid pattern inside */}
-                            <div className="absolute inset-0 opacity-[0.02] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+                            <div className="absolute inset-0 opacity-[0.015] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
                         </div>
 
                         {/* Partner Avatar / Pulse Icon */}
-                        <div className="relative z-10 w-full h-full p-1">
+                        <div className="relative z-10 w-full h-full p-1.5">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
-                                <div className="w-full h-full rounded-full bg-zinc-900/5 flex flex-col items-center justify-center animate-pulse">
+                                <div className="w-full h-full rounded-full bg-zinc-50/50 flex flex-col items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
                                     <div className="flex items-center gap-1 mb-2">
                                         {[1, 2, 3].map((i) => (
-                                            <div key={i} className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                            <div key={i} className="w-1.5 h-1.5 bg-pink-300 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                                         ))}
                                     </div>
-                                    <span className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">Syncing</span>
+                                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">Syncing</span>
                                 </div>
                             ) : isConnected ? (
                                 <img
@@ -171,22 +171,22 @@ export const MobileVoiceLayout = ({
                                     className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
                                 />
                             ) : (
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-pink-50/50 flex flex-col items-center justify-center">
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-zinc-50/80 flex flex-col items-center justify-center">
                                     {isSearching ? (
                                         <div className="flex flex-col items-center">
                                             <div className="flex items-center gap-1 mb-3">
                                                 {[1, 2, 3, 2, 1].map((h, i) => (
-                                                    <div key={i} className="w-1 bg-pink-400 rounded-full animate-pulse" style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
+                                                    <div key={i} className="w-1 bg-pink-300 rounded-full animate-[pulse_1.5s_ease-in-out_infinite]" style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
                                                 ))}
                                             </div>
-                                            <span className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]">{actions.matching.status}</span>
+                                            <span className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">{actions.matching.status}</span>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center">
-                                            <div className="w-12 h-12 rounded-full border border-pink-100 flex items-center justify-center mb-4">
-                                                <div className="w-4 h-4 bg-pink-500 rounded-full animate-pulse" />
+                                            <div className="w-12 h-12 rounded-full border border-zinc-100/80 flex items-center justify-center mb-4 bg-white/50 backdrop-blur-sm">
+                                                <div className="w-4 h-4 bg-pink-300/90 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.4)] animate-[pulse_3s_ease-in-out_infinite]" />
                                             </div>
-                                            <span className="text-[11px] font-black text-zinc-900 uppercase tracking-widest">Tap to start</span>
+                                            <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Tap to start</span>
                                         </div>
                                     )}
                                 </div>
@@ -243,8 +243,8 @@ export const MobileVoiceLayout = ({
                                         else if (!pendingSent && !pendingReceived && onAddFriend) onAddFriend(partnerId);
                                     }}
                                     className={`flex-1 h-11 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all shadow-sm flex items-center justify-center ${isFriends ? 'bg-emerald-50 text-emerald-600' :
-                                        pendingReceived ? 'bg-pink-500 text-white animate-pulse' :
-                                            pendingSent ? 'bg-zinc-50 text-zinc-400' :
+                                        pendingReceived ? 'bg-pink-400 text-white animate-[pulse_2s_ease-in-out_infinite]' :
+                                            pendingSent ? 'bg-zinc-50 text-zinc-300' :
                                                 'bg-zinc-900 text-white'
                                         }`}
                                 >

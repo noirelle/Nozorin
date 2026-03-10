@@ -110,8 +110,8 @@ export const DesktopVoiceFeed = ({
                 <div className="flex items-center gap-2 group cursor-default">
                     {isConnected ? (
                         <>
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase">{callDuration}</span>
+                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(52,211,153,0.3)]" />
+                            <span className="text-[10px] font-bold text-zinc-400 tabular-nums tracking-widest uppercase">{callDuration}</span>
                         </>
                     ) : (
                         <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase truncate max-w-[150px]">
@@ -141,21 +141,24 @@ export const DesktopVoiceFeed = ({
                     >
                         {/* Pulse effect when ready */}
                         {!isConnected && !isSearching && (
-                            <div className="absolute -inset-4 bg-pink-500/10 rounded-full animate-ping pointer-events-none" />
+                            <div className="absolute -inset-4 bg-pink-50/50 rounded-full animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
                         )}
 
                         {/* Searching indicator */}
                         {isSearching && (
-                            <div className="absolute -inset-2 border-2 border-dashed border-pink-300 rounded-full animate-spin" />
+                            <>
+                                <div className="absolute -inset-6 bg-pink-50/30 rounded-full animate-[pulse_2s_ease-in-out_infinite] blur-md pointer-events-none" />
+                                <div className="absolute -inset-2 border border-pink-100 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] opacity-50" />
+                            </>
                         )}
 
                         {/* Main Interaction Unit */}
-                        <div className={`w-full h-full rounded-full p-1 bg-white ring-4 ${isConnected ? 'ring-pink-100' : 'ring-pink-50'} shadow-[0_8px_32px_rgba(236,72,153,0.12)] overflow-hidden transition-all duration-700`}>
+                        <div className={`w-full h-full rounded-full p-1 bg-white/80 ring-1 ${isConnected ? 'ring-pink-100' : 'ring-zinc-100'} shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-md overflow-hidden transition-all duration-700`}>
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
-                                <div className="w-full h-full rounded-full bg-zinc-900/10 flex items-center justify-center animate-pulse">
+                                <div className="w-full h-full rounded-full bg-zinc-50/50 flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
                                     <div className="flex flex-col items-center">
-                                        <div className="w-1.5 h-1.5 bg-pink-500 rounded-full animate-bounce mb-1" />
-                                        <span className="text-[8px] font-black text-pink-500 uppercase tracking-tighter">Syncing</span>
+                                        <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce mb-1" />
+                                        <span className="text-[8px] font-black text-pink-400 uppercase tracking-tighter">Syncing</span>
                                     </div>
                                 </div>
                             ) : isConnected ? (
@@ -165,14 +168,14 @@ export const DesktopVoiceFeed = ({
                                     className="w-full h-full rounded-full object-cover animate-in fade-in zoom-in duration-700"
                                 />
                             ) : (
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-pink-50/50 flex items-center justify-center">
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-zinc-50/50 flex items-center justify-center">
                                     {isSearching ? (
                                         <div className="relative flex items-center justify-center">
-                                            <div className="absolute w-10 h-10 bg-pink-400/10 rounded-full animate-pulse" />
-                                            <Mic2 className="w-6 h-6 text-pink-500 relative z-10 animate-pulse" />
+                                            <div className="absolute w-12 h-12 bg-pink-50/60 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
+                                            <Mic2 className="w-6 h-6 text-pink-400 relative z-10 animate-[pulse_2s_ease-in-out_infinite]" />
                                         </div>
                                     ) : (
-                                        <div className="w-3.5 h-3.5 bg-pink-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(236,72,153,0.8)]" />
+                                        <div className="w-3.5 h-3.5 bg-pink-400/80 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.6)] animate-[pulse_3s_ease-in-out_infinite]" />
                                     )}
                                 </div>
                             )}
@@ -236,9 +239,9 @@ export const DesktopVoiceFeed = ({
                                         }
                                     }}
                                     disabled={isFriends || (isPendingSent && !isPendingReceived)}
-                                    className={`flex items-center gap-2 px-8 py-2.5 text-[10px] font-black rounded-full transition-all uppercase tracking-tight shadow-sm ${isFriends ? 'bg-emerald-500 text-white' :
-                                        isPendingReceived ? 'bg-pink-500 hover:bg-pink-600 text-white animate-pulse' :
-                                            isPendingSent ? 'bg-pink-100 text-pink-600' :
+                                    className={`flex items-center gap-2 px-8 py-2.5 text-[10px] font-black rounded-full transition-all uppercase tracking-tight shadow-sm ${isFriends ? 'bg-emerald-500/90 text-white' :
+                                        isPendingReceived ? 'bg-pink-400 hover:bg-pink-500 text-white animate-[pulse_2s_ease-in-out_infinite]' :
+                                            isPendingSent ? 'bg-zinc-100 text-zinc-400' :
                                                 'bg-zinc-900 hover:bg-zinc-800 text-white'
                                         }`}
                                 >
