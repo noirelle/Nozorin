@@ -26,6 +26,11 @@ export const presenceService = {
         io.emit(SocketEvents.STATS_UPDATE, stats);
     },
 
+    /** Handle user identification and broadcast initial online status */
+    async handleUserConnection(io: Server, userId: string): Promise<void> {
+        await this.broadcastUserStatus(io, userId);
+    },
+
     async handleDisconnection(io: Server, socket: Socket): Promise<void> {
         const userId = userService.getUserId(socket.id);
 

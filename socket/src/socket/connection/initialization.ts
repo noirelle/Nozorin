@@ -28,6 +28,7 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
 
         userService.setUserForSocket(socket.id, user_id);
         await userService.registerUser(user_id);
+        await presenceService.handleUserConnection(io, user_id);
         logger.info({ socketId: socket.id, user_id: user_id.substring(0, 8) }, '[CONNECT] Auto-registered');
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id, auto: true });
     }
