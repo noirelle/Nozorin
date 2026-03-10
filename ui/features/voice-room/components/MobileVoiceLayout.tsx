@@ -16,7 +16,8 @@ import {
     UserMinus,
     Phone,
     Trash2,
-    Clock
+    Clock,
+    Plus
 } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
@@ -68,6 +69,7 @@ export const MobileVoiceLayout = ({
     } = voiceRoomData;
 
     const [activeDrawer, setActiveDrawer] = useState<'history' | 'community' | 'chat' | null>(null);
+    const [selectedUserForOptions, setSelectedUserForOptions] = useState<any>(null);
     const [inputText, setInputText] = useState('');
 
     const { user: localUser } = useUser();
@@ -437,7 +439,7 @@ export const MobileVoiceLayout = ({
                                             friends={friends}
                                             sentRequests={sentRequests}
                                             pendingRequests={pendingRequests}
-                                            onAddFriend={onAddFriend}
+                                            onSelectOptions={setSelectedUserForOptions}
                                             onCall={onCall}
                                             isBusy={isConnected}
                                         />
@@ -452,9 +454,7 @@ export const MobileVoiceLayout = ({
                                     friends={friends}
                                     pendingRequests={pendingRequests}
                                     sentRequests={sentRequests}
-                                    onAccept={onAcceptRequest}
-                                    onDecline={onDeclineRequest}
-                                    onCancel={onCancelRequest}
+                                    onSelectOptions={setSelectedUserForOptions}
                                     onCall={onCall}
                                     isBusy={isConnected}
                                 />
@@ -474,6 +474,21 @@ export const MobileVoiceLayout = ({
                 </>
             )}
 
+            {/* 5. User Options Drawer */}
+            {selectedUserForOptions && (
+                <UserOptionsDrawer
+                    user={selectedUserForOptions}
+                    onClose={() => setSelectedUserForOptions(null)}
+                    onAccept={onAcceptRequest}
+                    onDecline={onDeclineRequest}
+                    onCancel={onCancelRequest}
+                    onRemove={onRemoveFriend}
+                    onAdd={onAddFriend}
+                    onCall={onCall}
+                    isBusy={isConnected}
+                />
+            )}
+
             <style jsx>{`
                 .scrollbar-hide::-webkit-scrollbar { display: none; }
                 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -484,13 +499,26 @@ export const MobileVoiceLayout = ({
 
 // --- Subcomponents for Drawers ---
 
-const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onAddFriend, onCall, isBusy }: any) => {
+const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOptions, onCall, isBusy }: any) => {
     const profile = item.partnerProfile || item.peerProfile || {};
     const userId = item.partner_id || item.peer_user_id || profile.id;
     const isFriend = friends.some((f: any) => f.id === userId);
+    const isPendingSent = sentRequests.some((r: any) => (r.user?.id || r.target_user_id) === userId);
+    const isPendingReceived = pendingRequests.some((r: any) => (r.user?.id || r.from_user_id) === userId);
 
     return (
-        <div className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
+        <div
+            onClick={() => onSelectOptions({
+                id: userId,
+                username: item.partner_username || profile.username || 'Unknown',
+                avatar: item.partner_avatar || profile.avatar,
+                isFriend,
+                isPendingSent,
+                isPendingReceived,
+                status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger'
+            })}
+            className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
+        >
             <div className="flex items-center gap-4">
                 <div className="relative">
                     <img
@@ -512,38 +540,36 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onAddFriend
                                 {Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s
                             </span>
                         </div>
-                        <span className="text-zinc-200 text-[10px]">•</span>
+                        <span className="text-zinc-200 text-[10px]"> • </span>
                         <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{formatDate(item.created_at)}</span>
                     </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-2">
-                {!isFriend ? (
-                    <button
-                        onClick={() => onAddFriend?.(userId)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-600 active:scale-90"
-                    >
-                        <UserPlus className="w-4 h-4" />
-                    </button>
-                ) : (
+                {isFriend ? (
                     <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-50 text-pink-600">
                         <UserCheck className="w-4 h-4" />
                     </div>
+                ) : isPendingSent ? (
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-400">
+                        <Clock className="w-4 h-4" />
+                    </div>
+                ) : isPendingReceived ? (
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-100 text-pink-500 animate-pulse">
+                        <UserPlus className="w-4 h-4" />
+                    </div>
+                ) : (
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-400">
+                        <Plus className="w-4 h-4" />
+                    </div>
                 )}
-                <button
-                    onClick={() => onCall?.(userId)}
-                    disabled={isBusy || !item.partner_status?.is_online}
-                    className={`w-9 h-9 flex items-center justify-center rounded-xl active:scale-90 shadow-sm ${isBusy || !item.partner_status?.is_online ? 'bg-zinc-50 text-zinc-200' : 'bg-zinc-900 text-white shadow-zinc-200'}`}
-                >
-                    <Phone className="w-3.5 h-3.5 fill-current" />
-                </button>
             </div>
         </div>
     );
 };
 
-const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDecline, onCancel, onCall, isBusy }: any) => {
+const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions, onCall, isBusy }: any) => {
     const [tab, setTab] = useState<'friends' | 'pending'>('friends');
 
     return (
@@ -564,7 +590,17 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
             <div className="space-y-6">
                 {tab === 'friends' ? (
                     friends.length > 0 ? friends.map((f: any, idx: number) => (
-                        <div key={f.id || `friend-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
+                        <div
+                            key={f.id || `friend-${idx}`}
+                            onClick={() => onSelectOptions({
+                                id: f.id,
+                                username: f.username,
+                                avatar: f.avatar,
+                                isFriend: true,
+                                status: 'Friend'
+                            })}
+                            className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
+                        >
                             <div className="flex items-center gap-4">
                                 <div className="relative">
                                     <img src={getAvatarUrl(f.avatar)} alt={f.username} className="w-12 h-12 rounded-[20px] object-cover border border-zinc-100 shadow-sm" />
@@ -575,13 +611,9 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                                     <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : 'Recent'}</span>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => onCall?.(f.id)}
-                                disabled={isBusy || !f.is_online}
-                                className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${isBusy || !f.is_online ? 'bg-zinc-50 text-zinc-200' : 'bg-zinc-900 text-white shadow-lg shadow-zinc-200'}`}
-                            >
-                                <Phone className="w-4 h-4 fill-current" />
-                            </button>
+                            <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">
+                                <ChevronDown className="w-4 h-4" />
+                            </div>
                         </div>
                     )) : <EmptyState icon={Users} title="Friendly neighborhood" subtitle="Your confirmed friends will be listed here." />
                 ) : (
@@ -591,18 +623,25 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                                 <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Received Requests</h3>
                                 <div className="space-y-4">
                                     {pendingRequests.map((req: any, idx: number) => (
-                                        <div key={req.id || `pending-${idx}`} className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300">
+                                        <div
+                                            key={req.id || `pending-${idx}`}
+                                            onClick={() => onSelectOptions({
+                                                id: req.id,
+                                                username: req.user?.username,
+                                                avatar: req.user?.avatar,
+                                                isPendingReceived: true,
+                                                status: 'Request Received'
+                                            })}
+                                            className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
+                                        >
                                             <div className="flex items-center gap-3">
                                                 <img src={getAvatarUrl(req.user?.avatar)} alt="" className="w-10 h-10 rounded-2xl object-cover" />
                                                 <span className="text-sm font-bold text-zinc-900">{req.user?.username}</span>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button onClick={() => onDecline?.(req.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-400">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => onAccept?.(req.id)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-500 text-white shadow-sm">
-                                                    <UserCheck className="w-4 h-4" />
-                                                </button>
+                                                <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-pink-100 text-pink-500 animate-pulse">
+                                                    <UserPlus className="w-4 h-4" />
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -614,12 +653,22 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onAccept, onDec
                                 <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-4">Sent by You</h3>
                                 <div className="space-y-4">
                                     {sentRequests.map((req: any, idx: number) => (
-                                        <div key={req.id || `sent-${idx}`} className="flex items-center justify-between opacity-70">
+                                        <div
+                                            key={req.id || `sent-${idx}`}
+                                            onClick={() => onSelectOptions({
+                                                id: req.id,
+                                                username: req.user?.username,
+                                                avatar: req.user?.avatar,
+                                                isPendingSent: true,
+                                                status: 'Request Sent'
+                                            })}
+                                            className="flex items-center justify-between opacity-70 active:opacity-40 transition-all cursor-pointer"
+                                        >
                                             <div className="flex items-center gap-3">
                                                 <img src={getAvatarUrl(req.user?.avatar)} alt="" className="w-10 h-10 rounded-2xl object-cover grayscale" />
                                                 <span className="text-sm font-bold text-zinc-600">{req.user?.username}</span>
                                             </div>
-                                            <button onClick={() => onCancel?.(req.id)} className="px-4 py-2 bg-zinc-50 text-zinc-400 text-[9px] font-black uppercase tracking-widest rounded-xl">Cancel</button>
+                                            <div className="px-3 py-1.5 bg-zinc-50 text-zinc-400 text-[9px] font-black uppercase tracking-widest rounded-xl">Pending</div>
                                         </div>
                                     ))}
                                 </div>
@@ -751,6 +800,82 @@ const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountr
                         {currentCountry === c.code && <div className="w-2 h-2 bg-pink-500 rounded-full" />}
                     </button>
                 ))}
+            </div>
+        </div>
+    );
+};
+
+const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRemove, onAdd, onCall, isBusy }: any) => {
+    if (!user) return null;
+
+    const isFriend = user.isFriend;
+    const isPendingSent = user.isPendingSent;
+    const isPendingReceived = user.isPendingReceived;
+
+    return (
+        <div className="fixed inset-0 z-[110] flex flex-col justify-end">
+            <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
+            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100">
+                <div className="flex justify-center mb-6">
+                    <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
+                </div>
+
+                <div className="flex flex-col items-center mb-8">
+                    <div className="relative">
+                        <img src={getAvatarUrl(user.avatar)} className="w-20 h-20 rounded-[32px] border-4 border-zinc-50 shadow-sm mb-4 object-cover" />
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border border-zinc-100 shadow-sm">
+                            {isFriend ? <UserCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Plus className="w-3.5 h-3.5 text-zinc-400" />}
+                        </div>
+                    </div>
+                    <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
+                    <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] mt-1">{user.status}</p>
+                </div>
+
+                <div className="grid gap-3">
+                    {isPendingReceived && (
+                        <>
+                            <button onClick={() => { onAccept?.(user.id); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
+                                <UserCheck className="w-5 h-5" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Accept Friend Request</span>
+                            </button>
+                            <button onClick={() => { onDecline?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                                <Trash2 className="w-5 h-5" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Decline Request</span>
+                            </button>
+                        </>
+                    )}
+
+                    {isFriend && (
+                        <>
+                            <button onClick={() => { onCall?.(user.id); onClose(); }} disabled={isBusy} className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy ? 'bg-zinc-50 text-zinc-200 cursor-not-allowed' : 'bg-zinc-900 text-white shadow-xl shadow-zinc-200'}`}>
+                                <Phone className="w-5 h-5 fill-current" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Start Voice Call</span>
+                            </button>
+                            <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                                <UserMinus className="w-5 h-5" />
+                                <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
+                            </button>
+                        </>
+                    )}
+
+                    {isPendingSent && (
+                        <button onClick={() => { onCancel?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                            <Trash2 className="w-5 h-5" />
+                            <span className="font-black uppercase tracking-widest text-[11px]">Cancel Sent Request</span>
+                        </button>
+                    )}
+
+                    {!isFriend && !isPendingSent && !isPendingReceived && (
+                        <button onClick={() => { onAdd?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+                            <UserPlus className="w-5 h-5" />
+                            <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
+                        </button>
+                    )}
+
+                    <button onClick={onClose} className="w-full h-14 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase tracking-widest">
+                        Dismiss
+                    </button>
+                </div>
             </div>
         </div>
     );
