@@ -103,7 +103,7 @@ export const MobileVoiceLayout = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none touch-none">
+        <div className="fixed inset-0 bg-white flex flex-col z-[100] animate-in fade-in duration-500 overflow-hidden font-sans select-none">
 
             {/* Premium Background Blobs */}
             <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[40%] bg-gradient-to-b from-zinc-50/50 to-transparent blur-[100px] pointer-events-none" />
@@ -350,9 +350,13 @@ export const MobileVoiceLayout = ({
                                 <h2 className="text-lg font-black text-zinc-900 uppercase tracking-widest">
                                     {activeDrawer === 'history' ? 'Recent Calls' : activeDrawer === 'community' ? 'Friends' : activeDrawer === ('filter' as any) ? 'Match Preferences' : activeDrawer === ('country-select' as any) ? 'Select Country' : 'Discussion'}
                                 </h2>
-                                {activeDrawer === ('filter' as any) && (
-                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mt-1">Select your preferred region</p>
-                                )}
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mt-1">
+                                    {activeDrawer === 'history' ? 'Review your recent conversations' :
+                                        activeDrawer === 'community' ? 'Manage your friends' :
+                                            activeDrawer === ('filter' as any) ? 'Select your preferred region' :
+                                                activeDrawer === ('country-select' as any) ? 'Choose a specific location' :
+                                                    'Stay connected with the community'}
+                                </p>
                             </div>
                             <button
                                 onClick={() => setActiveDrawer(null)}
@@ -363,7 +367,14 @@ export const MobileVoiceLayout = ({
                         </div>
 
                         {/* Scrollable List */}
-                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto overscroll-behavior-contain">
+                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto overscroll-contain">
+                            {activeDrawer === ('filter' as any) && (
+                                <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-50 mb-6">
+                                    <p className="text-[10px] text-zinc-400 leading-relaxed font-medium">
+                                        Preferences take priority. If no matches are found for your selected country, we'll connect you with available users worldwide to keep you talking.
+                                    </p>
+                                </div>
+                            )}
                             {activeDrawer === ('filter' as any) && (
                                 <div className="space-y-8 pt-4">
                                     <div className="space-y-4">
@@ -415,9 +426,6 @@ export const MobileVoiceLayout = ({
                                         </div>
                                     </div>
 
-                                    <p className="text-[10px] text-zinc-400 leading-relaxed font-medium bg-zinc-50 p-4 rounded-xl">
-                                        Preferences take priority. If no matches are found for your selected country, we'll connect you with available users worldwide to keep you talking.
-                                    </p>
                                 </div>
                             )}
 
@@ -814,7 +822,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                     <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
                 </div>
 
-                <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-behavior-contain">
+                <div className="flex-1 overflow-y-auto scrollbar-hide overscroll-contain">
                     <div className="flex flex-col items-center mb-8">
                         <div className="relative">
                             <img src={getAvatarUrl(user.avatar)} className="w-20 h-20 rounded-[32px] border-4 border-zinc-50 shadow-sm mb-4 object-cover" />
