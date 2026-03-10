@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { logger } from '../../core/logger';
 import { userService } from '../../shared/services/user.service';
-import { voiceQueue, voiceBuckets, removeUserFromQueues } from './matchmaking.store';
+import { voiceQueue, voiceBuckets, removeUserFromQueues, lastPartners } from './matchmaking.store';
 import { activeCalls, reconnectingUsers } from '../call/call.store';
 import { userMediaState } from '../media/media.store';
 import { User } from '../../shared/types/socket.types';
@@ -17,11 +17,36 @@ let heartbeatSetup = false;
 // ── Matching logic ────────────────────────────────────────────────────────────
 
 const tryMatch = async (io: Server, queued: User): Promise<void> => {
-    const idx = voiceQueue.findIndex(u => u.id !== queued.id);
+    const now = Date.now();
+    const waitTime = now - queued.joined_at;
+    const myLastPartnerId = queued.user_id !== 'unknown' ? lastPartners.get(queued.user_id) : null;
+
+    const idx = voiceQueue.findIndex(u => {
+        if (u.id === queued.id) return false;
+
+        // Fallback: If wait time is > 10s, we accept anyone
+        if (waitTime > 10000) return true;
+
+        // Otherwise, avoid immediate rematch with the last partner
+        if (myLastPartnerId && u.user_id === myLastPartnerId) return false;
+
+        // Also check if WE were the other person's last partner
+        const theirLastPartnerId = u.user_id !== 'unknown' ? lastPartners.get(u.user_id) : null;
+        if (theirLastPartnerId && queued.user_id === theirLastPartnerId) return false;
+
+        return true;
+    });
+
     if (idx === -1) return;
 
     const partner = voiceQueue.splice(idx, 1)[0];
     removeUserFromQueues(queued.id);
+
+    // Update last partner records
+    if (queued.user_id !== 'unknown' && partner.user_id !== 'unknown') {
+        lastPartners.set(queued.user_id, partner.user_id);
+        lastPartners.set(partner.user_id, queued.user_id);
+    }
 
     // Fetch friendship status if both have user_id
     let friendshipStatus = 'none';
@@ -209,7 +234,16 @@ export const setupMatchmaking = (io: Server): void => {
                 logger.info({ socketId: user.id }, '[MATCHMAKING] Queue timeout — removed');
             }
         }
-    }, 10_000);
+
+        // 2. Proactive matching for waiting users (handles 10s fallback)
+        if (voiceQueue.length >= 2) {
+            // We only need to try matching for the first few users to avoid O(N^2) every tick
+            const topUsers = voiceQueue.slice(0, 5);
+            for (const user of topUsers) {
+                tryMatch(io, user);
+            }
+        }
+    }, 3000);
 };
 
 // ── Disconnect handler ────────────────────────────────────────────────────────
