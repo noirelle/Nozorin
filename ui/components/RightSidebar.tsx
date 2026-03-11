@@ -62,7 +62,8 @@ const formatDuration = (seconds?: number): string => {
 const formatDate = (timestamp: number | string): string => {
     const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
     if (!ts) return '';
-    const date = new Date(ts);
+    const timeMs = ts < 1e12 ? ts * 1000 : ts;
+    const date = new Date(timeMs);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -74,7 +75,7 @@ const formatDate = (timestamp: number | string): string => {
     }
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
 const getReasonLabel = (reason?: string): string => {
@@ -106,7 +107,9 @@ const getReasonColor = (reason?: string): string => {
 
 const formatLastActive = (timestamp: number): string => {
     if (!timestamp) return 'Never';
-    const diffMs = Date.now() - timestamp;
+    // Ensure timestamp is in milliseconds (if it's in seconds, it'll be a small number like 171xxx)
+    const timeMs = timestamp < 1e12 ? timestamp * 1000 : timestamp;
+    const diffMs = Date.now() - timeMs;
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
@@ -114,7 +117,11 @@ const formatLastActive = (timestamp: number): string => {
     if (diffSec < 60) return 'Just now';
     if (diffMin < 60) return `${diffMin}m ago`;
     if (diffHour < 24) return `${diffHour}h ago`;
-    return new Date(timestamp).toLocaleDateString();
+    // If more than a day, show the actual date without time
+    return new Date(timeMs).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric'
+    });
 };
 
 interface RightSidebarProps {
@@ -285,7 +292,7 @@ export const RightSidebar = ({
                                                         {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
                                                     </div>
                                                     <p className={`text-[10px] font-medium ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                                                        {user.isActive ? 'Active' : (user.lastSeen ? formatLastActive(user.lastSeen) : 'Recently')}
+                                                        {user.isActive ? 'Active' : (user.lastSeen ? formatLastActive(user.lastSeen) : 'Recent')}
                                                     </p>
                                                 </div>
                                             </div>

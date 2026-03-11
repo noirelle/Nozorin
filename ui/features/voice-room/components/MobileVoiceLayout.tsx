@@ -619,7 +619,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-zinc-900">{f.username}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : 'Recent'}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : (f.last_seen ? formatDate(f.last_seen) : 'Recent')}</span>
                                 </div>
                             </div>
                             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">
@@ -741,11 +741,12 @@ const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
 
 const formatDate = (ts: any) => {
     if (!ts) return 'Recent';
-    const date = new Date(ts);
+    const timeMs = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts;
+    const date = new Date(timeMs);
     const diff = Date.now() - date.getTime();
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
