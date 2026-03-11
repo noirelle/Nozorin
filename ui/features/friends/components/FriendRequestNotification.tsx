@@ -26,6 +26,14 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
     const isAcceptance = type === 'accepted';
     const isNegative = type === 'removed' || type === 'cancelled';
 
+    // Auto-dismiss after 5 seconds
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
     return (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] w-[95%] max-w-[420px] animate-in slide-in-from-top-12 duration-500 ease-out">
             <div className="relative group">
@@ -76,18 +84,6 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
                                 )}
                             </div>
                         </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={onClose}
-                            className="px-6 h-10 flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95"
-                            title="Close"
-                        >
-                            <X className="w-4 h-4 mr-1" />
-                            <span>Close</span>
-                        </button>
                     </div>
                 </div>
             </div>
