@@ -28,9 +28,14 @@ export const getGeoInfo = (ip: string): GeoInfo | null => {
     try {
         const geo = geoip.lookup(cleanIp);
         if (geo && geo.country) {
+            let countryName = getName(geo.country) || undefined;
+            if (countryName) {
+                // Clean up generic suffixes returned by country-list (e.g. "Philippines (the)", "Korea (the Republic of)")
+                countryName = countryName.replace(/\s*\([^)]+\)/g, '');
+            }
             return {
                 country: geo.country,
-                country_name: getName(geo.country) || undefined
+                country_name: countryName
             };
         }
     } catch (e) {
