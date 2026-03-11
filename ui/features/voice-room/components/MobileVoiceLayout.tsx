@@ -546,15 +546,16 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                         <span className="text-sm font-bold text-zinc-900">{item.partner_username || profile.username || 'Unknown'}</span>
                         <ReactCountryFlag countryCode={item.partner_country || profile.country || 'US'} svg className="w-3.5 h-2.5 opacity-60 rounded-[1px]" />
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                        <div className="flex items-center gap-1">
-                            <Clock className="w-2.5 h-2.5 text-zinc-400" />
-                            <span className="text-[10px] font-bold text-zinc-500 tabular-nums uppercase tracking-tighter">
-                                {Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s
-                            </span>
-                        </div>
-                        <span className="text-zinc-200 text-[10px]"> • </span>
-                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{formatDate(item.created_at)}</span>
+                    <div className="flex flex-col gap-0.5 mt-1">
+                        <p className="text-[10px] font-medium text-zinc-500">
+                            <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-800 font-bold">{Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s</span>
+                        </p>
+                        <p className="text-[10px] font-medium text-zinc-500">
+                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
+                        </p>
+                        <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                            {item.partner_status?.is_online ? 'Active Now' : (item.partner_status?.last_seen ? `Active ${formatDate(item.partner_status.last_seen)}` : 'Offline')}
+                        </p>
                     </div>
                 </div>
             </div>

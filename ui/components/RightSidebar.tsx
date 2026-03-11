@@ -414,9 +414,17 @@ export const RightSidebar = ({
                                                         <p className="text-[12px] font-bold text-zinc-900">{user.username}</p>
                                                         {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
                                                     </div>
-                                                    <p className="text-[9px] font-medium text-zinc-400 uppercase tracking-tight">
-                                                        {user.createdAt ? formatDate(user.createdAt) : 'Recently'} • {user.duration}
-                                                    </p>
+                                                    <div className="flex flex-col gap-0.5 mt-1">
+                                                        <p className="text-[9px] font-medium text-zinc-500">
+                                                            <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-700 font-bold">{user.duration}</span>
+                                                        </p>
+                                                        <p className="text-[9px] font-medium text-zinc-500">
+                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{user.createdAt ? formatDate(user.createdAt) : 'Recently'}</span>
+                                                        </p>
+                                                        <p className={`text-[9px] font-bold mt-0.5 ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                                                            {user.isActive ? 'Active Now' : (user.lastSeen ? `Active ${formatLastActive(user.lastSeen)}` : 'Offline')}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1.5 transition-all">
