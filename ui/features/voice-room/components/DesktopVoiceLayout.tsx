@@ -30,9 +30,9 @@ export const DesktopVoiceLayout = ({
         <main className="flex-1 lg:ml-[72px] flex justify-center h-screen overflow-hidden">
             <div className="w-full max-w-[935px] flex h-full">
                 {/* Content Column */}
-                <div className="flex-1 max-w-[630px] pt-8 px-8">
-                    <div className="flex flex-col h-full">
-                        <div className="mb-6 flex items-center h-10">
+                <div className="flex-1 max-w-[630px] pt-8 px-8 min-h-0">
+                    <div className="flex flex-col h-full min-h-0">
+                        <div className="mb-6 flex items-center h-10 shrink-0">
                             <button
                                 onClick={onLeave}
                                 className="p-2 hover:bg-pink-50 text-zinc-900 rounded-full transition-colors"

@@ -366,8 +366,8 @@ export const MobileVoiceLayout = ({
                             </button>
                         </div>
 
-                        {/* Scrollable List */}
-                        <div className="flex-1 overflow-y-auto px-6 pb-12 scrollbar-hide touch-auto overscroll-contain">
+                        {/* Scrollable List or Chat Container */}
+                        <div className={`flex-1 flex flex-col px-6 ${activeDrawer === 'chat' ? 'pb-6 overflow-hidden' : 'overflow-y-auto pb-12 scrollbar-hide touch-auto overscroll-contain'}`}>
                             {activeDrawer === ('filter' as any) && (
                                 <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-50 mb-6">
                                     <p className="text-[10px] text-zinc-400 leading-relaxed font-medium">
@@ -698,7 +698,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
 
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
     return (
-        <div className="flex flex-col h-[50vh]">
+        <div className="flex flex-col h-full min-h-[50vh]">
             <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide touch-auto">
                 {messages.length > 0 ? messages.map((m: any, i: number) => (
                     <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
@@ -709,19 +709,19 @@ const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }:
                 )) : <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="bg-zinc-50 rounded-3xl p-2.5 flex items-center gap-2 border border-zinc-100 shadow-inner">
+            <div className="mt-auto bg-white rounded-full px-4 py-1.5 flex items-center gap-3 border border-zinc-200 focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50 transition-all shadow-sm shrink-0">
                 <input
                     type="text"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && onSend()}
                     placeholder="Message..."
-                    className="flex-1 bg-transparent px-3 text-sm focus:outline-none"
+                    className="flex-1 h-10 bg-transparent text-[13px] font-medium text-zinc-900 placeholder-zinc-400 focus:outline-none"
                 />
                 <button
                     onClick={onSend}
                     disabled={!inputText.trim()}
-                    className={`h-9 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${inputText.trim() ? 'bg-pink-500 text-white shadow-lg shadow-pink-200' : 'bg-zinc-200 text-zinc-400 opacity-50'}`}
+                    className={`shrink-0 h-9 px-5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${inputText.trim() ? 'bg-pink-500 text-white shadow-md shadow-pink-200 active:scale-95' : 'bg-zinc-100 text-zinc-300 pointer-events-none'}`}
                 >
                     Send
                 </button>

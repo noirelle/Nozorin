@@ -40,7 +40,6 @@ export const useVoiceRoom = ({
 
     const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
     const remoteAudioRef = useRef<HTMLAudioElement>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Native Permission Check
     useEffect(() => {
@@ -85,7 +84,7 @@ export const useVoiceRoom = ({
     });
 
     // Chat
-    const { messages, sendMessage, clearMessages } = useChat(callRoomState.partner_id);
+    const { messages, sendMessage, clearMessages, messagesEndRef } = useChat(callRoomState.partner_id);
 
     // Actions
     const actions = useRoomActions({
