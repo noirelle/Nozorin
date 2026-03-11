@@ -6,6 +6,7 @@ import { MediaStreamManager } from '../../../../lib/mediaStream';
 
 interface UseWebRTCProps {
     is_media_ready: boolean;
+    role?: 'offerer' | 'answerer' | null;
     mediaManager: MutableRefObject<MediaStreamManager | null>;
     remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
@@ -14,6 +15,7 @@ interface UseWebRTCProps {
 
 export const useWebRTC = ({
     is_media_ready,
+    role,
     mediaManager,
     remoteAudioRef,
     onConnectionStateChange,
@@ -22,6 +24,7 @@ export const useWebRTC = ({
     const { peerConnectionRef, ICE_CONFIG, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef } = useWebRTCState();
     const actions = useWebRTCActions({
         is_media_ready,
+        role,
         peerConnectionRef,
         ICE_CONFIG,
         pendingOfferRef,

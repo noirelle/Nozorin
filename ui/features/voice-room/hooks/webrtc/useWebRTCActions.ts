@@ -1,4 +1,4 @@
-import { useCallback, useEffect, MutableRefObject, RefObject } from 'react';
+import { useCallback, useEffect, useRef, MutableRefObject, RefObject } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 import {
     emitOffer,
@@ -9,6 +9,7 @@ import { UseWebRTCStateReturn } from './useWebRTCState';
 
 interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
     is_media_ready: boolean;
+    role?: 'offerer' | 'answerer' | null;
     mediaManager: MutableRefObject<MediaStreamManager | null>;
     remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
@@ -17,6 +18,7 @@ interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
 
 export const useWebRTCActions = ({
     is_media_ready,
+    role,
     peerConnectionRef,
     ICE_CONFIG,
     pendingOfferRef,
@@ -27,6 +29,9 @@ export const useWebRTCActions = ({
     onConnectionStateChange,
     onSignalQuality,
 }: UseWebRTCActionsProps) => {
+    const createOfferRef = useRef<((partnerId: string, options?: RTCOfferOptions) => Promise<void>) | null>(null);
+    const lastIceRestartRef = useRef<number>(0);
+
     const createPeerConnection = useCallback((targetId: string) => {
         const stream = mediaManager.current?.getStream();
         if (!stream) {
@@ -66,14 +71,26 @@ export const useWebRTCActions = ({
 
         pc.onconnectionstatechange = () => {
             const state = pc.connectionState;
-            if (state === 'disconnected') onSignalQuality?.('reconnecting');
+            if (state === 'disconnected') {
+                onSignalQuality?.('reconnecting');
+                // Polite Peer mechanism: only the offerer triggers ICE restarts to prevent glaring.
+                if (role === 'offerer') {
+                    const partnerId = targetId;
+                    const now = Date.now();
+                    // Throttle ICE restarts to once every 5 seconds max
+                    if (partnerId && (now - lastIceRestartRef.current) > 5000) {
+                        lastIceRestartRef.current = now;
+                        createOfferRef.current?.(partnerId, { iceRestart: true });
+                    }
+                }
+            }
             else if (state === 'connected') onSignalQuality?.('good');
             if (state === 'failed' || state === 'closed') onConnectionStateChange?.(state);
             if (state === 'disconnected') onConnectionStateChange?.(state);
         };
 
         return pc;
-    }, [mediaManager, remoteAudioRef, onConnectionStateChange, onSignalQuality, peerConnectionRef, ICE_CONFIG]);
+    }, [mediaManager, remoteAudioRef, onConnectionStateChange, onSignalQuality, peerConnectionRef, ICE_CONFIG, role]);
 
     const processQueuedIceCandidates = useCallback(async (pc: RTCPeerConnection) => {
         const queued = pendingIceCandidatesRef.current.length;
@@ -102,16 +119,20 @@ export const useWebRTCActions = ({
         if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
     }, [peerConnectionRef, remoteAudioRef]);
 
-    const createOffer = useCallback(async (partnerId: string) => {
-        const pc = createPeerConnection(partnerId);
+    const createOffer = useCallback(async (partnerId: string, options?: RTCOfferOptions) => {
+        const pc = peerConnectionRef.current || createPeerConnection(partnerId);
         if (!pc) {
             console.error('[WebRTC] createOffer: peer connection could not be created — aborting');
             return;
         }
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer(options);
         await pc.setLocalDescription(offer);
         emitOffer(partnerId, offer);
-    }, [createPeerConnection]);
+    }, [createPeerConnection, peerConnectionRef]);
+
+    useEffect(() => {
+        createOfferRef.current = createOffer;
+    }, [createOffer]);
 
     const handleOffer = useCallback(async (sdp: RTCSessionDescriptionInit, callerId: string) => {
         if (!is_media_ready) {

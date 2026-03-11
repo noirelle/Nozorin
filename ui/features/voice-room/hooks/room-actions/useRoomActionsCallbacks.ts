@@ -17,7 +17,8 @@ interface UseRoomActionsCallbacksProps {
         avatar?: string,
         gender?: string,
         user_id?: string | null,
-        friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received'
+        friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received',
+        role?: 'offerer' | 'answerer' | null
     ) => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
@@ -151,7 +152,8 @@ export const useRoomActionsCallbacks = ({
             data.partner_avatar,
             data.partner_gender,
             data.partner_user_id,
-            data.friendship_status
+            data.friendship_status,
+            data.role
         );
         setPartnerIsMuted(!!data.partner_is_muted);
 
@@ -227,7 +229,8 @@ export const useRoomActionsCallbacks = ({
             data.partner_avatar || callRoomState.partner_avatar,
             data.partner_gender || callRoomState.partner_gender,
             data.new_user_id || callRoomState.partner_user_id,
-            (data.friendship_status as any) || callRoomState.friendship_status
+            (data.friendship_status as any) || callRoomState.friendship_status,
+            data.your_role
         );
 
         // Power up local media unconditionally before dealing with offers
@@ -252,7 +255,8 @@ export const useRoomActionsCallbacks = ({
             data.partner_avatar || callRoomState.partner_avatar,
             data.partner_gender || callRoomState.partner_gender,
             data.partner_user_id || callRoomState.partner_user_id,
-            data.friendship_status || callRoomState.friendship_status
+            data.friendship_status || callRoomState.friendship_status,
+            data.role
         );
 
         // Power up local media unconditionally before dealing with offers

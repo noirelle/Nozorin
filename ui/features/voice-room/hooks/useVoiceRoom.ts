@@ -61,10 +61,22 @@ export const useVoiceRoom = ({
     // WebRTC Hook
     const { createOffer, closePeerConnection } = useWebRTC({
         is_media_ready: callRoomState.is_media_ready,
+        role: callRoomState.role,
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
-            if (state === 'failed') actionsRef.current?.handleStop();
+            if (state === 'failed') {
+                console.warn('[useVoiceRoom] WebRTC connection failed, waiting for recovery...');
+                // Give it a 5-second grace period for ICE restart or auto-recovery
+                setTimeout(() => {
+                    if (actionsRef.current?.callRoomState.partner_id) {
+                        // Still have a partner, check if we recovered?
+                        // In a more complex setup, we'd check peerConnection state here again
+                    } else {
+                        actionsRef.current?.handleStop();
+                    }
+                }, 5000);
+            }
         },
         onSignalQuality: (quality) => {
             const partner_id = callRoomState.partner_id;

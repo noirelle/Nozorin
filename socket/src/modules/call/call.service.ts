@@ -177,7 +177,7 @@ export const callService = {
         // 1. Clean up stale call heartbeats
         const now = Date.now();
         for (const [sid, info] of activeCalls.entries()) {
-            if (now - info.last_seen > 15000) {
+            if (now - info.last_seen > 30000) {
                 // Guard: don't terminate if the partner (or this socket's user) is in an active
                 // reconnection grace period. The stale partner_id is expected when one side is
                 // mid-refresh — killing the call here would destroy the reconnect window.

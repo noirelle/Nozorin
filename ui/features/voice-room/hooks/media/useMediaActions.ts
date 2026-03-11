@@ -24,6 +24,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
         gender?: string,
         user_id?: string | null,
         friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received',
+        role?: 'offerer' | 'answerer' | null,
     ) => {
         setState(prev => ({
             ...prev,
@@ -35,6 +36,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
             partner_avatar: getAvatarUrl(avatar),
             partner_gender: gender || '',
             friendship_status: friendship_status || 'none',
+            role: role || null,
         }));
     }, [setState]);
 
@@ -53,6 +55,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
             partner_gender: '',
             partner_id: null,
             partner_user_id: null,
+            role: null,
             // We preserve local media states but reset connection states
             is_muted: prev.is_muted,
             is_media_ready: prev.is_media_ready,
