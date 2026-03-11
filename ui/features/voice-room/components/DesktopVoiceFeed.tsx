@@ -191,6 +191,13 @@ export const DesktopVoiceFeed = ({
                             </button>
                         </div>
 
+                        {/* Partner Mute Indicator */}
+                        {isConnected && actions.partnerIsMuted && (
+                            <div className="absolute top-0 -left-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md border border-pink-50 z-20 transition-all animate-in zoom-in duration-500">
+                                <MicOff className="w-4 h-4 text-rose-500" />
+                            </div>
+                        )}
+
                         {/* Location context overlay - moved slightly to avoid clashing with mute */}
                         {isConnected && callRoomState.partner_country && (
                             <div className="absolute top-0 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md border border-pink-50 z-20 transition-all animate-in zoom-in duration-500">

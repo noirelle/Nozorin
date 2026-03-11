@@ -194,6 +194,13 @@ export const MobileVoiceLayout = ({
                             )}
                         </div>
 
+                        {/* Partner Mute Indicator */}
+                        {isConnected && actions.partnerIsMuted && (
+                            <div className="absolute top-2 left-2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-50 z-30 animate-in zoom-in duration-500">
+                                <MicOff className="w-5 h-5 text-rose-500" />
+                            </div>
+                        )}
+
                         {/* Location Badge */}
                         {isConnected && callRoomState.partner_country && (
                             <div className="absolute top-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-pink-50 z-30 animate-in zoom-in duration-500">
