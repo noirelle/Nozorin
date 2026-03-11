@@ -13,12 +13,14 @@ interface FriendRequestNotificationProps {
     };
     onClose: () => void;
     type?: 'received' | 'accepted' | 'sent' | 'cancelled' | 'removed';
+    isActor?: boolean;
 }
 
 export const FriendRequestNotification: React.FC<FriendRequestNotificationProps> = ({
     profile,
     onClose,
-    type = 'received'
+    type = 'received',
+    isActor = false
 }) => {
     // Use the utility for avatar URL with fallback to username-based seed
     const avatarSrc = getAvatarUrl(profile.avatar || profile.username);
@@ -32,7 +34,7 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
             onClose();
         }, 5000);
         return () => clearTimeout(timer);
-    }, [onClose]);
+    }, [onClose, profile.id, type]);
 
     return (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] w-[95%] max-w-[420px] animate-in slide-in-from-top-12 duration-500 ease-out">
@@ -69,7 +71,7 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
                             </h3>
                             <div className="flex items-center gap-1.5">
                                 <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${isAcceptance ? 'text-emerald-600' : isNegative ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                                    {type === 'accepted' ? 'Accepted your request!' :
+                                    {type === 'accepted' ? (isActor ? 'Accepted a friend request' : 'Accepted your request!') :
                                         type === 'sent' ? 'Sent a friend request' :
                                             type === 'cancelled' ? 'Cancelled request' :
                                                 type === 'removed' ? 'Removed from friends' :

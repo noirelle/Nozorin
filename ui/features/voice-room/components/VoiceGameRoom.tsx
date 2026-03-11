@@ -71,7 +71,7 @@ export const VoiceGameRoom = () => {
     const handleAddFriend = useCallback(async (targetId: string, profile?: any) => {
         const result = await sendRequest(targetId);
         if (result.success) {
-            setFriendRequestNotif({ ...(profile || { id: targetId, username: 'User' }), type: 'sent' });
+            setFriendRequestNotif({ ...(profile || { id: targetId, username: 'User' }), type: 'sent', isActor: true });
         } else {
             console.error(`Failed to send request: ${result.error}`);
         }
@@ -81,7 +81,7 @@ export const VoiceGameRoom = () => {
         const result = await acceptRequest(requestId);
         if (result.success) {
             const req = pendingRequests.find(r => r.id === requestId);
-            if (req) setFriendRequestNotif({ ...req.user, type: 'accepted' });
+            if (req) setFriendRequestNotif({ ...req.user, type: 'accepted', isActor: true });
         }
     }, [acceptRequest, pendingRequests]);
 
@@ -89,7 +89,7 @@ export const VoiceGameRoom = () => {
         const result = await cancelRequest(requestId);
         if (result.success) {
             const req = sentRequests.find(r => r.id === requestId);
-            if (req) setFriendRequestNotif({ ...req.user, type: 'cancelled' });
+            if (req) setFriendRequestNotif({ ...req.user, type: 'cancelled', isActor: true });
         }
     }, [cancelRequest, sentRequests]);
 
@@ -97,7 +97,7 @@ export const VoiceGameRoom = () => {
         const result = await removeFriend(friendId);
         if (result.success) {
             const friend = friends.find(f => f.id === friendId);
-            if (friend) setFriendRequestNotif({ ...friend, type: 'removed' });
+            if (friend) setFriendRequestNotif({ ...friend, type: 'removed', isActor: true });
         }
     }, [removeFriend, friends]);
 
@@ -191,7 +191,9 @@ export const VoiceGameRoom = () => {
         router.push('/app');
     };
 
-    const isWebRTCAvailable = true;
+    const handleCloseNotif = useCallback(() => {
+        setFriendRequestNotif(null);
+    }, []);
 
     // THE CENTRAL CONNECTION HOOK
     const voiceRoomData = useVoiceRoom({
@@ -251,6 +253,8 @@ export const VoiceGameRoom = () => {
         searchTimer
     };
 
+    const isWebRTCAvailable = true;
+
     return (
         <>
             <audio ref={voiceRoomData.remoteAudioRef} autoPlay />
@@ -285,7 +289,8 @@ export const VoiceGameRoom = () => {
                 <FriendRequestNotification
                     profile={friendRequestNotif}
                     type={friendRequestNotif.type}
-                    onClose={() => setFriendRequestNotif(null)}
+                    isActor={friendRequestNotif.isActor}
+                    onClose={handleCloseNotif}
                 />
             )}
         </>
