@@ -17,7 +17,8 @@ import {
     Phone,
     Trash2,
     Clock,
-    Plus
+    Plus,
+    Loader2
 } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
@@ -512,11 +513,11 @@ export const MobileVoiceLayout = ({
 const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOptions, onCall, isBusy }: any) => {
     const profile = item.partnerProfile || item.peerProfile || {};
     const userId = item.partner_id || item.peer_user_id || profile.id;
-    const isFriend = friends.some((f: any) => f.id === userId);
-    const sentReq = sentRequests.find((r: any) => (r.user?.id || r.target_user_id) === userId);
-    const receivedReq = pendingRequests.find((r: any) => (r.user?.id || r.from_user_id) === userId);
-    const isPendingSent = !!sentReq;
-    const isPendingReceived = !!receivedReq;
+    const isFriend = (friends && friends.some((f: any) => String(f.id) === String(userId))) || item.friendship_status === 'friends';
+    const sentReq = sentRequests?.find((r: any) => String(r.user?.id || r.target_user_id) === String(userId));
+    const receivedReq = pendingRequests?.find((r: any) => String(r.user?.id || r.from_user_id) === String(userId));
+    const isPendingSent = !!sentReq || item.friendship_status === 'pending_sent';
+    const isPendingReceived = !!receivedReq || item.friendship_status === 'pending_received';
     const requestId = sentReq?.id || receivedReq?.id;
 
     return (
@@ -525,6 +526,8 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                 id: userId,
                 requestId,
                 username: item.partner_username || profile.username || 'Unknown',
+                avatar: item.partner_avatar || profile.avatar,
+                isFriend,
                 isPendingSent,
                 isPendingReceived,
                 status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger',
@@ -607,6 +610,9 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                         <div
                             key={f.id || `friend-${idx}`}
                             onClick={() => onSelectOptions({
+                                id: f.id,
+                                username: f.username || 'Unknown',
+                                avatar: f.avatar,
                                 isFriend: true,
                                 status: 'Friend',
                                 isOnline: f.is_online
@@ -813,6 +819,18 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
     const isPendingSent = user.isPendingSent;
     const isPendingReceived = user.isPendingReceived;
 
+    const [isActioning, setIsActioning] = useState(false);
+
+    const handleAction = async (actionFn: () => Promise<void> | void, actionName: string) => {
+        setIsActioning(true);
+        try {
+            await actionFn();
+        } finally {
+            setIsActioning(false);
+            onClose();
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[110] flex flex-col justify-end">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
@@ -838,13 +856,13 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                     <div className="grid gap-3">
                         {isPendingReceived && (
                             <>
-                                <button onClick={() => { onAccept?.(user.requestId); onClose(); }} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200">
-                                    <UserCheck className="w-5 h-5" />
-                                    <span className="font-black uppercase tracking-widest text-[11px]">Accept Friend Request</span>
+                                <button disabled={isActioning} onClick={() => handleAction(() => onAccept?.(user.requestId), 'accept')} className="w-full h-14 bg-pink-500 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-lg shadow-pink-200 disabled:opacity-50 disabled:active:scale-100">
+                                    {isActioning ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-5 h-5" />}
+                                    <span className="font-black uppercase tracking-widest text-[11px]">{isActioning ? 'Processing...' : 'Accept Friend Request'}</span>
                                 </button>
-                                <button onClick={() => { onDecline?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                                    <Trash2 className="w-5 h-5" />
-                                    <span className="font-black uppercase tracking-widest text-[11px]">Decline Request</span>
+                                <button disabled={isActioning} onClick={() => handleAction(() => onDecline?.(user.requestId), 'decline')} className="w-full h-14 bg-zinc-50 text-zinc-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
+                                    {isActioning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                    <span className="font-black uppercase tracking-widest text-[11px]">{isActioning ? 'Declining...' : 'Decline Request'}</span>
                                 </button>
                             </>
                         )}
@@ -852,13 +870,13 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         {(isFriend || (!isPendingSent && !isPendingReceived)) && (
                             <button
                                 onClick={() => { onCall?.(user.id); onClose(); }}
-                                disabled={isBusy || !user.isOnline}
-                                className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy || !user.isOnline
+                                disabled={isBusy || !user.isOnline || isActioning}
+                                className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy || !user.isOnline || isActioning
                                     ? 'bg-zinc-50 text-zinc-300 cursor-not-allowed'
                                     : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-200/50'
                                     }`}
                             >
-                                <Phone className={`w-5 h-5 ${isBusy || !user.isOnline ? 'text-zinc-200' : 'fill-current'}`} />
+                                <Phone className={`w-5 h-5 ${isBusy || !user.isOnline || isActioning ? 'text-zinc-200' : 'fill-current'}`} />
                                 <span className="font-black uppercase tracking-widest text-[11px]">
                                     {isBusy ? 'System Busy' : !user.isOnline ? 'User Offline' : 'Start Voice Call'}
                                 </span>
@@ -866,27 +884,27 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         )}
 
                         {isFriend && (
-                            <button onClick={() => { onRemove?.(user.id); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                                <UserMinus className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Remove Friend</span>
+                            <button disabled={isActioning} onClick={() => handleAction(() => onRemove?.(user.id), 'remove')} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
+                                {isActioning ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserMinus className="w-5 h-5" />}
+                                <span className="font-black uppercase tracking-widest text-[11px]">{isActioning ? 'Removing...' : 'Remove Friend'}</span>
                             </button>
                         )}
 
                         {isPendingSent && (
-                            <button onClick={() => { onCancel?.(user.requestId); onClose(); }} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
-                                <Trash2 className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Cancel Sent Request</span>
+                            <button disabled={isActioning} onClick={() => handleAction(() => onCancel?.(user.requestId), 'cancel')} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
+                                {isActioning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                <span className="font-black uppercase tracking-widest text-[11px]">{isActioning ? 'Canceling...' : 'Cancel Sent Request'}</span>
                             </button>
                         )}
 
                         {!isFriend && !isPendingSent && !isPendingReceived && (
-                            <button onClick={() => { onAdd?.(user.id, user); onClose(); }} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2">
-                                <UserPlus className="w-5 h-5" />
-                                <span className="font-black uppercase tracking-widest text-[11px]">Add Friend</span>
+                            <button disabled={isActioning} onClick={() => handleAction(() => onAdd?.(user.id, user), 'add')} className="w-full h-14 bg-zinc-900 text-white rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-xl shadow-zinc-200 mt-2 disabled:opacity-50 disabled:active:scale-100">
+                                {isActioning ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
+                                <span className="font-black uppercase tracking-widest text-[11px]">{isActioning ? 'Adding...' : 'Add Friend'}</span>
                             </button>
                         )}
 
-                        <button onClick={onClose} className="w-full h-14 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase tracking-widest">
+                        <button onClick={onClose} disabled={isActioning} className="w-full h-14 flex items-center justify-center text-zinc-400 font-bold text-xs uppercase tracking-widest disabled:opacity-50">
                             Dismiss
                         </button>
                     </div>

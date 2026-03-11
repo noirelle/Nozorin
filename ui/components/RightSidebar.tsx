@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
-import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon } from 'lucide-react';
+import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon, Loader2, X } from 'lucide-react';
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 
@@ -242,6 +242,33 @@ export const RightSidebar = ({
         };
     });
 
+    // Helper component for buttons with localized loading states
+    const ActionButton = ({ onClick, className, title, icon: Icon, disabled = false }: any) => {
+        const [isActioning, setIsActioning] = useState(false);
+
+        const handleClick = async (e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (isActioning || disabled || !onClick) return;
+            setIsActioning(true);
+            try {
+                await onClick();
+            } finally {
+                setIsActioning(false);
+            }
+        };
+
+        return (
+            <button
+                onClick={handleClick}
+                disabled={disabled || isActioning}
+                className={`${className} ${isActioning || disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={title}
+            >
+                {isActioning ? <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" /> : <Icon className="w-4 h-4 flex-shrink-0" />}
+            </button>
+        );
+    };
+
     return (
         <aside className="w-[320px] pt-8 pl-8 hidden lg:block flex flex-col h-screen overflow-hidden">
             {/* 1. Fixed Header Area */}
@@ -305,12 +332,12 @@ export const RightSidebar = ({
                                                 >
                                                     <Phone className="w-4 h-4 fill-current" />
                                                 </button>
-                                                <button
+                                                <ActionButton
                                                     onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
                                                     className="w-9 h-9 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-95"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                    icon={Trash2}
+                                                    title="Remove Friend"
+                                                />
                                             </div>
                                         </div>
                                     )) : (
@@ -344,18 +371,16 @@ export const RightSidebar = ({
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1.5">
-                                                            <button
+                                                            <ActionButton
                                                                 onClick={() => onAcceptRequest && onAcceptRequest(req.id)}
                                                                 className="w-8 h-8 flex items-center justify-center bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all shadow-sm active:scale-90"
-                                                            >
-                                                                <UserCheck className="w-3.5 h-3.5" />
-                                                            </button>
-                                                            <button
+                                                                icon={UserCheck}
+                                                            />
+                                                            <ActionButton
                                                                 onClick={() => onDeclineRequest && onDeclineRequest(req.id)}
                                                                 className="w-8 h-8 flex items-center justify-center bg-white text-zinc-400 rounded-lg hover:bg-zinc-100 transition-all border border-zinc-200 active:scale-90"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
+                                                                icon={Trash2}
+                                                            />
                                                         </div>
                                                     </div>
                                                 ))}
@@ -377,12 +402,12 @@ export const RightSidebar = ({
                                                                 {p.country && <ReactCountryFlag countryCode={p.country} svg className="w-3 h-3 rounded-sm grayscale" />}
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={() => onCancelRequest && onCancelRequest(p.id)}
-                                                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
+                                                        <ActionButton
+                                                            onClick={onCancelRequest ? () => onCancelRequest(p.id) : undefined}
+                                                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors bg-transparent border-none p-0 outline-none flex items-center opacity-100 disabled:opacity-50 gap-1"
+                                                            icon={X}
+                                                            title="Cancel Request"
+                                                        />
                                                     </div>
                                                 ))}
                                             </div>
@@ -429,22 +454,20 @@ export const RightSidebar = ({
                                             </div>
                                             <div className="flex items-center gap-1.5 transition-all">
                                                 {!user.isFriend && !user.isPendingSent && !user.isPendingReceived && (
-                                                    <button
+                                                    <ActionButton
                                                         onClick={() => user.userId && onAddFriend && onAddFriend(user.userId)}
                                                         className="w-8 h-8 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all active:scale-95"
                                                         title="Add Friend"
-                                                    >
-                                                        <UserPlus className="w-4 h-4" />
-                                                    </button>
+                                                        icon={UserPlus}
+                                                    />
                                                 )}
                                                 {user.isFriend && (
-                                                    <button
+                                                    <ActionButton
                                                         onClick={() => user.userId && onRemoveFriend && onRemoveFriend(user.userId)}
                                                         className="w-8 h-8 flex items-center justify-center text-zinc-400 bg-zinc-50 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-95"
                                                         title="Remove Friend"
-                                                    >
-                                                        <UserMinus className="w-4 h-4" />
-                                                    </button>
+                                                        icon={UserMinus}
+                                                    />
                                                 )}
                                                 <button
                                                     onClick={() => !isBusy && user.isActive && user.userId && onCall && onCall(user.userId)}
