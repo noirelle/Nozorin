@@ -61,5 +61,6 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         isDirectCall: roomActionsState.isDirectCall,
         matching,
         onMatchFound: callbacks.onMatchFound,
+        callRoomState: props.callRoomState,
     };
 };

@@ -3,7 +3,7 @@
  * Uses the 'adventurer' style for friendly, unique avatars.
  */
 export const getAvatarUrl = (seed?: string | null): string => {
-    if (!seed) return '';
+    if (!seed) return `https://api.dicebear.com/9.x/adventurer/svg?seed=anonymous`;
 
     // If it's already a full URL, return as-is (backward compat)
     if (seed.startsWith('http') || seed.startsWith('/avatars')) {
