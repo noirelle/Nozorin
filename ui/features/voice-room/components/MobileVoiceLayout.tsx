@@ -26,7 +26,7 @@ import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
-import { formatTimeAgo } from '@/utils/time';
+import { formatTimeAgo, formatFullTimeAgo } from '@/utils/time';
 import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
@@ -768,7 +768,7 @@ const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
     </div>
 );
 
-const formatDate = (ts: any) => formatTimeAgo(ts);
+const formatDate = (ts: any) => formatFullTimeAgo(ts);
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
     const countries = [

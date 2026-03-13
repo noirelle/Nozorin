@@ -89,3 +89,47 @@ export const formatDuration = (seconds?: number): string => {
     
     return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 };
+
+/**
+ * Formats a timestamp into a full descriptive "time ago" string.
+ * Example outputs: "10 minutes ago", "1 hour ago", "2 days ago"
+ */
+export const formatFullTimeAgo = (timestamp: number | string | null | undefined): string => {
+    if (!timestamp) return 'Just now';
+    
+    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+    if (isNaN(ts) || ts === 0) return 'Just now';
+
+    const timeMs = ts < 1e12 ? ts * 1000 : ts;
+    const now = Date.now();
+    const diffMs = now - timeMs;
+    
+    if (diffMs < 0) return 'Just now';
+
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) {
+        return 'Just now';
+    }
+    
+    if (diffMin < 60) {
+        return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+    }
+    
+    if (diffHour < 24) {
+        return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
+    }
+    
+    if (diffDay < 30) {
+        return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+    }
+
+    return new Date(timeMs).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: diffDay > 365 ? 'numeric' : undefined
+    });
+};

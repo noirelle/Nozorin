@@ -6,7 +6,7 @@ import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon, Loader2, X } from 'lucide-react';
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
-import { formatTimeAgo, formatDuration } from '@/utils/time';
+import { formatTimeAgo, formatDuration, formatFullTimeAgo } from '@/utils/time';
 
 const mockUsernames = [
     'nova_storm',
@@ -370,7 +370,7 @@ export const RightSidebar = ({
                                                             <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-700 font-bold">{user.duration}</span>
                                                         </p>
                                                         <p className="text-[9px] font-medium text-zinc-500">
-                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{formatTimeAgo(user.createdAt)}</span>
+                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{formatFullTimeAgo(user.createdAt)}</span>
                                                         </p>
                                                         <p className={`text-[9px] font-bold mt-0.5 ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
                                                             {user.isActive ? 'Active Now' : `Active ${formatTimeAgo(user.lastSeen)}`}
