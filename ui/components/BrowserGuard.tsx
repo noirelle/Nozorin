@@ -30,7 +30,7 @@ export const BrowserGuard: React.FC = () => {
     if (!shouldShow) return null;
 
     return (
-        <div className="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center overflow-hidden overscroll-none select-none">
+        <div className="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center overflow-y-auto overscroll-none select-none">
             {/* ── BRANDING ── */}
             <div className="absolute top-[clamp(12px,2vh,20px)] left-[clamp(16px,4vw,24px)] z-30">
                 <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-[clamp(32px,8vw,48px)] h-[clamp(32px,8vw,48px)]" />
@@ -96,17 +96,13 @@ export const BrowserGuard: React.FC = () => {
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-[11px] font-black text-[#ec4899] shrink-0">2</div>
-                                <p className="text-[13px] text-[#1c1e21]/70 font-semibold leading-snug">
+                                <p className="text-[clamp(12px,3vw,13px)] text-[#1c1e21]/70 font-semibold leading-snug">
                                     Select <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Browser"</span> or <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Safari/Chrome"</span>.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <p className="mt-10 text-[#1c1e21]/40 text-[11px] font-bold uppercase tracking-widest px-8">
-                    NO LOGIN REQUIRED • FAST & ANONYMOUS
-                </p>
             </div>
         </div>
     );
