@@ -17,14 +17,42 @@ export function getSocketClient(token?: string | null): Socket | null {
             transports: ['websocket'],
             secure: SOCKET_URL.startsWith('https'),
             auth: token ? { token } : {},
+            reconnection: true,
+            reconnectionAttempts: Infinity,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000,
         });
 
         _socket.on(SocketEvents.IDENTIFY_SUCCESS, () => {
             last_identified_socket_id = _socket?.id || null;
         });
 
-        _socket.on('disconnect', () => {
+        _socket.on('disconnect', (reason) => {
             last_identified_socket_id = null;
+            console.warn('[Socket] Disconnected:', reason);
+        });
+
+        _socket.on('connect_error', (error) => {
+            console.error('[Socket] Connection error:', error);
+        });
+
+        // ── Robustness Listeners ──────────────────────────────────────────────
+        
+        // Handle tab visibility changes (e.g., coming back from another tab or sleep)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && _socket) {
+                if (!_socket.connected && _socket.active) {
+                    _socket.connect();
+                }
+            }
+        });
+
+        // Handle network online event
+        window.addEventListener('online', () => {
+            if (_socket && !_socket.connected && _socket.active) {
+                _socket.connect();
+            }
         });
     }
 
