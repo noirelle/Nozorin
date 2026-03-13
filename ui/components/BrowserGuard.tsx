@@ -61,7 +61,7 @@ export const BrowserGuard: React.FC = () => {
                     {/* Copy Link Button */}
                     <button
                         onClick={handleCopyLink}
-                        className={`w-full h-[56px] rounded-full flex items-center justify-center gap-3 font-black text-[16px] tracking-tight transition-all active:scale-[0.98] shadow-sm ${
+                        className={`w-full h-[56px] rounded-full flex items-center justify-center gap-3 font-black text-[15px] tracking-tight transition-all active:scale-[0.98] shadow-sm ${
                             copied 
                             ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
                             : 'border-2 border-[#ec4899] text-[#ec4899] hover:bg-[#fdf2f8] shadow-[#ec4899]/10'
@@ -82,34 +82,29 @@ export const BrowserGuard: React.FC = () => {
 
                     {/* Manual Steps Box */}
                     <div className="w-full bg-[#fdf2f8]/40 border-2 border-[#fce7f3] rounded-[32px] p-7 text-left space-y-6">
-                        <h3 className="text-xs font-black text-[#1c1e21]/40 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Compass className="w-4 h-4" />
+                        <h3 className="text-[11px] font-black text-[#1c1e21]/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Compass className="w-3.5 h-3.5" />
                             How to switch manually
                         </h3>
                         
                         <div className="space-y-5">
                             <div className="flex items-start gap-4">
-                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-xs font-black text-[#ec4899] shrink-0">1</div>
-                                <p className="text-sm text-[#1c1e21]/70 font-semibold leading-snug">
+                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-[11px] font-black text-[#ec4899] shrink-0">1</div>
+                                <p className="text-[13px] text-[#1c1e21]/70 font-semibold leading-snug">
                                     Tap the <span className="inline-flex items-center p-1 bg-white border border-[#fce7f3] rounded-lg mx-0.5"><MoreVertical className="w-4 h-4 text-[#1c1e21]/40" /></span> menu icon in the top right corner.
                                 </p>
                             </div>
                             <div className="flex items-start gap-4">
-                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-xs font-black text-[#ec4899] shrink-0">2</div>
-                                <p className="text-sm text-[#1c1e21]/70 font-semibold leading-snug">
+                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-[11px] font-black text-[#ec4899] shrink-0">2</div>
+                                <p className="text-[13px] text-[#1c1e21]/70 font-semibold leading-snug">
                                     Select <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Browser"</span> or <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Safari/Chrome"</span>.
                                 </p>
                             </div>
                         </div>
                     </div>
-
-                    <div className="flex items-center justify-center gap-2 text-[11px] font-black text-[#1c1e21]/20 uppercase tracking-[0.3em] pt-4">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Seamless switching recommended
-                    </div>
                 </div>
 
-                <p className="mt-12 text-[#1c1e21]/40 text-[12px] font-bold uppercase tracking-widest px-8">
+                <p className="mt-10 text-[#1c1e21]/40 text-[11px] font-bold uppercase tracking-widest px-8">
                     NO LOGIN REQUIRED • FAST & ANONYMOUS
                 </p>
             </div>
