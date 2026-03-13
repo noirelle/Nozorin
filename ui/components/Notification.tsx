@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactCountryFlag from 'react-country-flag';
-import { X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { X, UserPlus, CheckCircle2, Globe } from 'lucide-react';
 import { getAvatarUrl } from '@/utils/avatar';
 
-interface FriendRequestNotificationProps {
+interface NotificationProps {
     profile: {
         id: string;
         username: string;
@@ -12,11 +12,11 @@ interface FriendRequestNotificationProps {
         country?: string;
     };
     onClose: () => void;
-    type?: 'received' | 'accepted' | 'sent' | 'cancelled' | 'removed';
+    type?: 'received' | 'accepted' | 'sent' | 'cancelled' | 'removed' | 'online';
     isActor?: boolean;
 }
 
-export const FriendRequestNotification: React.FC<FriendRequestNotificationProps> = ({
+export const Notification: React.FC<NotificationProps> = ({
     profile,
     onClose,
     type = 'received',
@@ -25,7 +25,7 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
     // Use the utility for avatar URL with fallback to username-based seed
     const avatarSrc = getAvatarUrl(profile.avatar || profile.username);
 
-    const isAcceptance = type === 'accepted';
+    const isAcceptance = type === 'accepted' || type === 'online';
     const isNegative = type === 'removed' || type === 'cancelled';
 
     // Auto-dismiss after 5 seconds
@@ -56,7 +56,11 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
                             </div>
                             <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center shadow-lg ${isAcceptance ? 'bg-emerald-500' : isNegative ? 'bg-zinc-500' : 'bg-[#FF0055]'}`}>
                                 {isAcceptance ? (
-                                    <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                    type === 'online' ? (
+                                        <Globe className="w-2.5 h-2.5 text-white" />
+                                    ) : (
+                                        <CheckCircle2 className="w-2.5 h-2.5 text-white" />
+                                    )
                                 ) : type === 'removed' || type === 'cancelled' ? (
                                     <X className="w-2.5 h-2.5 text-white" />
                                 ) : (
@@ -75,7 +79,8 @@ export const FriendRequestNotification: React.FC<FriendRequestNotificationProps>
                                         type === 'sent' ? 'Sent a friend request' :
                                             type === 'cancelled' ? 'Cancelled request' :
                                                 type === 'removed' ? 'Removed from friends' :
-                                                    'Sent a friend request'}
+                                                    type === 'online' ? 'Is online now!' :
+                                                        'Sent a friend request'}
                                 </span>
                                 {profile.country && (
                                     <ReactCountryFlag

@@ -2,7 +2,7 @@ import { useFriendsState } from './useFriendsState';
 import { useFriendsActions } from './useFriendsActions';
 import { useFriendsListeners } from './useFriendsListeners';
 
-export const useFriends = () => {
+export const useFriends = (props?: { onFriendOnline?: (friend: any) => void }) => {
     const state = useFriendsState();
     const actions = useFriendsActions({
         setFriends: state.setFriends,
@@ -18,6 +18,7 @@ export const useFriends = () => {
         setFriends: state.setFriends,
         setPendingRequests: state.setPendingRequests,
         setSentRequests: state.setSentRequests,
+        onFriendOnline: props?.onFriendOnline,
     });
 
     return {

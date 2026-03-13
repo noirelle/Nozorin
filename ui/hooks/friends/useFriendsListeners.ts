@@ -11,12 +11,14 @@ interface UseFriendsListenersProps {
     setFriends: UseFriendsStateReturn['setFriends'];
     setPendingRequests: UseFriendsStateReturn['setPendingRequests'];
     setSentRequests: UseFriendsStateReturn['setSentRequests'];
+    onFriendOnline?: (friend: any) => void;
 }
 
 export const useFriendsListeners = ({
     setFriends,
     setPendingRequests,
-    setSentRequests
+    setSentRequests,
+    onFriendOnline
 }: UseFriendsListenersProps) => {
     const handleRequestReceived = useCallback((data: FriendRequestReceivedPayload) => {
         setPendingRequests(prev => {
@@ -34,16 +36,23 @@ export const useFriendsListeners = ({
     }, [setFriends, setPendingRequests]);
 
     const handlePartnerStatusChange = useCallback((data: PartnerStatusChangePayload) => {
-        setFriends(prev => prev.map(f =>
-            f.id === data.user_id ? { ...f, ...data.status } : f
-        ));
+        setFriends(prev => prev.map(f => {
+            if (f.id === data.user_id) {
+                // If transitioning from offline to online, trigger notification
+                if (!f.is_online && data.status.is_online && onFriendOnline) {
+                    onFriendOnline(f);
+                }
+                return { ...f, ...data.status };
+            }
+            return f;
+        }));
         setPendingRequests(prev => prev.map(r =>
             r.user?.id === data.user_id ? { ...r, user: { ...r.user, ...data.status } } : r
         ));
         setSentRequests(prev => prev.map(r =>
             r.user?.id === data.user_id ? { ...r, user: { ...r.user, ...data.status } } : r
         ));
-    }, [setFriends, setPendingRequests, setSentRequests]);
+    }, [setFriends, setPendingRequests, setSentRequests, onFriendOnline]);
 
     useSocketEvent<FriendRequestReceivedPayload>(SocketEvents.FRIEND_REQUEST_RECEIVED, handleRequestReceived);
     useSocketEvent<FriendRequestAcceptedPayload>(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleRequestAccepted);

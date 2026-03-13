@@ -11,13 +11,13 @@ import { DesktopVoiceLayout } from '@/features/voice-room/components/DesktopVoic
 import { MobileVoiceLayout } from '@/features/voice-room/components/MobileVoiceLayout';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
-import { FriendRequestNotification } from '@/features/friends/components/FriendRequestNotification';
+import { Notification } from '@/components/Notification';
 
 export const VoiceGameRoom = () => {
     const router = useRouter();
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
-    const [friendRequestNotif, setFriendRequestNotif] = useState<any>(null);
+    const [notification, setNotification] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
     const [searchTimer, setSearchTimer] = useState(0);
 
@@ -57,7 +57,11 @@ export const VoiceGameRoom = () => {
     }, []);
 
     const { incomingCall, isCalling, error: callError, initiateCall, acceptCall: performAcceptCall, declineCall: performDeclineCall, cancelCall, clearCallState } = useDirectCall();
-    const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends();
+    const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends({
+        onFriendOnline: (friend) => {
+            setNotification({ ...friend, type: 'online' });
+        }
+    });
 
     useEffect(() => {
         if (token && user?.id) {
@@ -71,7 +75,7 @@ export const VoiceGameRoom = () => {
     const handleAddFriend = useCallback(async (targetId: string, profile?: any) => {
         const result = await sendRequest(targetId);
         if (result.success) {
-            setFriendRequestNotif({ ...(profile || { id: targetId, username: 'User' }), type: 'sent', isActor: true });
+            setNotification({ ...(profile || { id: targetId, username: 'User' }), type: 'sent', isActor: true });
         } else {
             console.error(`Failed to send request: ${result.error}`);
         }
@@ -81,7 +85,7 @@ export const VoiceGameRoom = () => {
         const result = await acceptRequest(requestId);
         if (result.success) {
             const req = pendingRequests.find(r => r.id === requestId);
-            if (req) setFriendRequestNotif({ ...req.user, type: 'accepted', isActor: true });
+            if (req) setNotification({ ...req.user, type: 'accepted', isActor: true });
         }
     }, [acceptRequest, pendingRequests]);
 
@@ -89,7 +93,7 @@ export const VoiceGameRoom = () => {
         const result = await cancelRequest(requestId);
         if (result.success) {
             const req = sentRequests.find(r => r.id === requestId);
-            if (req) setFriendRequestNotif({ ...req.user, type: 'cancelled', isActor: true });
+            if (req) setNotification({ ...req.user, type: 'cancelled', isActor: true });
         }
     }, [cancelRequest, sentRequests]);
 
@@ -97,7 +101,7 @@ export const VoiceGameRoom = () => {
         const result = await removeFriend(friendId);
         if (result.success) {
             const friend = friends.find(f => f.id === friendId);
-            if (friend) setFriendRequestNotif({ ...friend, type: 'removed', isActor: true });
+            if (friend) setNotification({ ...friend, type: 'removed', isActor: true });
         }
     }, [removeFriend, friends]);
 
@@ -109,13 +113,13 @@ export const VoiceGameRoom = () => {
     const handleIdentifySuccess = useCallback(() => { }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
-        setFriendRequestNotif({ ...data.profile, country: data.profile.country, type: 'received' });
+        setNotification({ ...data.profile, country: data.profile.country, type: 'received' });
         fetchPendingRequests();
         fetchSentRequests();
     }, [fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRequestAccepted = useCallback((data: any) => {
-        setFriendRequestNotif({ ...data.friend, type: 'accepted' });
+        setNotification({ ...data.friend, type: 'accepted' });
         fetchFriends();
         fetchPendingRequests();
         fetchSentRequests();
@@ -192,7 +196,7 @@ export const VoiceGameRoom = () => {
     };
 
     const handleCloseNotif = useCallback(() => {
-        setFriendRequestNotif(null);
+        setNotification(null);
     }, []);
 
     // THE CENTRAL CONNECTION HOOK
@@ -285,11 +289,11 @@ export const VoiceGameRoom = () => {
                 />
             )}
 
-            {friendRequestNotif && (
-                <FriendRequestNotification
-                    profile={friendRequestNotif}
-                    type={friendRequestNotif.type}
-                    isActor={friendRequestNotif.isActor}
+            {notification && (
+                <Notification
+                    profile={notification}
+                    type={notification.type}
+                    isActor={notification.isActor}
                     onClose={handleCloseNotif}
                 />
             )}
