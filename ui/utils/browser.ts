@@ -2,10 +2,9 @@
  * Utility for browser detection and capabilities
  */
 
-export const isInAppBrowser = (): boolean => {
-    if (typeof window === 'undefined') return false;
-    
-    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+export const isInAppBrowser = (userAgent?: string | null): boolean => {
+    const ua = userAgent || (typeof window !== 'undefined' ? navigator.userAgent || navigator.vendor || (window as any).opera : '');
+    if (!ua) return false;
     
     // Facebook App (iOS and Android)
     if (ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1) return true;
@@ -25,20 +24,21 @@ export const isInAppBrowser = (): boolean => {
     return false;
 };
 
-export const isIOS = (): boolean => {
-    if (typeof window === 'undefined') return false;
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export const isIOS = (userAgent?: string | null): boolean => {
+    const ua = userAgent || (typeof window !== 'undefined' ? navigator.userAgent : '');
+    if (!ua) return false;
+    return /iPad|iPhone|iPod/.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
-export const isFacebookApp = (): boolean => {
-    if (typeof window === 'undefined') return false;
-    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+export const isFacebookApp = (userAgent?: string | null): boolean => {
+    const ua = userAgent || (typeof window !== 'undefined' ? navigator.userAgent || navigator.vendor || (window as any).opera : '');
+    if (!ua) return false;
     return ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1;
 };
 
-export const getInAppBrowserName = (): string | null => {
-    if (typeof window === 'undefined') return null;
-    const ua = navigator.userAgent;
+export const getInAppBrowserName = (userAgent?: string | null): string | null => {
+    const ua = userAgent || (typeof window !== 'undefined' ? navigator.userAgent : '');
+    if (!ua) return null;
     
     if (ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1) return 'Facebook';
     if (ua.indexOf('Instagram') > -1) return 'Instagram';
