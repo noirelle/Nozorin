@@ -198,8 +198,8 @@ export const MobileVoiceLayout = ({
                                              <span className={`text-[11px] font-black uppercase tracking-widest text-center px-4 ${isSocketConnected ? 'text-zinc-400' : 'text-rose-400'}`}>
                                                 {!isSocketConnected ? 'Offline - Waiting for connection' :
                                                     (callRoomState.permission_denied && isInAppBrowser()) ?
-                                                        `Tap ... and choose 'Open in Browser' to allow microphone` :
-                                                        callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
+                                                        `Tap ... and choose 'Open in Browser' to start` :
+                                                        callRoomState.permission_denied ? 'Tap to Retry Mic Permission' : 'Tap to start'}
                                             </span>
                                         </div>
                                     )}

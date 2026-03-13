@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactCountryFlag from 'react-country-flag';
 import { X, UserPlus, CheckCircle2, Globe } from 'lucide-react';
 import { getAvatarUrl } from '@/utils/avatar';
@@ -29,7 +29,7 @@ export const Notification: React.FC<NotificationProps> = ({
     const isNegative = type === 'removed' || type === 'cancelled';
 
     // Auto-dismiss after 5 seconds
-    React.useEffect(() => {
+    useEffect(() => {
         const timer = setTimeout(() => {
             onClose();
         }, 5000);

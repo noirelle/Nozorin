@@ -84,7 +84,6 @@ export const useRoomActionsCallbacks = ({
         if (callRoomState.partner_id && !forceSkip) return;
 
         if (callRoomState.permission_denied) {
-            console.warn('[RoomActions] Media permission previously denied, will attempt to re-request on user action.');
         }
 
         if (!callRoomState.has_prompted_for_permission) {
@@ -94,7 +93,6 @@ export const useRoomActionsCallbacks = ({
         // The user wants mic active during the search so there's no spin-up delay
         const success = await initMediaManager();
         if (!success) {
-            console.warn('[RoomActions] Media initialization failed, aborting search.');
             return;
         }
 
