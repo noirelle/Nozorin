@@ -27,6 +27,7 @@ import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 import { formatTimeAgo } from '@/utils/time';
+import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
     onLeave: () => void;
@@ -195,7 +196,10 @@ export const MobileVoiceLayout = ({
                                                 <div className="w-4 h-4 bg-pink-300/90 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.4)] animate-[pulse_3s_ease-in-out_infinite]" />
                                             </div>
                                              <span className={`text-[11px] font-black uppercase tracking-widest text-center px-4 ${isSocketConnected ? 'text-zinc-400' : 'text-rose-400'}`}>
-                                                {!isSocketConnected ? 'Offline - Waiting for connection' : callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
+                                                {!isSocketConnected ? 'Offline - Waiting for connection' :
+                                                    (callRoomState.permission_denied && isInAppBrowser()) ?
+                                                        `Tap ... and choose 'Open in Browser' to allow microphone` :
+                                                        callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
                                             </span>
                                         </div>
                                     )}
