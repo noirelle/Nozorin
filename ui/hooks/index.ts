@@ -9,6 +9,7 @@ export * from '../features/voice-room/hooks/chat/useChat';
 export * from '../features/voice-room/hooks/webrtc/useWebRTC';
 export * from '../features/voice-room/hooks/media/useCallRoom';
 export * from '../features/voice-room/hooks/room-actions/useRoomActions';
+export * from '../features/voice-room/hooks/voice-room/useVoiceRoom';
 export * from '../features/voice-room/hooks/reconnect/useReconnect';
 export * from '../features/auth/hooks/guest-login/useGuestLogin';
 export * from './call/useCall';

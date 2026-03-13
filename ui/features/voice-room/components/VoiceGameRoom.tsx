@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
 import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
-import { useVoiceRoom } from '@/features/voice-room/hooks/useVoiceRoom';
+import { useVoiceRoom } from '@/features/voice-room/hooks/voice-room/useVoiceRoom';
 
 import { DesktopVoiceLayout } from '@/features/voice-room/components/DesktopVoiceLayout';
 import { MobileVoiceLayout } from '@/features/voice-room/components/MobileVoiceLayout';

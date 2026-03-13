@@ -23,7 +23,7 @@ import {
 import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
-import { useVoiceRoom } from '../hooks/useVoiceRoom';
+import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 import { formatTimeAgo } from '@/utils/time';
 

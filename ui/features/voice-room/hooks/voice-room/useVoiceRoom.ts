@@ -1,11 +1,15 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useCallback } from 'react';
 import { emitSignalStrength } from '@/lib/socket/matching/matching.actions';
-import { useRoomActions, useWebRTC, useCallRoom, useChat, useUser } from '@/hooks';
+import { useRoomActions, useWebRTC, useCallRoom, useChat } from '@/hooks';
 import { useRoomEffects } from '@/features/voice-room/hooks/room-effects/useRoomEffects';
 import { useReconnect } from '@/features/voice-room/hooks/reconnect/useReconnect';
 import { useCallDuration } from '@/features/voice-room/hooks/duration/useCallDuration';
+
+import { useVoiceRoomState } from './useVoiceRoomState';
+import { useVoiceRoomActions } from './useVoiceRoomActions';
+import { useVoiceRoomEffects } from './useVoiceRoomEffects';
 
 interface UseVoiceRoomProps {
     mode?: 'voice';
@@ -22,7 +26,10 @@ export const useVoiceRoom = ({
     initialReconnecting,
     initialCallData
 }: UseVoiceRoomProps = {}) => {
-    // 1. Core State
+    // 1. Hook State
+    const { selectedCountry, setSelectedCountry, remoteAudioRef } = useVoiceRoomState();
+
+    // 2. Core Service State
     const {
         state: callRoomState,
         mediaManager,
@@ -38,26 +45,13 @@ export const useVoiceRoom = ({
         resetState,
     } = useCallRoom(mode);
 
-    const [selectedCountry, setSelectedCountry] = useState('GLOBAL');
-    const remoteAudioRef = useRef<HTMLAudioElement>(null);
-
-    // Native Permission Check
-    useEffect(() => {
-        if (!navigator.permissions) return;
-        navigator.permissions.query({ name: 'microphone' as PermissionName })
-            .then((permissionStatus) => {
-                setPermissionDenied(permissionStatus.state === 'denied');
-                permissionStatus.onchange = () => {
-                    setPermissionDenied(permissionStatus.state === 'denied');
-                };
-            })
-            .catch(err => console.warn('[useVoiceRoom] Failed to query native mic permission:', err));
-    }, [setPermissionDenied]);
-
-    // Actions Ref
+    // 3. Coordination Ref
     const actionsRef = useRef<ReturnType<typeof useRoomActions> | null>(null);
 
-    // WebRTC Hook
+    // 4. Hook Effects
+    useVoiceRoomEffects({ setPermissionDenied });
+
+    // 5. WebRTC Services
     const { createOffer, closePeerConnection } = useWebRTC({
         is_media_ready: callRoomState.is_media_ready,
         role: callRoomState.role,
@@ -66,11 +60,9 @@ export const useVoiceRoom = ({
         onConnectionStateChange: (state) => {
             if (state === 'failed') {
                 console.warn('[useVoiceRoom] WebRTC connection failed, waiting for recovery...');
-                // Give it a 5-second grace period for ICE restart or auto-recovery
                 setTimeout(() => {
                     if (actionsRef.current?.callRoomState.partner_id) {
-                        // Still have a partner, check if we recovered?
-                        // In a more complex setup, we'd check peerConnection state here again
+                        // Potential recovery logic
                     } else {
                         actionsRef.current?.handleStop();
                     }
@@ -83,11 +75,11 @@ export const useVoiceRoom = ({
         },
     });
 
-    // Chat
+    // 6. Chat Services
     const { messages, sendMessage, clearMessages, messagesEndRef } = useChat(callRoomState.partner_id);
 
-    // Actions
-    const actions = useRoomActions({
+    // 7. Base Room Actions
+    const baseActions = useRoomActions({
         mode,
         callRoomState,
         setSearching,
@@ -107,29 +99,29 @@ export const useVoiceRoom = ({
         setHasPromptedForPermission,
         isDirectCall: !!initialMatchData,
     });
-    actionsRef.current = actions;
+    actionsRef.current = baseActions;
 
-    // Room Effects
+    // 8. Room Lifecycle Effects
     useRoomEffects({
         mode,
         callRoomState,
-        setPartnerIsMuted: actions.setPartnerIsMuted,
+        setPartnerIsMuted: baseActions.setPartnerIsMuted,
         setPartnerSignalStrength,
         initMediaManager,
         cleanupMedia,
         onConnectionChange: onConnectionChange || (() => { }),
         initialMatchData,
         createOffer,
-        handleStop: actions.handleStop,
-        handleNext: actions.handleNext,
-        findMatch: actions.findMatch,
-        handleUserStop: actions.handleUserStop,
-        onMatchFound: actions.onMatchFound,
+        handleStop: baseActions.handleStop,
+        handleNext: baseActions.handleNext,
+        findMatch: baseActions.findMatch,
+        handleUserStop: baseActions.handleUserStop,
+        onMatchFound: baseActions.onMatchFound,
     });
 
-    // Reconnect
+    // 9. Reconnection Logic
     const { isReconnecting, clearReconnectState } = useReconnect({
-        rejoinCall: actions.matching.rejoinCall,
+        rejoinCall: baseActions.matching.rejoinCall,
         onRestorePartner: useCallback((data: any) => {
             if (data.partnerProfile) {
                 const pp = data.partnerProfile;
@@ -149,29 +141,21 @@ export const useVoiceRoom = ({
         initialCallData,
     });
 
+    // 10. Call Statistics/Duration
     const callDuration = useCallDuration(callRoomState.is_connected);
 
-    const handleNext = useCallback(() => {
-        clearReconnectState();
-        actions.handleNext();
-    }, [clearReconnectState, actions]);
-
-    const handleStop = useCallback(() => {
-        clearReconnectState();
-        actions.handleStop();
-    }, [clearReconnectState, actions]);
-
-    const handleUserStop = useCallback(() => {
-        clearReconnectState();
-        actions.handleUserStop();
-    }, [clearReconnectState, actions]);
+    // 11. Coordination Actions
+    const { handleNext, handleStop, handleUserStop } = useVoiceRoomActions({
+        actions: baseActions,
+        clearReconnectState,
+    });
 
     return {
         callRoomState,
         messages,
         messagesEndRef,
         remoteAudioRef,
-        actions,
+        actions: baseActions,
         handleNext,
         handleStop,
         handleUserStop,
