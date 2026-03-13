@@ -12,6 +12,8 @@ import { MobileVoiceLayout } from '@/features/voice-room/components/MobileVoiceL
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
 import { Notification } from '@/components/Notification';
+import { DebugICEConsole } from '@/features/voice-room/components/DebugICEConsole';
+
 
 export const VoiceGameRoom = () => {
     const router = useRouter();
@@ -297,6 +299,12 @@ export const VoiceGameRoom = () => {
                     onClose={handleCloseNotif}
                 />
             )}
+
+            {voiceRoomData.iceDebugData && process.env.NEXT_PUBLIC_ENABLE_ICE_DEBUG === 'true' && (
+                <DebugICEConsole data={voiceRoomData.iceDebugData} />
+            )}
+
         </>
     );
 };
+

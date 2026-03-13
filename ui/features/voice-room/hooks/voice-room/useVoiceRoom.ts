@@ -52,7 +52,8 @@ export const useVoiceRoom = ({
     useVoiceRoomEffects({ setPermissionDenied });
 
     // 5. WebRTC Services
-    const { createOffer, closePeerConnection } = useWebRTC({
+    const { createOffer, closePeerConnection, iceDebugData } = useWebRTC({
+
         is_media_ready: callRoomState.is_media_ready,
         role: callRoomState.role,
         mediaManager,
@@ -163,5 +164,6 @@ export const useVoiceRoom = ({
         callDuration,
         selectedCountry,
         setSelectedCountry,
+        iceDebugData,
     };
 };

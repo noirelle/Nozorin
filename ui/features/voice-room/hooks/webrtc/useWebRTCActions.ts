@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, MutableRefObject, RefObject } from 'react';
+import { useCallback, useEffect, useRef, MutableRefObject, RefObject, Dispatch, SetStateAction } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 import {
     emitOffer,
     emitAnswer,
     emitIceCandidate,
 } from '../../../../lib/socket/matching/matching.actions';
-import { UseWebRTCStateReturn } from './useWebRTCState';
+import { UseWebRTCStateReturn, IceDebugData } from './useWebRTCState';
 
 interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
     is_media_ready: boolean;
@@ -14,6 +14,7 @@ interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
     remoteAudioRef: RefObject<HTMLAudioElement | null>;
     onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
     onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
+    setIceDebugData: Dispatch<SetStateAction<IceDebugData>>;
 }
 
 export const useWebRTCActions = ({
@@ -28,7 +29,11 @@ export const useWebRTCActions = ({
     remoteAudioRef,
     onConnectionStateChange,
     onSignalQuality,
+    iceDebugData,
+    setIceDebugData,
 }: UseWebRTCActionsProps) => {
+
+
     const createOfferRef = useRef<((partnerId: string, options?: RTCOfferOptions) => Promise<void>) | null>(null);
     const lastIceRestartRef = useRef<number>(0);
 
@@ -42,55 +47,102 @@ export const useWebRTCActions = ({
         const pc = new RTCPeerConnection(ICE_CONFIG);
         peerConnectionRef.current = pc;
 
+        // Debugging: track state changes
+        setIceDebugData(prev => ({ ...prev, isConfigured: true }));
+        const updateDebugState = () => {
+            setIceDebugData(prev => ({
+                ...prev,
+                iceConnectionState: pc.iceConnectionState,
+                iceGatheringState: pc.iceGatheringState,
+                connectionState: pc.connectionState,
+                signalingState: pc.signalingState,
+            }));
+        };
+
+        pc.oniceconnectionstatechange = updateDebugState;
+        pc.onicegatheringstatechange = updateDebugState;
+        pc.onicecandidateerror = (event: any) => {
+            setIceDebugData(prev => ({
+                ...prev,
+                iceCandidateError: `${event.errorCode}: ${event.errorText} (${event.url})`
+            }));
+        };
+        pc.onconnectionstatechange = () => {
+
+            updateDebugState();
+            const state = pc.connectionState;
+            
+            if (state === 'disconnected') {
+                onSignalQuality?.('reconnecting');
+                if (role === 'offerer') {
+                    const now = Date.now();
+                    if ((now - lastIceRestartRef.current) > 5000) {
+                        lastIceRestartRef.current = now;
+                        createOfferRef.current?.(targetId, { iceRestart: true });
+                    }
+                }
+            }
+            else if (state === 'connected') {
+                onSignalQuality?.('good');
+            }
+            else if (state === 'failed') {
+                console.error('[WebRTC] Connection failed. Check network/TURN config.');
+            }
+
+            if (state === 'failed' || state === 'closed' || state === 'disconnected') {
+                onConnectionStateChange?.(state);
+            }
+        };
+        pc.onsignalingstatechange = updateDebugState;
+
         const tracks = stream.getTracks();
-        tracks.forEach(track => pc.addTrack(track, stream));
+        tracks.forEach(track => {
+            pc.addTrack(track, stream);
+        });
 
         pc.ontrack = (event) => {
             const remoteStream = event.streams[0];
+            
             if (remoteAudioRef.current) {
-                remoteAudioRef.current.srcObject = remoteStream;
-                // Force play to overcome iOS/Safari strict auto-play blocks on dynamic connection
+                if (remoteAudioRef.current.srcObject !== remoteStream) {
+                    remoteAudioRef.current.srcObject = remoteStream;
+                }
+                
                 remoteAudioRef.current.play()
-                    .catch(e => console.warn('[WebRTC] Autoplay blocked or failed to play incoming stream:', e));
+                    .catch(e => {
+                        console.warn('[WebRTC] Autoplay blocked. Attempting muted autoplay fallback.', e);
+                        if (remoteAudioRef.current) {
+                            remoteAudioRef.current.muted = true;
+                            remoteAudioRef.current.play().catch(err => console.error('[WebRTC] Muted autoplay also failed:', err));
+                        }
+                    });
             } else {
-                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — audio element not mounted yet');
+                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — will retry attachment');
+                // Fallback: poll for ref or rely on the next render
+                const checkRef = setInterval(() => {
+                    if (remoteAudioRef.current) {
+                        remoteAudioRef.current.srcObject = remoteStream;
+                        remoteAudioRef.current.play().catch(() => {});
+                        clearInterval(checkRef);
+                    }
+                }, 500);
+                setTimeout(() => clearInterval(checkRef), 5000);
             }
         };
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
+                setIceDebugData(prev => ({
+                    ...prev,
+                    localCandidates: [...prev.localCandidates, event.candidate!]
+                }));
                 emitIceCandidate(targetId, event.candidate);
             }
         };
 
-        pc.onicegatheringstatechange = () => {
-        };
-
-        pc.oniceconnectionstatechange = () => {
-        };
-
-        pc.onconnectionstatechange = () => {
-            const state = pc.connectionState;
-            if (state === 'disconnected') {
-                onSignalQuality?.('reconnecting');
-                // Polite Peer mechanism: only the offerer triggers ICE restarts to prevent glaring.
-                if (role === 'offerer') {
-                    const partnerId = targetId;
-                    const now = Date.now();
-                    // Throttle ICE restarts to once every 5 seconds max
-                    if (partnerId && (now - lastIceRestartRef.current) > 5000) {
-                        lastIceRestartRef.current = now;
-                        createOfferRef.current?.(partnerId, { iceRestart: true });
-                    }
-                }
-            }
-            else if (state === 'connected') onSignalQuality?.('good');
-            if (state === 'failed' || state === 'closed') onConnectionStateChange?.(state);
-            if (state === 'disconnected') onConnectionStateChange?.(state);
-        };
-
         return pc;
-    }, [mediaManager, remoteAudioRef, onConnectionStateChange, onSignalQuality, peerConnectionRef, ICE_CONFIG, role]);
+    }, [mediaManager, remoteAudioRef, onConnectionStateChange, onSignalQuality, peerConnectionRef, ICE_CONFIG, role, setIceDebugData]);
+
 
     const processQueuedIceCandidates = useCallback(async (pc: RTCPeerConnection) => {
         const queued = pendingIceCandidatesRef.current.length;
@@ -181,25 +233,32 @@ export const useWebRTCActions = ({
 
     const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         const pc = peerConnectionRef.current;
-        const hasRemoteDesc = !!pc?.remoteDescription;
-        if (!is_media_ready || !hasRemoteDesc) {
+        
+        // Candidates MUST NOT be added before remote description is set
+        if (!pc || !pc.remoteDescription || pc.signalingState === 'closed') {
             pendingIceCandidatesRef.current.push(candidate);
             return;
         }
 
-        if (pc) {
-            try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (e) {
-                console.error('[WebRTC] Error adding received ice candidate:', e);
-            }
+        try {
+            const iceCandidate = new RTCIceCandidate(candidate);
+            setIceDebugData(prev => ({
+                ...prev,
+                remoteCandidates: [...prev.remoteCandidates, iceCandidate]
+            }));
+            await pc.addIceCandidate(iceCandidate);
+        } catch (e) {
+            console.error('[WebRTC] Error adding received ice candidate:', e);
         }
-    }, [peerConnectionRef, is_media_ready, pendingIceCandidatesRef]);
+    }, [peerConnectionRef, pendingIceCandidatesRef, setIceDebugData]);
+
 
     useEffect(() => {
         if (!is_media_ready) return;
 
         const processQueues = async () => {
+            // Processing should be sequential to avoid race conditions
+            
             // 1. Process Offer
             if (pendingOfferRef.current) {
                 const { sdp, callerId } = pendingOfferRef.current;
@@ -215,17 +274,14 @@ export const useWebRTCActions = ({
             }
 
             // 3. Process ICE Candidates
-            if (pendingIceCandidatesRef.current.length > 0) {
-                const candidates = [...pendingIceCandidatesRef.current];
-                pendingIceCandidatesRef.current = [];
-                for (const candidate of candidates) {
-                    await handleIceCandidate(candidate);
-                }
+            const pc = peerConnectionRef.current;
+            if (pc && pc.remoteDescription && pendingIceCandidatesRef.current.length > 0) {
+                await processQueuedIceCandidates(pc);
             }
         };
 
         processQueues();
-    }, [is_media_ready, handleOffer, handleAnswer, handleIceCandidate, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef]);
+    }, [is_media_ready, handleOffer, handleAnswer, processQueuedIceCandidates, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
 
     return {
         createPeerConnection,
