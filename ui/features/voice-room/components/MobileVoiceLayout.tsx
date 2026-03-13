@@ -25,6 +25,7 @@ import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/useVoiceRoom';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
+import { formatTimeAgo } from '@/utils/time';
 
 interface MobileVoiceLayoutProps {
     onLeave: () => void;
@@ -538,7 +539,8 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                 isPendingSent,
                 isPendingReceived,
                 status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger',
-                isOnline: item.partner_status?.is_online
+                isOnline: item.partner_status?.is_online,
+                lastSeen: item.partner_status?.last_seen
             })}
             className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
         >
@@ -564,7 +566,7 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
                         </p>
                         <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {item.partner_status?.is_online ? 'Active Now' : (item.partner_status?.last_seen ? `Active ${formatDate(item.partner_status.last_seen)}` : 'Offline')}
+                            {item.partner_status?.is_online ? 'Active Now' : `Active ${formatTimeAgo(item.partner_status?.last_seen)}`}
                         </p>
                     </div>
                 </div>
@@ -622,7 +624,8 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                 avatar: f.avatar,
                                 isFriend: true,
                                 status: 'Friend',
-                                isOnline: f.is_online
+                                isOnline: f.is_online,
+                                lastSeen: f.last_seen
                             })}
                             className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
                         >
@@ -633,7 +636,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-zinc-900">{f.username}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : (f.last_seen ? formatDate(f.last_seen) : 'Recent')}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : formatTimeAgo(f.last_seen)}</span>
                                 </div>
                             </div>
                             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">
@@ -753,15 +756,7 @@ const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
     </div>
 );
 
-const formatDate = (ts: any) => {
-    if (!ts) return 'Recent';
-    const timeMs = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts;
-    const date = new Date(timeMs);
-    const diff = Date.now() - date.getTime();
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-};
+const formatDate = (ts: any) => formatTimeAgo(ts);
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
     const countries = [
@@ -856,7 +851,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         </div>
                         <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${user.isOnline ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {user.isOnline ? 'Active Now' : 'Offline'} • {user.status}
+                            {user.isOnline ? 'Active Now' : `Active ${formatTimeAgo(user.lastSeen)}`} • {user.status}
                         </p>
                     </div>
 
