@@ -1,16 +1,58 @@
-import { headers } from 'next/headers';
-import HomeClient from '../sections/HomeClient';
-import { BrowserGuard } from '@/components/BrowserGuard';
-import { isInAppBrowser } from '@/utils/browser';
+'use client';
 
-export default async function Home() {
-    const headersList = await headers();
-    const userAgent = headersList.get('user-agent');
-    const isRestricted = isInAppBrowser(userAgent);
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-    if (isRestricted) {
-        return <BrowserGuard userAgent={userAgent} />;
+import Hero from '../sections/Hero';
+import { useHistory, useUser } from '../hooks';
+import { useSocketEvent, SocketEvents } from '../lib/socket';
+
+
+export default function Home() {
+    const router = useRouter();
+    const { token, ensureToken, user, isChecking } = useUser({ skipCheck: false });
+
+    useEffect(() => {
+        if (user) {
+            router.push('/app/voice');
+        }
+    }, [user, router]);
+
+    const {
+        history,
+        stats,
+        isLoading,
+        error,
+        fetchHistory,
+        clearHistory
+    } = useHistory(token, user?.id, async () => null);
+
+    const handleMatchFound = useCallback((data: any) => {
+        if (typeof window !== 'undefined') {
+            sessionStorage.setItem('pendingMatch', JSON.stringify(data));
+        }
+        router.push('/app/voice');
+    }, [router]);
+
+    const handleIdentifySuccess = useCallback(() => {
+    }, []);
+
+    useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
+    useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentifySuccess);
+
+    const handleJoin = async () => {
+        await ensureToken();
+        router.push('/app/voice');
+    };
+
+    // Prevent blink for logged-in users while checking or waiting for redirect
+    if (isChecking || user) {
+        return null; // A completely empty render to prevent layout flashing, router.push runs in background
     }
 
-    return <HomeClient />;
+    return (
+        <main className="min-h-screen bg-white font-sans selection:bg-pink-100 flex flex-col items-center justify-center">
+            <Hero onJoin={handleJoin} />
+        </main>
+    );
 }
