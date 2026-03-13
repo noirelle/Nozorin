@@ -31,6 +31,7 @@ export interface SessionRecord {
     partner_status?: {
         is_online: boolean;
         last_seen: number;
+        last_active_at?: number;
     };
 }
 
@@ -67,5 +68,6 @@ export interface PartnerStatusChangePayload {
     status: {
         is_online: boolean;
         last_seen: number;
+        last_active_at?: number;
     };
 }

@@ -120,7 +120,7 @@ export const RightSidebar = ({
             duration: formatDuration(callDurationSec),
             country: item.partner_country || profile.country || 'US',
             isActive: item.partner_status?.is_online || false,
-            lastSeen: item.partner_status?.last_seen || 0,
+            lastSeen: item.partner_status?.last_seen || item.partner_status?.last_active_at || 0,
             isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
             isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
             isPendingReceived: (pendingRequests && pendingRequests.some(r => (r.user?.id || r.from_user_id) === targetUserId)) || item.friendship_status === 'pending_received',
@@ -139,7 +139,7 @@ export const RightSidebar = ({
         avatar: getAvatarUrl(friend.avatar || friend.username || 'Str'),
         country: friend.country || 'US',
         isActive: friend.is_online || false,
-        lastSeen: friend.last_seen || 0,
+        lastSeen: friend.last_seen || friend.last_active_at || 0,
     }));
 
     // Map requests to UI format

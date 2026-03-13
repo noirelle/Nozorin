@@ -552,7 +552,7 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                 isPendingReceived,
                 status: isFriend ? 'Friend' : isPendingSent ? 'Request Sent' : isPendingReceived ? 'Request Received' : 'Stranger',
                 isOnline: item.partner_status?.is_online,
-                lastSeen: item.partner_status?.last_seen
+                lastSeen: item.partner_status?.last_seen || item.partner_status?.last_active_at || 0
             })}
             className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
         >
@@ -637,7 +637,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                 isFriend: true,
                                 status: 'Friend',
                                 isOnline: f.is_online,
-                                lastSeen: f.last_seen
+                                lastSeen: f.last_seen || f.last_active_at || 0
                             })}
                             className="flex items-center justify-between animate-in slide-in-from-right-4 duration-300 active:opacity-60 transition-all cursor-pointer"
                         >
