@@ -6,6 +6,7 @@ import ReactCountryFlag from "react-country-flag";
 import { FilterModal } from './FilterModal';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useStatsContext } from '@/contexts/StatsContext';
+import { isInAppBrowser } from '@/utils/browser';
 
 interface DesktopVoiceFeedProps {
     onLeave?: () => void;
@@ -223,7 +224,7 @@ export const DesktopVoiceFeed = ({
                         <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
-                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : !isSocketConnected ? 'Offline' : callRoomState.permission_denied ? 'Please accept the microphone permission' : isSearching ? 'In Position Queue' : 'Start a Match'}
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? 'Open in External Browser' : callRoomState.permission_denied ? 'Please accept the microphone permission' : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
@@ -232,7 +233,7 @@ export const DesktopVoiceFeed = ({
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
-                            ) : !isSocketConnected ? 'Waiting for connection' : callRoomState.permission_denied ? 'Permission required to continue' : 'Tap the circle to begin'}
+                            ) : !isSocketConnected ? 'Waiting for connection' : (callRoomState.permission_denied && isInAppBrowser()) ? 'Permissions are limited in Facebook browser' : callRoomState.permission_denied ? 'Permission required to continue' : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}
