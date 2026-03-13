@@ -220,10 +220,10 @@ export const DesktopVoiceFeed = ({
 
                     {/* Meta/Status block - Centered & Spaced */}
                     <div className="mt-4 flex flex-col items-center w-full text-center">
-                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
+                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
-                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : isSearching ? 'In Position Queue' : 'Start a Match'}
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : callRoomState.permission_denied ? 'Please accept the microphone permission' : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
@@ -232,7 +232,7 @@ export const DesktopVoiceFeed = ({
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
-                            ) : 'Tap the circle to begin'}
+                            ) : callRoomState.permission_denied ? 'Permission required to continue' : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}

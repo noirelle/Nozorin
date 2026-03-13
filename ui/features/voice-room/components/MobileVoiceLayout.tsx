@@ -194,7 +194,9 @@ export const MobileVoiceLayout = ({
                                             <div className="w-12 h-12 rounded-full border border-zinc-100/80 flex items-center justify-center mb-4 bg-white/50 backdrop-blur-sm">
                                                 <div className="w-4 h-4 bg-pink-300/90 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.4)] animate-[pulse_3s_ease-in-out_infinite]" />
                                             </div>
-                                            <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest">Tap to start</span>
+                                             <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest text-center px-4">
+                                                {callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
+                                            </span>
                                         </div>
                                     )}
                                 </div>

@@ -84,8 +84,7 @@ export const useRoomActionsCallbacks = ({
         if (callRoomState.partner_id && !forceSkip) return;
 
         if (callRoomState.permission_denied) {
-            console.warn('[RoomActions] Media permission previously denied, aborting search.');
-            return;
+            console.warn('[RoomActions] Media permission previously denied, will attempt to re-request on user action.');
         }
 
         if (!callRoomState.has_prompted_for_permission) {
