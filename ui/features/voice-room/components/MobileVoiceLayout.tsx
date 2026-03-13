@@ -578,7 +578,7 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
                         </p>
                         <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {item.partner_status?.is_online ? 'Active Now' : `Active ${formatTimeAgo(item.partner_status?.last_seen)}`}
+                            {item.partner_status?.is_online ? 'Active Now' : formatTimeAgo(item.partner_status?.last_seen)}
                         </p>
                     </div>
                 </div>

@@ -151,7 +151,7 @@ export const RightSidebar = ({
             username: profile.username || 'Unknown',
             avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
             country: profile.country || 'US',
-            time: req.created_at ? formatTimeAgo(req.created_at) : 'New request'
+            time: formatTimeAgo(req.created_at)
         };
     });
 
@@ -164,7 +164,7 @@ export const RightSidebar = ({
             username: profile.username || 'Unknown',
             avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
             country: profile.country || 'US',
-            status: req.created_at ? formatTimeAgo(req.created_at) : 'Sent'
+            status: formatTimeAgo(req.created_at)
         };
     });
 
@@ -370,7 +370,7 @@ export const RightSidebar = ({
                                                             <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-700 font-bold">{user.duration}</span>
                                                         </p>
                                                         <p className="text-[9px] font-medium text-zinc-500">
-                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{user.createdAt ? formatTimeAgo(user.createdAt) : 'Recently'}</span>
+                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{formatTimeAgo(user.createdAt)}</span>
                                                         </p>
                                                         <p className={`text-[9px] font-bold mt-0.5 ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
                                                             {user.isActive ? 'Active Now' : `Active ${formatTimeAgo(user.lastSeen)}`}

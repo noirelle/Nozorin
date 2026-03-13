@@ -35,7 +35,7 @@ export const useHistoryListeners = ({
 
     const handlePartnerStatusChange = useCallback((data: PartnerStatusChangePayload) => {
         setHistory(prev => prev.map(session =>
-            session.partner_id === data.user_id ? { ...session, partner_status: data.status } : session
+            session.partner_id === data.user_id ? { ...session, partner_status: { ...session.partner_status, ...data.status } } : session
         ));
     }, [setHistory]);
 
