@@ -43,17 +43,37 @@ export const useWebRTCActions = ({
         peerConnectionRef.current = pc;
 
         const tracks = stream.getTracks();
-        tracks.forEach(track => pc.addTrack(track, stream));
+        tracks.forEach(track => {
+            pc.addTrack(track, stream);
+        });
 
         pc.ontrack = (event) => {
             const remoteStream = event.streams[0];
+            
             if (remoteAudioRef.current) {
-                remoteAudioRef.current.srcObject = remoteStream;
-                // Force play to overcome iOS/Safari strict auto-play blocks on dynamic connection
+                if (remoteAudioRef.current.srcObject !== remoteStream) {
+                    remoteAudioRef.current.srcObject = remoteStream;
+                }
+                
                 remoteAudioRef.current.play()
-                    .catch(e => console.warn('[WebRTC] Autoplay blocked or failed to play incoming stream:', e));
+                    .catch(e => {
+                        console.warn('[WebRTC] Autoplay blocked. Attempting muted autoplay fallback.', e);
+                        if (remoteAudioRef.current) {
+                            remoteAudioRef.current.muted = true;
+                            remoteAudioRef.current.play().catch(err => console.error('[WebRTC] Muted autoplay also failed:', err));
+                        }
+                    });
             } else {
-                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — audio element not mounted yet');
+                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — will retry attachment');
+                // Fallback: poll for ref or rely on the next render
+                const checkRef = setInterval(() => {
+                    if (remoteAudioRef.current) {
+                        remoteAudioRef.current.srcObject = remoteStream;
+                        remoteAudioRef.current.play().catch(() => {});
+                        clearInterval(checkRef);
+                    }
+                }, 500);
+                setTimeout(() => clearInterval(checkRef), 5000);
             }
         };
 
@@ -63,30 +83,35 @@ export const useWebRTCActions = ({
             }
         };
 
-        pc.onicegatheringstatechange = () => {
-        };
-
         pc.oniceconnectionstatechange = () => {
         };
 
         pc.onconnectionstatechange = () => {
             const state = pc.connectionState;
+            
             if (state === 'disconnected') {
                 onSignalQuality?.('reconnecting');
-                // Polite Peer mechanism: only the offerer triggers ICE restarts to prevent glaring.
                 if (role === 'offerer') {
-                    const partnerId = targetId;
                     const now = Date.now();
-                    // Throttle ICE restarts to once every 5 seconds max
-                    if (partnerId && (now - lastIceRestartRef.current) > 5000) {
+                    if ((now - lastIceRestartRef.current) > 5000) {
                         lastIceRestartRef.current = now;
-                        createOfferRef.current?.(partnerId, { iceRestart: true });
+                        createOfferRef.current?.(targetId, { iceRestart: true });
                     }
                 }
             }
-            else if (state === 'connected') onSignalQuality?.('good');
-            if (state === 'failed' || state === 'closed') onConnectionStateChange?.(state);
-            if (state === 'disconnected') onConnectionStateChange?.(state);
+            else if (state === 'connected') {
+                onSignalQuality?.('good');
+            }
+            else if (state === 'failed') {
+                console.error('[WebRTC] Connection failed. Check network/TURN config.');
+            }
+
+            if (state === 'failed' || state === 'closed' || state === 'disconnected') {
+                onConnectionStateChange?.(state);
+            }
+        };
+
+        pc.onsignalingstatechange = () => {
         };
 
         return pc;
@@ -181,25 +206,26 @@ export const useWebRTCActions = ({
 
     const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         const pc = peerConnectionRef.current;
-        const hasRemoteDesc = !!pc?.remoteDescription;
-        if (!is_media_ready || !hasRemoteDesc) {
+        
+        // Candidates MUST NOT be added before remote description is set
+        if (!pc || !pc.remoteDescription || pc.signalingState === 'closed') {
             pendingIceCandidatesRef.current.push(candidate);
             return;
         }
 
-        if (pc) {
-            try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (e) {
-                console.error('[WebRTC] Error adding received ice candidate:', e);
-            }
+        try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+            console.error('[WebRTC] Error adding received ice candidate:', e);
         }
-    }, [peerConnectionRef, is_media_ready, pendingIceCandidatesRef]);
+    }, [peerConnectionRef, pendingIceCandidatesRef]);
 
     useEffect(() => {
         if (!is_media_ready) return;
 
         const processQueues = async () => {
+            // Processing should be sequential to avoid race conditions
+            
             // 1. Process Offer
             if (pendingOfferRef.current) {
                 const { sdp, callerId } = pendingOfferRef.current;
@@ -215,17 +241,14 @@ export const useWebRTCActions = ({
             }
 
             // 3. Process ICE Candidates
-            if (pendingIceCandidatesRef.current.length > 0) {
-                const candidates = [...pendingIceCandidatesRef.current];
-                pendingIceCandidatesRef.current = [];
-                for (const candidate of candidates) {
-                    await handleIceCandidate(candidate);
-                }
+            const pc = peerConnectionRef.current;
+            if (pc && pc.remoteDescription && pendingIceCandidatesRef.current.length > 0) {
+                await processQueuedIceCandidates(pc);
             }
         };
 
         processQueues();
-    }, [is_media_ready, handleOffer, handleAnswer, handleIceCandidate, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef]);
+    }, [is_media_ready, handleOffer, handleAnswer, processQueuedIceCandidates, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
 
     return {
         createPeerConnection,

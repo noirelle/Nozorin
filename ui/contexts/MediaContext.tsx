@@ -12,6 +12,8 @@ interface MediaContextType {
     cleanupMedia: () => void;
     toggleMute: () => void;
     getMediaManager: () => MediaStreamManager | null;
+    setPermissionDenied: (denied: boolean) => void;
+    setHasPromptedForPermission: (prompted: boolean) => void;
 }
 
 const MediaContext = createContext<MediaContextType | undefined>(undefined);
@@ -105,7 +107,9 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
             initMediaManager,
             cleanupMedia,
             toggleMute,
-            getMediaManager
+            getMediaManager,
+            setPermissionDenied,
+            setHasPromptedForPermission
         }}>
             {children}
         </MediaContext.Provider>
