@@ -19,7 +19,7 @@ export const useReconnectState = (initialReconnecting = false) => {
     const rejoinEmittedRef = useRef(false);
     const activeCallRef = useRef<ActiveCallData | null>(null);
     const reconnectStartRef = useRef<number>(0);
-    const minDisplayTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const minDisplayTimerRef = useRef<any>(null);
 
     useEffect(() => {
         return () => {

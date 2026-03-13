@@ -56,6 +56,10 @@ export const useReconnect = ({
             onFinally: () => {
                 isCheckingRef.current = false;
                 hasCheckedRef.current = true;
+                // If we didn't find an active call, clear the reconnecting state
+                if (!activeCallRef.current) {
+                    setIsReconnecting(false);
+                }
             }
         });
     }, [setIsReconnecting, hasCheckedRef, activeCallRef]);
