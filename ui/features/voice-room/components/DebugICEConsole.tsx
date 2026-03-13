@@ -128,8 +128,34 @@ export const DebugICEConsole: React.FC<DebugICEConsoleProps> = ({ data }) => {
             <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
                 <section style={{ marginBottom: '20px' }}>
                     <h4 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#666', marginBottom: '12px', letterSpacing: '0.05em' }}>
+                        Diagnostics
+                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: '#aaa' }}>Config Active:</span>
+                        <span style={{ color: data.isConfigured ? '#4CAF50' : '#F44336', fontSize: '11px', fontWeight: 'bold' }}>
+                            {data.isConfigured ? 'YES' : 'NO'}
+                        </span>
+                    </div>
+                    {data.iceCandidateError && (
+                        <div style={{ 
+                            padding: '8px', 
+                            background: 'rgba(244, 67, 54, 0.1)', 
+                            border: '1px solid rgba(244, 67, 54, 0.3)', 
+                            color: '#F44336', 
+                            fontSize: '10px',
+                            borderRadius: '4px',
+                            marginBottom: '8px'
+                        }}>
+                            Error: {data.iceCandidateError}
+                        </div>
+                    )}
+                </section>
+
+                <section style={{ marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#666', marginBottom: '12px', letterSpacing: '0.05em' }}>
                         Connection Status
                     </h4>
+
                     <StatusBadge label="Connection State" value={data.connectionState} />
                     <StatusBadge label="ICE Connection" value={data.iceConnectionState} />
                     <StatusBadge label="ICE Gathering" value={data.iceGatheringState} />

@@ -48,6 +48,7 @@ export const useWebRTCActions = ({
         peerConnectionRef.current = pc;
 
         // Debugging: track state changes
+        setIceDebugData(prev => ({ ...prev, isConfigured: true }));
         const updateDebugState = () => {
             setIceDebugData(prev => ({
                 ...prev,
@@ -60,7 +61,14 @@ export const useWebRTCActions = ({
 
         pc.oniceconnectionstatechange = updateDebugState;
         pc.onicegatheringstatechange = updateDebugState;
+        pc.onicecandidateerror = (event: any) => {
+            setIceDebugData(prev => ({
+                ...prev,
+                iceCandidateError: `${event.errorCode}: ${event.errorText} (${event.url})`
+            }));
+        };
         pc.onconnectionstatechange = () => {
+
             updateDebugState();
             const state = pc.connectionState;
             
