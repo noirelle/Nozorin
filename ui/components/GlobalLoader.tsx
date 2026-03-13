@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { NozorinLogo } from './Logo';
 
 export const GlobalLoader = () => (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white">
@@ -9,7 +8,7 @@ export const GlobalLoader = () => (
             {/* Pulsing Logo or Icon */}
             <div className="w-20 h-20 mb-8 relative">
                 <div className="absolute inset-0 bg-pink-400 rounded-3xl animate-pulse opacity-15" />
-                <NozorinLogo className="w-20 h-20 animate-pulse" />
+                <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-20 h-20 animate-pulse relative z-10" />
             </div>
 
             {/* Progress/Loading Text */}

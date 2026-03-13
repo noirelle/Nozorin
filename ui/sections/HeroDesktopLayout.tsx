@@ -2,7 +2,6 @@
 
 import React from 'react';
 import HeroVisual from './HeroVisual';
-import NozorinLogo from '../components/Logo';
 
 export default function HeroDesktopLayout({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
     return (
@@ -13,7 +12,7 @@ export default function HeroDesktopLayout({ onJoin }: { onJoin: (mode: 'chat' | 
 
                 {/* Brand Logo */}
                 <div className="absolute top-10 left-12 z-30">
-                    <NozorinLogo className="w-[64px] h-[64px]" />
+                    <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-[64px] h-[64px]" />
                 </div>
 
                 {/* Content Container */}

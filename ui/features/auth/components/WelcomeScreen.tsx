@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useGuestLogin } from '@/hooks';
-import { NozorinLogo } from '@/components/Logo';
 import { TermsModal } from './TermsModal';
 
 interface WelcomeScreenProps {
@@ -61,7 +60,7 @@ export const WelcomeScreen = ({ onSuccess }: WelcomeScreenProps) => {
             <div className="w-full max-w-[420px] relative z-10">
                 {/* Logo + Brand */}
                 <div className="flex flex-col items-center mb-10">
-                    <NozorinLogo className="w-16 h-16 mb-4" />
+                    <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-16 h-16 mb-4" />
                     <h1 className="text-[28px] font-bold text-[#1c1e21] tracking-tight">
                         Welcome to Nozorin
                     </h1>

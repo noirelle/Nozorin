@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import HeroVisual from './HeroVisual';
-import NozorinLogo from '../components/Logo';
 
 export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | 'voice') => void }) {
     useEffect(() => {
@@ -26,7 +25,7 @@ export default function HeroMobileLayout({ onJoin }: { onJoin: (mode: 'chat' | '
 
                 {/* Brand Logo */}
                 <div className="absolute top-[clamp(12px,2vh,20px)] left-[clamp(16px,4vw,24px)] z-30">
-                    <NozorinLogo className="w-[clamp(32px,8vw,48px)] h-[clamp(32px,8vw,48px)]" />
+                    <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-[clamp(32px,8vw,48px)] h-[clamp(32px,8vw,48px)]" />
                 </div>
 
                 {/* Content Container */}
