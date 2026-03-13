@@ -1,5 +1,18 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
+
+export interface IceDebugData {
+    localCandidates: RTCIceCandidate[];
+    remoteCandidates: RTCIceCandidate[];
+    iceConnectionState: RTCIceConnectionState;
+    iceGatheringState: RTCIceGatheringState;
+    connectionState: RTCPeerConnectionState;
+    signalingState: RTCSignalingState;
+    selectedCandidatePair?: {
+        local: RTCIceCandidate;
+        remote: RTCIceCandidate;
+    };
+}
 
 const getIceServers = (): RTCIceServer[] => {
     const servers: RTCIceServer[] = [];
@@ -72,13 +85,25 @@ export const useWebRTCState = () => {
     const pendingAnswerRef = useRef<RTCSessionDescriptionInit | null>(null);
     const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
+    const [iceDebugData, setIceDebugData] = useState<IceDebugData>({
+        localCandidates: [],
+        remoteCandidates: [],
+        iceConnectionState: 'new',
+        iceGatheringState: 'new',
+        connectionState: 'new',
+        signalingState: 'stable'
+    });
+
     return {
         peerConnectionRef,
         ICE_CONFIG,
         pendingOfferRef,
         pendingAnswerRef,
-        pendingIceCandidatesRef
+        pendingIceCandidatesRef,
+        iceDebugData,
+        setIceDebugData
     };
 };
 
 export type UseWebRTCStateReturn = ReturnType<typeof useWebRTCState>;
+

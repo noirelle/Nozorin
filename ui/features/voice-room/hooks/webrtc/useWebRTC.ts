@@ -21,7 +21,16 @@ export const useWebRTC = ({
     onConnectionStateChange,
     onSignalQuality,
 }: UseWebRTCProps) => {
-    const { peerConnectionRef, ICE_CONFIG, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef } = useWebRTCState();
+    const { 
+        peerConnectionRef, 
+        ICE_CONFIG, 
+        pendingOfferRef, 
+        pendingAnswerRef, 
+        pendingIceCandidatesRef,
+        iceDebugData,
+        setIceDebugData
+    } = useWebRTCState();
+
     const actions = useWebRTCActions({
         is_media_ready,
         role,
@@ -34,7 +43,10 @@ export const useWebRTC = ({
         remoteAudioRef,
         onConnectionStateChange,
         onSignalQuality,
+        iceDebugData,
+        setIceDebugData,
     });
+
 
     useWebRTCListeners({
         handleOffer: actions.handleOffer,
@@ -52,5 +64,7 @@ export const useWebRTC = ({
         handleOffer: actions.handleOffer,
         handleAnswer: actions.handleAnswer,
         handleIceCandidate: actions.handleIceCandidate,
+        iceDebugData,
     };
 };
+
