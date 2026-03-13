@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StatsProvider } from "@/contexts/StatsContext";
+import { BrowserGuard } from "@/components/BrowserGuard";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <BrowserGuard />
         <StatsProvider>
           {children}
         </StatsProvider>

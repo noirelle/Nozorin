@@ -7,22 +7,19 @@ export const isInAppBrowser = (): boolean => {
     
     const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
     
-    // Facebook App (iOS and Android)
-    if (ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1) return true;
-    
-    // Instagram App
-    if (ua.indexOf('Instagram') > -1) return true;
-    
-    // Messenger App
-    if (ua.indexOf('Messenger') > -1 || ua.indexOf('FB_IAB') > -1) return true;
-    
-    // Other common in-app browsers
-    if (ua.indexOf('Threads') > -1 || ua.indexOf('Twitter') > -1 || ua.indexOf('Line') > -1) return true;
-    
-    // TikTok
-    if (ua.indexOf('TikTok') > -1) return true;
-
-    return false;
+    return (
+        ua.indexOf('FBAN') > -1 || 
+        ua.indexOf('FBAV') > -1 ||
+        ua.indexOf('Instagram') > -1 ||
+        ua.indexOf('Messenger') > -1 ||
+        ua.indexOf('FB_IAB') > -1 ||
+        ua.indexOf('Threads') > -1 ||
+        ua.indexOf('Twitter') > -1 ||
+        ua.indexOf('Line') > -1 ||
+        ua.indexOf('TikTok') > -1 ||
+        ua.indexOf('Snapchat') > -1 ||
+        ua.indexOf('WhatsApp') > -1
+    );
 };
 
 export const isIOS = (): boolean => {
@@ -45,6 +42,10 @@ export const getInAppBrowserName = (): string | null => {
     if (ua.indexOf('Threads') > -1) return 'Threads';
     if (ua.indexOf('TikTok') > -1) return 'TikTok';
     if (ua.indexOf('Messenger') > -1) return 'Messenger';
+    if (ua.indexOf('Twitter') > -1) return 'Twitter';
+    if (ua.indexOf('Line') > -1) return 'Line';
+    if (ua.indexOf('Snapchat') > -1) return 'Snapchat';
+    if (ua.indexOf('WhatsApp') > -1) return 'WhatsApp';
     
-    return null;
+    return 'In-App';
 };

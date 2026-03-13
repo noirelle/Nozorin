@@ -12,7 +12,6 @@ import { MobileVoiceLayout } from '@/features/voice-room/components/MobileVoiceL
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
 import { Notification } from '@/components/Notification';
-import { BrowserGuard } from '@/components/BrowserGuard';
 
 export const VoiceGameRoom = () => {
     const router = useRouter();
@@ -262,7 +261,6 @@ export const VoiceGameRoom = () => {
 
     return (
         <>
-            <BrowserGuard />
             <audio ref={voiceRoomData.remoteAudioRef} autoPlay />
 
             {isMobile ? (
