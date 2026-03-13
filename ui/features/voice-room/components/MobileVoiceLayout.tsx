@@ -578,7 +578,7 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
                         </p>
                         <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {item.partner_status?.is_online ? 'Active Now' : formatTimeAgo(item.partner_status?.last_seen)}
+                            {item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)}
                         </p>
                     </div>
                 </div>
@@ -648,7 +648,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-zinc-900">{f.username}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : formatTimeAgo(f.last_seen)}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : formatFullTimeAgo(f.last_seen || f.last_active_at)}</span>
                                 </div>
                             </div>
                             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">
@@ -863,7 +863,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         </div>
                         <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${user.isOnline ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {user.isOnline ? 'Active Now' : `Active ${formatTimeAgo(user.lastSeen)}`} • {user.status}
+                            {user.isOnline ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`} • {user.status}
                         </p>
                     </div>
 

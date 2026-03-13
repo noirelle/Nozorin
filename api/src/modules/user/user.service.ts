@@ -4,6 +4,7 @@ import { CreateUserDto, UserProfile } from '../../shared/types/user.types';
 import { getGeoInfo } from '../../core/utils/ip.utils';
 import { v4 as uuidv4 } from 'uuid';
 import { AppDataSource } from '../../core/config/database.config';
+import { In } from 'typeorm';
 import { User } from './user.entity';
 import { Friend } from '../friend/friend.entity';
 import { FriendRequest } from '../friend/friend-request.entity';
@@ -92,10 +93,59 @@ class UserService {
      */
     async getUserStatuses(userIds: string[]): Promise<Record<string, UserStatus>> {
         const results: Record<string, UserStatus> = {};
+        const missingUserIds: string[] = [];
 
-        // In production with many users, use Redis MGET
-        for (const userId of userIds) {
-            results[userId] = await this.getUserStatus(userId);
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                // Try batch fetching from Redis
+                const keys = userIds.map(id => `user:status:${id}`);
+                const cachedStatuses = await redis.mget(...keys);
+                
+                userIds.forEach((userId, index) => {
+                    const cached = cachedStatuses[index];
+                    if (cached) {
+                        try {
+                            results[userId] = JSON.parse(cached);
+                        } catch (e) {
+                            missingUserIds.push(userId);
+                        }
+                    } else {
+                        missingUserIds.push(userId);
+                    }
+                });
+            } catch (error) {
+                console.error('[USER] Redis error in batch status get:', error);
+                missingUserIds.push(...userIds);
+            }
+        } else {
+            missingUserIds.push(...userIds);
+        }
+
+        // Fetch missing statuses from DB in one query
+        if (missingUserIds.length > 0) {
+            try {
+                const users = await this.userRepository.find({
+                    where: { id: In(missingUserIds) },
+                    select: ['id', 'last_active_at']
+                });
+                
+                const dbResults = users.reduce((acc, user) => {
+                    // TypeORM bigint can sometimes return as string
+                    acc[user.id] = { is_online: false, last_seen: Number(user.last_active_at) || 0 };
+                    return acc;
+                }, {} as Record<string, UserStatus>);
+
+                // Fill in results
+                missingUserIds.forEach(id => {
+                    results[id] = dbResults[id] || { is_online: false, last_seen: 0 };
+                });
+            } catch (error) {
+                console.error('[USER] DB error in status fallback batch:', error);
+                missingUserIds.forEach(id => {
+                    if (!results[id]) results[id] = { is_online: false, last_seen: 0 };
+                });
+            }
         }
 
         return results;
@@ -115,6 +165,22 @@ class UserService {
             } catch (error) {
                 console.error('[USER] Redis error getting status:', error);
             }
+        }
+
+        // Fallback to database
+        try {
+            const user = await this.userRepository.findOne({
+                where: { id: userId },
+                select: ['id', 'last_active_at']
+            });
+            if (user) {
+                return { 
+                    is_online: false, 
+                    last_seen: Number(user.last_active_at) || 0 
+                };
+            }
+        } catch (error) {
+            console.error('[USER] DB error getting status fallback:', error);
         }
 
         return { is_online: false, last_seen: 0 };

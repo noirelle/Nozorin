@@ -151,7 +151,7 @@ export const RightSidebar = ({
             username: profile.username || 'Unknown',
             avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
             country: profile.country || 'US',
-            time: formatTimeAgo(req.created_at)
+            time: formatFullTimeAgo(req.created_at)
         };
     });
 
@@ -164,7 +164,7 @@ export const RightSidebar = ({
             username: profile.username || 'Unknown',
             avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
             country: profile.country || 'US',
-            status: formatTimeAgo(req.created_at)
+            status: formatFullTimeAgo(req.created_at)
         };
     });
 
@@ -245,7 +245,7 @@ export const RightSidebar = ({
                                                         {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
                                                     </div>
                                                     <p className={`text-[10px] font-medium ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                                                        {user.isActive ? 'Active Now' : formatTimeAgo(user.lastSeen)}
+                                                        {user.isActive ? 'Active Now' : formatFullTimeAgo(user.lastSeen)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -373,7 +373,7 @@ export const RightSidebar = ({
                                                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{formatFullTimeAgo(user.createdAt)}</span>
                                                         </p>
                                                         <p className={`text-[9px] font-bold mt-0.5 ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                                                            {user.isActive ? 'Active Now' : `Active ${formatTimeAgo(user.lastSeen)}`}
+                                                            {user.isActive ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`}
                                                         </p>
                                                     </div>
                                                 </div>
