@@ -40,7 +40,7 @@ export const DesktopVoiceFeed = ({
     voiceRoomData,
     searchTimer = 0
 }: DesktopVoiceFeedProps) => {
-    const { stats } = useStatsContext();
+    const { stats, isConnected: isSocketConnected } = useStatsContext();
     const mode = 'voice';
 
     const {
@@ -114,7 +114,7 @@ export const DesktopVoiceFeed = ({
                     <div className="flex items-center gap-1.5 bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                         <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
-                            {stats.people_online || 0} Online
+                            {isSocketConnected ? `${stats.people_online || 0} Online` : 'offline'}
                         </span>
                     </div>
 
@@ -147,12 +147,12 @@ export const DesktopVoiceFeed = ({
                 <div className="relative flex flex-col items-center">
                     {/* The Interactive Discovery Circle */}
                     <div
-                        onClick={!isConnected && !isSearching ? handleNextWrapper : undefined}
-                        className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-700 ${!isConnected && !isSearching ? 'cursor-pointer hover:scale-105 active:scale-95' : ''
+                        onClick={!isConnected && !isSearching && isSocketConnected ? handleNextWrapper : undefined}
+                        className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-700 ${!isConnected && !isSearching && isSocketConnected ? 'cursor-pointer hover:scale-105 active:scale-95' : 'opacity-80'
                             }`}
                     >
                         {/* Pulse effect when ready */}
-                        {!isConnected && !isSearching && (
+                        {!isConnected && !isSearching && isSocketConnected && (
                             <div className="absolute -inset-4 bg-pink-50/50 rounded-full animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
                         )}
 
@@ -223,7 +223,7 @@ export const DesktopVoiceFeed = ({
                         <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
-                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : callRoomState.permission_denied ? 'Please accept the microphone permission' : isSearching ? 'In Position Queue' : 'Start a Match'}
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : !isSocketConnected ? 'Offline' : callRoomState.permission_denied ? 'Please accept the microphone permission' : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.25em] mt-1">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
@@ -232,7 +232,7 @@ export const DesktopVoiceFeed = ({
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
-                            ) : callRoomState.permission_denied ? 'Permission required to continue' : 'Tap the circle to begin'}
+                            ) : !isSocketConnected ? 'Waiting for connection' : callRoomState.permission_denied ? 'Permission required to continue' : 'Tap the circle to begin'}
                         </p>
 
                         {/* Action buttons appear only when relevant */}

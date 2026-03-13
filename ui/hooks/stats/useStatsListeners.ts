@@ -17,11 +17,33 @@ export const useStatsListeners = ({ setStats, setIsLoading, setError }: UseStats
         const socket = getSocketClient();
         if (!socket) return;
         // Optimistically set loading to false if already connected, otherwise wait for events/connect
-        if (socket.connected) setIsLoading(false);
-    }, [setIsLoading]);
+        if (socket.connected) {
+            setIsLoading(false);
+            setStats(prev => ({ ...prev, isConnected: true }));
+        }
+
+        const onConnect = () => {
+            setStats(prev => ({ ...prev, isConnected: true }));
+            setIsLoading(false);
+        };
+
+        const onDisconnect = () => {
+            setStats(prev => ({ ...prev, isConnected: false }));
+        };
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on(SocketEvents.IDENTIFY_SUCCESS, onConnect);
+
+        return () => {
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+            socket.off(SocketEvents.IDENTIFY_SUCCESS, onConnect);
+        };
+    }, [setIsLoading, setStats]);
 
     const handleStatsUpdate = useCallback((data: StatsUpdatePayload) => {
-        setStats(data);
+        setStats(prev => ({ ...prev, ...data, isConnected: true }));
         setIsLoading(false);
     }, [setStats, setIsLoading]);
 
@@ -29,7 +51,8 @@ export const useStatsListeners = ({ setStats, setIsLoading, setError }: UseStats
         console.error('[STATS] Connection error:', err);
         setError(err);
         setIsLoading(false);
-    }, [setError, setIsLoading]);
+        setStats(prev => ({ ...prev, isConnected: false }));
+    }, [setError, setIsLoading, setStats]);
 
     useSocketEvent<StatsUpdatePayload>(SocketEvents.STATS_UPDATE, handleStatsUpdate);
     useSocketEvent<Error>(SocketEvents.CONNECT_ERROR, handleConnectError);

@@ -7,6 +7,7 @@ import { StatsData } from '@/hooks/stats/useStatsState';
 
 interface StatsContextType {
     stats: StatsData;
+    isConnected: boolean;
     isLoading: boolean;
     error: Error | null;
 }
@@ -26,6 +27,7 @@ export const StatsProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <StatsContext.Provider value={{
             stats: state.stats,
+            isConnected: state.stats.isConnected,
             isLoading: state.isLoading,
             error: state.error,
         }}>

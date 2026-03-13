@@ -59,7 +59,7 @@ export const MobileVoiceLayout = ({
     voiceRoomData,
     searchTimer
 }: MobileVoiceLayoutProps) => {
-    const { stats } = useStatsContext();
+    const { stats, isConnected: isSocketConnected } = useStatsContext();
     const {
         callRoomState,
         messages,
@@ -131,7 +131,7 @@ export const MobileVoiceLayout = ({
                         </span>
                         <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mx-1">•</span>
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest tabular-nums animate-pulse">
-                            {stats.people_online || 0} Live
+                            {isSocketConnected ? `${stats.people_online || 0} Live` : 'offline'}
                         </span>
                     </div>
                 </div>
@@ -152,8 +152,8 @@ export const MobileVoiceLayout = ({
 
                     {/* Central Interaction Circle */}
                     <div
-                        onClick={!isConnected && !isSearching ? handleNext : undefined}
-                        className={`relative w-56 h-56 rounded-full flex items-center justify-center transition-all duration-700 active:scale-95 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] ring-1 ring-zinc-100/50 backdrop-blur-sm ${!isConnected && !isSearching ? 'cursor-pointer' : ''}`}
+                        onClick={!isConnected && !isSearching && isSocketConnected ? handleNext : undefined}
+                        className={`relative w-56 h-56 rounded-full flex items-center justify-center transition-all duration-700 active:scale-95 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.05)] ring-1 ring-zinc-100/50 backdrop-blur-sm ${!isConnected && !isSearching && isSocketConnected ? 'cursor-pointer' : 'opacity-80'}`}
                     >
                         {/* Background Layer */}
                         <div className="absolute inset-0 rounded-full bg-white/90 overflow-hidden">
@@ -194,8 +194,8 @@ export const MobileVoiceLayout = ({
                                             <div className="w-12 h-12 rounded-full border border-zinc-100/80 flex items-center justify-center mb-4 bg-white/50 backdrop-blur-sm">
                                                 <div className="w-4 h-4 bg-pink-300/90 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.4)] animate-[pulse_3s_ease-in-out_infinite]" />
                                             </div>
-                                             <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest text-center px-4">
-                                                {callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
+                                             <span className={`text-[11px] font-black uppercase tracking-widest text-center px-4 ${isSocketConnected ? 'text-zinc-400' : 'text-rose-400'}`}>
+                                                {!isSocketConnected ? 'Offline - Waiting for connection' : callRoomState.permission_denied ? 'Please accept the microphone permission' : 'Tap to start'}
                                             </span>
                                         </div>
                                     )}
