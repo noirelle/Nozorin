@@ -2,34 +2,54 @@ import { useRef } from 'react';
 import { MediaStreamManager } from '../../../../lib/mediaStream';
 
 const getIceServers = (): RTCIceServer[] => {
-    // Xirsys ICE Servers provided by user
-    const xirsysServer: RTCIceServer = {
-        username: "Iovecib04n-XO9StnUtxVLqeERalcS_jXxmC7lBwcac7rwisC1T5az1gnCZbaal5AAAAAGm0EY54dGxu",
-        urls: [
-            "stun:hk-turn1.xirsys.com",
-            "turn:hk-turn1.xirsys.com:80?transport=udp",
-            "turn:hk-turn1.xirsys.com:3478?transport=udp",
-            "turn:hk-turn1.xirsys.com:80?transport=tcp",
-            "turn:hk-turn1.xirsys.com:3478?transport=tcp",
-            "turns:hk-turn1.xirsys.com:443?transport=tcp",
-            "turns:hk-turn1.xirsys.com:5349?transport=tcp"
-        ],
-        credential: "dc353b52-1ee0-11f1-bcad-fa4b4a5e72d9"
-    };
+    const servers: RTCIceServer[] = [];
 
-    const servers: RTCIceServer[] = [
+    // 1. Prioritize dedicated Xirsys infrastructure (STUN + TURN)
+    const xirsysUsername = process.env.NEXT_PUBLIC_XIRSYS_USERNAME;
+    const xirsysCredential = process.env.NEXT_PUBLIC_XIRSYS_CREDENTIAL;
+
+    if (xirsysUsername && xirsysCredential) {
+        // Xirsys STUN
+        servers.push({
+            urls: "stun:hk-turn1.xirsys.com"
+        });
+
+        // Xirsys TURN (Separated by transport for better compatibility)
+        servers.push({
+            username: xirsysUsername,
+            credential: xirsysCredential,
+            urls: [
+                "turn:hk-turn1.xirsys.com:80?transport=udp",
+                "turn:hk-turn1.xirsys.com:3478?transport=udp",
+                "turn:hk-turn1.xirsys.com:80?transport=tcp",
+                "turn:hk-turn1.xirsys.com:3478?transport=tcp"
+            ]
+        });
+
+        // Xirsys TURNS (Secure)
+        servers.push({
+            username: xirsysUsername,
+            credential: xirsysCredential,
+            urls: [
+                "turns:hk-turn1.xirsys.com:443?transport=tcp",
+                "turns:hk-turn1.xirsys.com:5349?transport=tcp"
+            ]
+        });
+    }
+
+    // 2. Google STUN Fallbacks (Lower priority)
+    servers.push(
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        xirsysServer
-    ];
+        { urls: 'stun:stun1.l.google.com:19302' }
+    );
 
-    // Optional environment overrides
+    // 3. Optional environment overrides (Top priority if provided)
     const turnUrl = process.env.NEXT_PUBLIC_TURN_URL;
     const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME;
     const turnPassword = process.env.NEXT_PUBLIC_TURN_PASSWORD;
 
     if (turnUrl) {
-        servers.push({
+        servers.unshift({
             urls: turnUrl,
             username: turnUsername,
             credential: turnPassword,
