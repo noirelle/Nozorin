@@ -43,8 +43,6 @@ export const useWebRTCState = () => {
         const xirsysUsername = process.env.NEXT_PUBLIC_XIRSYS_USERNAME;
         const xirsysCredential = process.env.NEXT_PUBLIC_XIRSYS_CREDENTIAL;
 
-        console.log('[WebRTC] Env Check - Xirsys Username:', xirsysUsername ? 'LOADED' : 'MISSING');
-        console.log('[WebRTC] Env Check - Xirsys Credential:', xirsysCredential ? 'LOADED' : 'MISSING');
 
         if (xirsysUsername && xirsysCredential) {
             // 1. Xirsys TURNS (Secure TCP - Port 443 is best for bypassing firewalls)
@@ -103,8 +101,6 @@ export const useWebRTCState = () => {
             });
         }
 
-        console.log('[WebRTC] ICE Servers count:', servers.length);
-        console.log('[WebRTC] ICE Servers URLs:', servers.map(s => Array.isArray(s.urls) ? s.urls[0] : s.urls));
 
         return {
             iceServers: servers,
