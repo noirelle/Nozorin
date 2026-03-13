@@ -5,6 +5,7 @@ import { UserPlus, Mic2, MicOff, MoreHorizontal, SlidersHorizontal, ChevronDown,
 import ReactCountryFlag from "react-country-flag";
 import { FilterModal } from './FilterModal';
 import { getAvatarUrl } from '@/utils/avatar';
+import { useStatsContext } from '@/contexts/StatsContext';
 
 interface DesktopVoiceFeedProps {
     onLeave?: () => void;
@@ -39,6 +40,7 @@ export const DesktopVoiceFeed = ({
     voiceRoomData,
     searchTimer = 0
 }: DesktopVoiceFeedProps) => {
+    const { stats } = useStatsContext();
     const mode = 'voice';
 
     const {
@@ -107,17 +109,27 @@ export const DesktopVoiceFeed = ({
                     </button>
                 </div>
 
-                <div className="flex items-center gap-2 group cursor-default">
-                    {isConnected ? (
-                        <>
-                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(52,211,153,0.3)]" />
-                            <span className="text-[10px] font-bold text-zinc-400 tabular-nums tracking-widest uppercase">{callDuration}</span>
-                        </>
-                    ) : (
-                        <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase truncate max-w-[150px]">
-                            {isSearching ? actions.matching.status : 'Ready'}
+                <div className="flex items-center gap-4">
+                    {/* Live Online Count */}
+                    <div className="flex items-center gap-1.5 bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-100">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
+                            {stats.people_online || 0} Online
                         </span>
-                    )}
+                    </div>
+
+                    <div className="flex items-center gap-2 group cursor-default">
+                        {isConnected ? (
+                            <>
+                                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(52,211,153,0.3)]" />
+                                <span className="text-[10px] font-bold text-zinc-400 tabular-nums tracking-widest uppercase">{callDuration}</span>
+                            </>
+                        ) : (
+                            <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase truncate max-w-[150px]">
+                                {isSearching ? actions.matching.status : 'Ready'}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </div>
 

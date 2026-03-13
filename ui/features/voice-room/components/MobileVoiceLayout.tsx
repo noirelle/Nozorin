@@ -24,6 +24,7 @@ import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
+import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 import { formatTimeAgo } from '@/utils/time';
 
@@ -58,6 +59,7 @@ export const MobileVoiceLayout = ({
     voiceRoomData,
     searchTimer
 }: MobileVoiceLayoutProps) => {
+    const { stats } = useStatsContext();
     const {
         callRoomState,
         messages,
@@ -126,6 +128,10 @@ export const MobileVoiceLayout = ({
                         <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? 'Reconnecting' : isConnected ? callDuration : isSearching ? 'Scanning' : 'Ready'}
+                        </span>
+                        <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mx-1">•</span>
+                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest tabular-nums animate-pulse">
+                            {stats.people_online || 0} Live
                         </span>
                     </div>
                 </div>
