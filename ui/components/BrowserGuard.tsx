@@ -13,6 +13,11 @@ export const BrowserGuard: React.FC = () => {
         if (isInAppBrowser()) {
             setShouldShow(true);
             setBrowserName(getInAppBrowserName() || 'In-App');
+            // Prevent scrolling on the main page while the guard is active
+            document.body.style.overflow = 'hidden';
+            return () => {
+                document.body.style.overflow = 'auto';
+            };
         }
     }, []);
 
@@ -25,81 +30,87 @@ export const BrowserGuard: React.FC = () => {
     if (!shouldShow) return null;
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#1c1e21]/90 backdrop-blur-xl p-6 overflow-y-auto">
-            <div className="max-w-md w-full animate-in fade-in zoom-in duration-500 py-10">
-                <div className="bg-white rounded-[40px] p-8 shadow-[0_32px_64px_rgba(0,0,0,0.4)] relative overflow-hidden border-2 border-[#fce7f3]">
-                    {/* Background Decorative Element */}
-                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#ec4899]/10 blur-[80px] rounded-full" />
-                    <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-[#ec4899]/10 blur-[80px] rounded-full" />
+        <div className="fixed inset-0 z-[2000] bg-white flex flex-col items-center justify-center overflow-hidden overscroll-none select-none">
+            {/* ── BRANDING ── */}
+            <div className="absolute top-[clamp(12px,2vh,20px)] left-[clamp(16px,4vw,24px)] z-30">
+                <img src="/nozorin_logo.svg" alt="Nozorin Logo" className="w-[clamp(32px,8vw,48px)] h-[clamp(32px,8vw,48px)]" />
+            </div>
 
-                    <div className="relative z-10 flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-[#fdf2f8] rounded-2xl flex items-center justify-center mb-6 ring-4 ring-[#fdf2f8]/50">
-                            <AlertTriangle className="w-8 h-8 text-[#ec4899]" />
-                        </div>
+            {/* ── DECORATIVE BACKGROUND ── */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute -top-[10%] -right-[10%] w-[40%] h-[40%] bg-[#ec4899]/5 blur-[120px] rounded-full animate-pulse" />
+                <div className="absolute -bottom-[10%] -left-[10%] w-[40%] h-[40%] bg-[#ec4899]/5 blur-[120px] rounded-full animate-pulse" />
+            </div>
 
-                        <h2 className="text-2xl font-black text-[#1c1e21] uppercase tracking-tight mb-4">
-                            Oops, you're using the {browserName} browser
-                        </h2>
+            {/* ── CONTENT CONTAINER ── */}
+            <div className="relative z-10 w-full max-w-lg px-6 flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="w-20 h-20 bg-[#fdf2f8] rounded-[24px] flex items-center justify-center mb-8 ring-8 ring-[#fdf2f8]/50">
+                    <AlertTriangle className="w-10 h-10 text-[#ec4899]" />
+                </div>
 
-                        <p className="text-[#1c1e21]/60 font-medium leading-relaxed mb-8">
-                            Our application requires microphone and other advanced permissions that are restricted in this environment. Please open this site in <span className="text-[#ec4899] font-bold">Chrome</span> or another default browser to continue.
-                        </p>
+                <h1 className="text-[clamp(1.8rem,6vw,2.5rem)] font-black text-[#1c1e21] leading-[1.1] tracking-tight mb-6 uppercase">
+                    Unsupported<br />
+                    <span className="text-[#ec4899]">Browser detected.</span>
+                </h1>
 
-                        <div className="w-full space-y-4">
-                            {/* Copy Link Section */}
-                            <button
-                                onClick={handleCopyLink}
-                                className={`w-full h-[48px] rounded-full flex items-center justify-center gap-2 font-extrabold text-[15px] transition-all active:scale-[0.98] ${
-                                    copied 
-                                    ? 'bg-emerald-500 text-white' 
-                                    : 'border-2 border-[#ec4899] text-[#ec4899] hover:bg-[#fdf2f8]'
-                                }`}
-                            >
-                                {copied ? (
-                                    <>
-                                        <Check className="w-4 h-4" />
-                                        URL COPIED!
-                                    </>
-                                ) : (
-                                    <>
-                                        <Copy className="w-4 h-4" />
-                                        COPY SITE LINK
-                                    </>
-                                )}
-                            </button>
+                <p className="text-[clamp(16px,4vw,18px)] text-[#1c1e21]/60 font-medium leading-relaxed mb-10 max-w-sm">
+                    You're using the <span className="text-[#1c1e21] font-bold italic">{browserName}</span> browser. To use voice chat and advanced features, please open Nozorin in <span className="text-[#1c1e21] font-bold">Chrome or Safari</span>.
+                </p>
 
-                            <div className="bg-[#fdf2f8]/30 rounded-3xl p-6 border-2 border-[#fce7f3]">
-                                <h3 className="text-xs font-black text-[#1c1e21]/40 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Compass className="w-3.5 h-3.5" />
-                                    How to switch manually
-                                </h3>
-                                
-                                <ul className="text-left space-y-4">
-                                    <li className="flex items-start gap-4">
-                                        <div className="w-6 h-6 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-[10px] font-black text-[#ec4899] shrink-0 mt-0.5">1</div>
-                                        <p className="text-sm text-[#1c1e21]/70 font-medium">
-                                            Tap the <span className="inline-flex items-center px-1.5 py-0.5 bg-white border border-[#fce7f3] rounded-md mx-0.5"><MoreVertical className="w-3 h-3 text-[#1c1e21]/40" /></span> menu icon in the top right.
-                                        </p>
-                                    </li>
-                                    <li className="flex items-start gap-4">
-                                        <div className="w-6 h-6 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-[10px] font-black text-[#ec4899] shrink-0 mt-0.5">2</div>
-                                        <p className="text-sm text-[#1c1e21]/70 font-medium">
-                                            Select <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Browser"</span> or <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Exterior Browser"</span>.
-                                        </p>
-                                    </li>
-                                </ul>
+                <div className="w-full space-y-5">
+                    {/* Copy Link Button */}
+                    <button
+                        onClick={handleCopyLink}
+                        className={`w-full h-[56px] rounded-full flex items-center justify-center gap-3 font-black text-[16px] tracking-tight transition-all active:scale-[0.98] shadow-sm ${
+                            copied 
+                            ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                            : 'border-2 border-[#ec4899] text-[#ec4899] hover:bg-[#fdf2f8] shadow-[#ec4899]/10'
+                        }`}
+                    >
+                        {copied ? (
+                            <>
+                                <Check className="w-5 h-5" />
+                                COPIED TO CLIPBOARD
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="w-5 h-5" />
+                                COPY SITE ADDRESS
+                            </>
+                        )}
+                    </button>
+
+                    {/* Manual Steps Box */}
+                    <div className="w-full bg-[#fdf2f8]/40 border-2 border-[#fce7f3] rounded-[32px] p-7 text-left space-y-6">
+                        <h3 className="text-xs font-black text-[#1c1e21]/40 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Compass className="w-4 h-4" />
+                            How to switch manually
+                        </h3>
+                        
+                        <div className="space-y-5">
+                            <div className="flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-xs font-black text-[#ec4899] shrink-0">1</div>
+                                <p className="text-sm text-[#1c1e21]/70 font-semibold leading-snug">
+                                    Tap the <span className="inline-flex items-center p-1 bg-white border border-[#fce7f3] rounded-lg mx-0.5"><MoreVertical className="w-4 h-4 text-[#1c1e21]/40" /></span> menu icon in the top right corner.
+                                </p>
                             </div>
-
-                            <div className="flex items-center justify-center gap-2 text-[10px] font-black text-[#1c1e21]/30 uppercase tracking-[0.2em] pt-2">
-                                <ExternalLink className="w-3 h-3" />
-                                Seamless switching is highly recommended
+                            <div className="flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-full bg-white border-2 border-[#fce7f3] flex items-center justify-center text-xs font-black text-[#ec4899] shrink-0">2</div>
+                                <p className="text-sm text-[#1c1e21]/70 font-semibold leading-snug">
+                                    Select <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Browser"</span> or <span className="text-[#1c1e21] font-bold uppercase tracking-tight italic">"Open in Safari/Chrome"</span>.
+                                </p>
                             </div>
                         </div>
                     </div>
+
+                    <div className="flex items-center justify-center gap-2 text-[11px] font-black text-[#1c1e21]/20 uppercase tracking-[0.3em] pt-4">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Seamless switching recommended
+                    </div>
                 </div>
-                
-                <p className="mt-8 text-center text-[#1c1e21]/40 text-xs font-medium px-8">
-                    By switching, you'll get full access to voice chat and all the features of Nozorin.
+
+                <p className="mt-12 text-[#1c1e21]/40 text-[12px] font-bold uppercase tracking-widest px-8">
+                    NO LOGIN REQUIRED • FAST & ANONYMOUS
                 </p>
             </div>
         </div>
