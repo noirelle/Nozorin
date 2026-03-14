@@ -49,14 +49,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const shouldShowLoader = isChecking || (user?.avatar && !isImageReady);
 
-    if (shouldShowLoader) {
-        return <GlobalLoader />;
-    }
-
-    if (isChecked && !user) {
-        return <WelcomeScreen onSuccess={refreshUser} />;
-    }
-
     return (
         <AuthContext.Provider value={{ user, token, isChecked, isChecking, refreshUser }}>
             {children}

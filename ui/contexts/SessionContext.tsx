@@ -40,6 +40,16 @@ export const SessionProvider = ({ children }: { children: React.ReactNode }) => 
         }
     }, [isChecked, token, actions]);
 
+    // Initialize sessionId on mount
+    useEffect(() => {
+        if (!state.sessionId) {
+            const sid = actions.getSessionId();
+            if (sid) {
+                state.setSessionId(sid);
+            }
+        }
+    }, [state.sessionId, actions, state.setSessionId]);
+
     return (
         <SessionContext.Provider value={{
             sessionId: state.sessionId,

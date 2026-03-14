@@ -11,14 +11,21 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import { MediaProvider } from '@/contexts/MediaContext';
 import { DirectCallProvider } from '@/contexts/DirectCallContext';
 import { SessionProvider, useSessionContext } from '@/contexts/SessionContext';
+import { WelcomeScreen } from '@/features/auth/components/WelcomeScreen';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const { isMobile, isMounted } = useUI();
-    const { user } = useAuth();
+    const { user, isChecking, isChecked, refreshUser } = useAuth();
     const { isVerifyingSession } = useSessionContext();
 
-    if (!isMounted || isVerifyingSession) {
+    const isInitialLoading = !isMounted || isChecking || isVerifyingSession;
+
+    if (isInitialLoading) {
         return <GlobalLoader />;
+    }
+
+    if (isChecked && !user) {
+        return <WelcomeScreen onSuccess={refreshUser} />;
     }
 
     return (
