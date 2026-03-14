@@ -35,7 +35,7 @@ export const DesktopVoiceLayout = ({
                         <div className="mb-6 flex items-center h-10 shrink-0">
                             <button
                                 onClick={onLeave}
-                                className="p-2 hover:bg-pink-50 text-zinc-900 rounded-full transition-colors"
+                                className="hidden p-2 hover:bg-pink-50 text-zinc-900 rounded-full transition-colors"
                             >
                                 <ArrowLeft className="w-6 h-6" />
                             </button>

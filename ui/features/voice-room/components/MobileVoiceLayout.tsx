@@ -115,10 +115,10 @@ export const MobileVoiceLayout = ({
             <div className="absolute bottom-[20%] right-[-10%] w-64 h-64 bg-zinc-100/30 rounded-full blur-[80px] pointer-events-none" />
 
             {/* 1. Header Area */}
-            <header className="relative z-50 h-16 flex items-center justify-between px-4">
+            <header className="relative z-50 h-16 flex items-center justify-center px-4">
                 <button
                     onClick={onLeave}
-                    className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-900 active:scale-90 transition-all"
+                    className="hidden w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-900 active:scale-90 transition-all"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -137,7 +137,7 @@ export const MobileVoiceLayout = ({
                     </div>
                 </div>
 
-                <div className="w-10" />
+                <div className="hidden w-10" />
             </header>
 
             {/* 2. Main Stage: Interaction Area */}
