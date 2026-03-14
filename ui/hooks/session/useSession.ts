@@ -1,20 +1,14 @@
-import { useSessionState } from './useSessionState';
-import { useSessionActions } from './useSessionActions';
+import { useSessionContext } from '@/contexts/SessionContext';
 
 export const useSession = () => {
-    const state = useSessionState();
-    const actions = useSessionActions({
-        setInitialCallData: state.setInitialCallData,
-        setInitialReconnecting: state.setInitialReconnecting,
-        setIsVerifyingSession: state.setIsVerifyingSession,
-    });
+    const context = useSessionContext();
 
     return {
-        sessionId: state.sessionId,
-        isVerifyingSession: state.isVerifyingSession,
-        initialReconnecting: state.initialReconnecting,
-        initialCallData: state.initialCallData,
-        getSessionId: actions.getSessionId,
-        verifyActiveCallSession: actions.verifyActiveCallSession,
+        sessionId: context.sessionId,
+        isVerifyingSession: context.isVerifyingSession,
+        initialReconnecting: context.initialReconnecting,
+        initialCallData: context.initialCallData,
+        getSessionId: () => context.sessionId, // Or keep original if needed, but context has it
+        verifyActiveCallSession: context.verifyActiveCallSession,
     };
 };

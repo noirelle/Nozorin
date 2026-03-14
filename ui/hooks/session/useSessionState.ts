@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export const useSessionState = () => {
     const [sessionId, setSessionId] = useState<string | null>(null);
-    const [isVerifyingSession, setIsVerifyingSession] = useState(false);
+    const [isVerifyingSession, setIsVerifyingSession] = useState(true);
     const [initialReconnecting, setInitialReconnecting] = useState(false);
     const [initialCallData, setInitialCallData] = useState<any>(null);
 

@@ -87,7 +87,7 @@ const ProfileSection = () => {
     );
 };
 
-export const RightSidebar = ({
+export const RightSidebar = React.memo(({
     history,
     friends,
     pendingRequests,
@@ -107,13 +107,13 @@ export const RightSidebar = ({
     const isVoiceGame = variant === 'voice';
 
     // Map history to UI format
-    const historyDisplay = (history || []).map((item: any) => {
+    const historyDisplay = React.useMemo(() => (history || []).map((item: any) => {
         const profile = item.partnerProfile || item.peerProfile || {};
         const callDurationSec = item.duration || item.call_duration || 0;
         const targetUserId = item.partner_id || item.peer_user_id || profile.id;
 
         return {
-            id: item.session_id || item.id || Math.random().toString(),
+            id: item.session_id || item.id || `hist-${item.created_at}-${targetUserId}`,
             userId: targetUserId,
             username: item.partner_username || profile.username || 'Unknown',
             avatar: getAvatarUrl(item.partner_avatar || profile.avatar || profile.username || 'Str'),
@@ -129,10 +129,10 @@ export const RightSidebar = ({
             disconnectReason: item.disconnect_reason,
             createdAt: item.created_at
         };
-    });
+    }), [history, friends, pendingRequests, sentRequests]);
 
     // Map friends to UI format
-    const friendsDisplay = (friends || []).map((friend: any) => ({
+    const friendsDisplay = React.useMemo(() => (friends || []).map((friend: any) => ({
         id: friend.id,
         userId: friend.id,
         username: friend.username || 'Unknown',
@@ -140,10 +140,10 @@ export const RightSidebar = ({
         country: friend.country || 'US',
         isActive: friend.is_online || false,
         lastSeen: friend.last_seen || friend.last_active_at || 0,
-    }));
+    })), [friends]);
 
     // Map requests to UI format
-    const requestsDisplay = (pendingRequests || []).map((req: any) => {
+    const requestsDisplay = React.useMemo(() => (pendingRequests || []).map((req: any) => {
         const profile = req.user || {};
         return {
             id: req.id,
@@ -153,10 +153,10 @@ export const RightSidebar = ({
             country: profile.country || 'US',
             time: formatFullTimeAgo(req.created_at)
         };
-    });
+    }), [pendingRequests]);
 
     // Map pending (sent requests) to UI format
-    const pendingDisplay = (sentRequests || []).map((req: any) => {
+    const pendingDisplay = React.useMemo(() => (sentRequests || []).map((req: any) => {
         const profile = req.user || {};
         return {
             id: req.id,
@@ -166,7 +166,7 @@ export const RightSidebar = ({
             country: profile.country || 'US',
             status: formatFullTimeAgo(req.created_at)
         };
-    });
+    }), [sentRequests]);
 
     // Helper component for buttons with localized loading states
     const ActionButton = ({ onClick, className, title, icon: Icon, disabled = false }: any) => {
@@ -453,4 +453,4 @@ export const RightSidebar = ({
             </div>
         </aside>
     );
-};
+});

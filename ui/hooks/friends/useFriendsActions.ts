@@ -24,21 +24,25 @@ export const useFriendsActions = ({
     isFetchingPending,
     isFetchingSent,
 }: UseFriendsActionsProps) => {
-    const fetchFriends = useCallback(async () => {
+    const fetchFriends = useCallback(async (isSilent = false) => {
         if (isFetchingFriends.current) return;
         isFetchingFriends.current = true;
-        setIsLoading(true);
+        if (!isSilent) {
+            setIsLoading(true);
+        }
         try {
             const response = await api.get<any[]>('/api/friends');
             if (response.data) {
                 setFriends(response.data);
-                setError(null);
+                if (!isSilent) setError(null);
                 const friendIds = response.data.map((f: any) => f.id);
                 if (friendIds.length > 0) historyActions.emitWatchUserStatus(friendIds);
             }
-            else setError(response.error ?? null);
+            else {
+                if (!isSilent) setError(response.error ?? null);
+            }
         } finally {
-            setIsLoading(false);
+            if (!isSilent) setIsLoading(false);
             isFetchingFriends.current = false;
         }
     }, [setFriends, setIsLoading, setError, isFetchingFriends]);
