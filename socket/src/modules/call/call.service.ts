@@ -17,23 +17,13 @@ export const callService = {
             const partnerInfo = activeCalls.get(partnerId);
 
             // Capture data for history before deleting state
-            const startTime = info?.start_time;
+            const startTime = info?.start_time || partnerInfo?.start_time;
             const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
-            // Delete state immediately to prevent re-entry
-            activeCalls.delete(partnerId);
-            activeCalls.delete(socketId);
-
+            // Resolve IDs before deleting anything
             const userId = userService.getUserId(socketId);
-            if (userId) {
-                reconnectingUsers.delete(userId);
-                const redis = getRedisClient();
-                if (redis) {
-                    await redis.del(`call:reconnect:${userId}`);
-                    await redis.del(`call:room:${userId}`);
-                }
-            }
             let partnerUserId = userService.getUserId(partnerId);
+
             // Fallback: if partner's socket mapping is gone (disconnected), resolve via reconnecting entry
             if (!partnerUserId && userId) {
                 const reconnectEntry = reconnectingUsers.get(userId);
@@ -41,28 +31,42 @@ export const callService = {
                     partnerUserId = reconnectEntry.partner_user_id;
                 }
             }
+
             // Fallback 2: resolve via persistent room data
             if (!partnerUserId && userId) {
                 const redis = getRedisClient();
                 if (redis) {
                     const roomDataStr = await redis.get(`call:room:${userId}`);
                     if (roomDataStr) {
-                        const roomData = JSON.parse(roomDataStr);
-                        if (roomData.partner_user_id !== 'unknown') {
-                            partnerUserId = roomData.partner_user_id;
+                        try {
+                            const roomData = JSON.parse(roomDataStr);
+                            if (roomData.partner_user_id !== 'unknown') {
+                                partnerUserId = roomData.partner_user_id;
+                            }
+                        } catch (e) {
+                            logger.error({ userId }, '[CALL] Failed to parse room data for ID recovery');
                         }
                     }
                 }
             }
 
-            if (partnerUserId) {
-                reconnectingUsers.delete(partnerUserId);
+            // Delete state immediately to prevent re-entry
+            activeCalls.delete(partnerId);
+            activeCalls.delete(socketId);
+
+            // ── Cleanup ALL traces of reconnection for both users ──
+            const cleanupSession = async (uid: string) => {
+                reconnectingUsers.delete(uid);
+                waitingForPartner.delete(uid);
                 const redis = getRedisClient();
                 if (redis) {
-                    await redis.del(`call:reconnect:${partnerUserId}`);
-                    await redis.del(`call:room:${partnerUserId}`);
+                    await redis.del(`call:reconnect:${uid}`);
+                    await redis.del(`call:room:${uid}`);
                 }
-            }
+            };
+
+            if (userId) await cleanupSession(userId);
+            if (partnerUserId) await cleanupSession(partnerUserId);
 
             // Notify partner at their CURRENT socket (if they refreshed/reconnected)
             const currentPartnerSocketId = partnerUserId ? userService.getSocketId(partnerUserId) : null;
@@ -74,10 +78,10 @@ export const callService = {
             if (startTime) {
                 const reason1 = reason;
                 const reason2: CallDisconnectReason = reason === 'skip' ? 'partner-skip' : 'partner-disconnect';
-                await callService.reportHistory(io, socketId, partnerId, duration, reason1, reason2);
+                await callService.reportHistory(io, socketId, partnerId, duration, reason1, reason2, userId || undefined, partnerUserId || undefined);
             }
 
-            logger.info({ socketId, partnerId, reason }, '[CALL] Call ended');
+            logger.info({ socketId, partnerId, reason, userId, partnerUserId }, '[CALL] Call ended and history recorded');
             return true;
         }
 
@@ -160,6 +164,10 @@ export const callService = {
             const startTime = info?.start_time;
             const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
+            // Resolve IDs if possible
+            const u1 = userService.getUserId(socketId);
+            const u2 = userService.getUserId(partnerId);
+
             // Delete state immediately
             activeCalls.delete(partnerId);
             activeCalls.delete(socketId);
@@ -168,7 +176,7 @@ export const callService = {
             io.to(partnerId).emit(SocketEvents.USER_LEFT, { socketId });
 
             if (startTime) {
-                await callService.reportHistory(io, socketId, partnerId, duration, 'user-action', 'partner-disconnect');
+                await callService.reportHistory(io, socketId, partnerId, duration, 'user-action', 'partner-disconnect', u1 || undefined, u2 || undefined);
             }
         }
     },
@@ -271,10 +279,14 @@ export const callService = {
         return null;
     },
 
-    reportHistory: async (io: Server, userId1: string, userId2: string, duration: number, reason1: CallDisconnectReason = 'skip', reason2?: CallDisconnectReason) => {
-        const u1 = userService.getUserId(userId1);
-        const u2 = userService.getUserId(userId2);
-        if (!u1 || !u2) return;
+    reportHistory: async (io: Server, socketIdOne: string, socketIdTwo: string, duration: number, reason1: CallDisconnectReason = 'skip', reason2?: CallDisconnectReason, preResolvedU1?: string, preResolvedU2?: string) => {
+        const u1 = preResolvedU1 || userService.getUserId(socketIdOne);
+        const u2 = preResolvedU2 || userService.getUserId(socketIdTwo);
+        
+        if (!u1 || !u2 || u1 === 'unknown' || u2 === 'unknown') {
+            logger.warn({ socketIdOne, socketIdTwo, u1, u2 }, '[CALL] History not recorded: could not resolve both user IDs');
+            return;
+        }
 
         const p1 = await userService.getUserProfile(u1);
         const p2 = await userService.getUserProfile(u2);
@@ -297,7 +309,7 @@ export const callService = {
             await historyService.broadcastHistoryToUser(io, uid);
         };
 
-        if (u1 && u1 !== 'unknown' && p2) await save(u1, { ...p2, id: u2 }, reason1);
-        if (u2 && u2 !== 'unknown' && p1) await save(u2, { ...p1, id: u1 }, finalReason2);
+        if (p2) await save(u1, { ...p2, id: u2 }, reason1);
+        if (p1) await save(u2, { ...p1, id: u1 }, finalReason2);
     }
 };
