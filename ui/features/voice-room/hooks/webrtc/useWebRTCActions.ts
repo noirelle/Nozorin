@@ -95,7 +95,12 @@ export const useWebRTCActions = ({
         pc.onsignalingstatechange = updateDebugState;
 
         const tracks = stream.getTracks();
+        const isAudioEnabled = mediaManager.current?.isAudioEnabled() ?? true;
+        
         tracks.forEach(track => {
+            if (track.kind === 'audio') {
+                track.enabled = isAudioEnabled;
+            }
             pc.addTrack(track, stream);
         });
 
