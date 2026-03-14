@@ -107,66 +107,95 @@ export const RightSidebar = React.memo(({
     const isVoiceGame = variant === 'voice';
 
     // Map history to UI format
-    const historyDisplay = React.useMemo(() => (history || []).map((item: any) => {
-        const profile = item.partnerProfile || item.peerProfile || {};
-        const callDurationSec = item.duration || item.call_duration || 0;
-        const targetUserId = item.partner_id || item.peer_user_id || profile.id;
+    const historyDisplay = React.useMemo(() => {
+        const seen = new Set();
+        return (history || []).filter(item => {
+            const id = item.session_id || item.id || `hist-${item.created_at}-${item.partner_id || item.peer_user_id}`;
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        }).map((item: any) => {
+            const profile = item.partnerProfile || item.peerProfile || {};
+            const callDurationSec = item.duration || item.call_duration || 0;
+            const targetUserId = item.partner_id || item.peer_user_id || profile.id;
 
-        return {
-            id: item.session_id || item.id || `hist-${item.created_at}-${targetUserId}`,
-            userId: targetUserId,
-            username: item.partner_username || profile.username || 'Unknown',
-            avatar: getAvatarUrl(item.partner_avatar || profile.avatar || profile.username || 'Str'),
-            duration: formatDuration(callDurationSec),
-            country: item.partner_country || profile.country || 'US',
-            isActive: item.partner_status?.is_online || false,
-            lastSeen: item.partner_status?.last_seen || item.partner_status?.last_active_at || 0,
-            isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
-            isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
-            isPendingReceived: (pendingRequests && pendingRequests.some(r => (r.user?.id || r.from_user_id) === targetUserId)) || item.friendship_status === 'pending_received',
-            requestId: (pendingRequests && pendingRequests.find(r => (r.user?.id || r.from_user_id) === targetUserId))?.id,
-            sentRequestId: (sentRequests && sentRequests.find(r => (r.user?.id || r.target_user_id) === targetUserId))?.id,
-            disconnectReason: item.disconnect_reason,
-            createdAt: item.created_at
-        };
-    }), [history, friends, pendingRequests, sentRequests]);
+            return {
+                id: item.session_id || item.id || `hist-${item.created_at}-${targetUserId}`,
+                userId: targetUserId,
+                username: item.partner_username || profile.username || 'Unknown',
+                avatar: getAvatarUrl(item.partner_avatar || profile.avatar || profile.username || 'Str'),
+                duration: formatDuration(callDurationSec),
+                country: item.partner_country || profile.country || 'US',
+                isActive: item.partner_status?.is_online || false,
+                lastSeen: item.partner_status?.last_seen || item.partner_status?.last_active_at || 0,
+                isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
+                isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
+                isPendingReceived: (pendingRequests && pendingRequests.some(r => (r.user?.id || r.from_user_id) === targetUserId)) || item.friendship_status === 'pending_received',
+                requestId: (pendingRequests && pendingRequests.find(r => (r.user?.id || r.from_user_id) === targetUserId))?.id,
+                sentRequestId: (sentRequests && sentRequests.find(r => (r.user?.id || r.target_user_id) === targetUserId))?.id,
+                disconnectReason: item.disconnect_reason,
+                createdAt: item.created_at
+            };
+        });
+    }, [history, friends, pendingRequests, sentRequests]);
 
     // Map friends to UI format
-    const friendsDisplay = React.useMemo(() => (friends || []).map((friend: any) => ({
-        id: friend.id,
-        userId: friend.id,
-        username: friend.username || 'Unknown',
-        avatar: getAvatarUrl(friend.avatar || friend.username || 'Str'),
-        country: friend.country || 'US',
-        isActive: friend.is_online || false,
-        lastSeen: friend.last_seen || friend.last_active_at || 0,
-    })), [friends]);
+    const friendsDisplay = React.useMemo(() => {
+        const seen = new Set();
+        return (friends || []).filter(friend => {
+            if (seen.has(friend.id)) return false;
+            seen.add(friend.id);
+            return true;
+        }).map((friend: any) => ({
+            id: friend.id,
+            userId: friend.id,
+            username: friend.username || 'Unknown',
+            avatar: getAvatarUrl(friend.avatar || friend.username || 'Str'),
+            country: friend.country || 'US',
+            isActive: friend.is_online || false,
+            lastSeen: friend.last_seen || friend.last_active_at || 0,
+        }));
+    }, [friends]);
 
     // Map requests to UI format
-    const requestsDisplay = React.useMemo(() => (pendingRequests || []).map((req: any) => {
-        const profile = req.user || {};
-        return {
-            id: req.id,
-            userId: profile.id,
-            username: profile.username || 'Unknown',
-            avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
-            country: profile.country || 'US',
-            time: formatFullTimeAgo(req.created_at)
-        };
-    }), [pendingRequests]);
+    const requestsDisplay = React.useMemo(() => {
+        const seen = new Set();
+        return (pendingRequests || []).filter(req => {
+            if (seen.has(req.id)) return false;
+            seen.add(req.id);
+            return true;
+        }).map((req: any) => {
+            const profile = req.user || {};
+            return {
+                id: req.id,
+                userId: profile.id,
+                username: profile.username || 'Unknown',
+                avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+                country: profile.country || 'US',
+                time: formatFullTimeAgo(req.created_at)
+            };
+        });
+    }, [pendingRequests]);
 
     // Map pending (sent requests) to UI format
-    const pendingDisplay = React.useMemo(() => (sentRequests || []).map((req: any) => {
-        const profile = req.user || {};
-        return {
-            id: req.id,
-            userId: profile.id,
-            username: profile.username || 'Unknown',
-            avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
-            country: profile.country || 'US',
-            status: formatFullTimeAgo(req.created_at)
-        };
-    }), [sentRequests]);
+    const pendingDisplay = React.useMemo(() => {
+        const seen = new Set();
+        return (sentRequests || []).filter(req => {
+            if (seen.has(req.id)) return false;
+            seen.add(req.id);
+            return true;
+        }).map((req: any) => {
+            const profile = req.user || {};
+            return {
+                id: req.id,
+                userId: profile.id,
+                username: profile.username || 'Unknown',
+                avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
+                country: profile.country || 'US',
+                status: formatFullTimeAgo(req.created_at)
+            };
+        });
+    }, [sentRequests]);
 
     // Helper component for buttons with localized loading states
     const ActionButton = ({ onClick, className, title, icon: Icon, disabled = false }: any) => {
