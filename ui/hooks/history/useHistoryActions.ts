@@ -17,10 +17,12 @@ interface UseHistoryActionsProps {
 
 export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading, setHistory, setStats }: UseHistoryActionsProps) => {
 
-    const fetchHistory = useCallback(async () => {
+    const fetchHistory = useCallback(async (isSilent = false) => {
         if (!userId) return;
-        setIsLoading(true);
-        setError(null);
+        if (!isSilent) {
+            setIsLoading(true);
+            setError(null);
+        }
         try {
             const result = await api.get<any>(`/api/session/history/${userId}`);
             if (!result.error && result.data) {
@@ -36,9 +38,9 @@ export const useHistoryActions = ({ visitorToken, userId, setError, setIsLoading
                 throw new Error(result.error || 'Failed to fetch history');
             }
         } catch (err: any) {
-            setError(err.message || 'Failed to load history');
+            if (!isSilent) setError(err.message || 'Failed to load history');
         } finally {
-            setIsLoading(false);
+            if (!isSilent) setIsLoading(false);
         }
     }, [userId, setError, setIsLoading, setHistory, setStats]);
 

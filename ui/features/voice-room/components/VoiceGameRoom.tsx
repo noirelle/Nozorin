@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useHistory, useUser, useDirectCall, useFriends, useSession } from '@/hooks';
+import { useUI } from '@/contexts/UIContext';
 import { useSocketEvent, SocketEvents, connectSocket, updateSocketAuth, isSocketIdentified } from '@/lib/socket';
 import { getSocketClient } from '@/lib/socket/core/socketClient';
 import { useVoiceRoom } from '@/features/voice-room/hooks/voice-room/useVoiceRoom';
@@ -20,32 +21,23 @@ export const VoiceGameRoom = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [directMatchData, setDirectMatchData] = useState<any>(null);
     const [notification, setNotification] = useState<any>(null);
-    const [isMobile, setIsMobile] = useState(false);
+    const { isMobile } = useUI();
     const [searchTimer, setSearchTimer] = useState(0);
 
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+
 
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
     const { isVerifyingSession, initialReconnecting, initialCallData, verifyActiveCallSession } = useSession();
 
-    const hasVerifiedRef = useRef(false);
     useEffect(() => {
-        if (isChecked && token && !hasVerifiedRef.current) {
-            hasVerifiedRef.current = true;
-            verifyActiveCallSession();
-        }
-    }, [isChecked, token, verifyActiveCallSession]);
+        ensureToken();
+    }, [ensureToken]);
 
     const { history, fetchHistory } = useHistory(token, user?.id, async () => null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const pending = sessionStorage.getItem('    ');
+            const pending = sessionStorage.getItem('pendingMatch');
             if (pending) {
                 try {
                     const data = JSON.parse(pending);
@@ -65,14 +57,29 @@ export const VoiceGameRoom = () => {
         }
     });
 
-    useEffect(() => {
-        if (token && user?.id) {
-            fetchHistory();
-            fetchFriends();
-            fetchPendingRequests();
-            fetchSentRequests();
+    const hasInitialized = useRef(false);
+
+    const initializeAppData = useCallback(async () => {
+        if (!token || !user?.id || hasInitialized.current) return;
+        
+        try {
+            await Promise.all([
+                fetchHistory(),
+                fetchFriends(),
+                fetchPendingRequests(),
+                fetchSentRequests()
+            ]);
+            hasInitialized.current = true;
+        } catch (error) {
+            console.error('[VoiceGameRoom] Failed to initialize app data:', error);
         }
     }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
+
+    useEffect(() => {
+        if (token && user?.id && !hasInitialized.current) {
+            initializeAppData();
+        }
+    }, [token, user?.id, initializeAppData]);
 
     const handleAddFriend = useCallback(async (targetId: string, profile?: any) => {
         const result = await sendRequest(targetId);
@@ -116,28 +123,28 @@ export const VoiceGameRoom = () => {
 
     const handleFriendRequestReceived = useCallback((data: any) => {
         setNotification({ ...data.profile, country: data.profile.country, type: 'received' });
-        fetchPendingRequests();
-        fetchSentRequests();
+        fetchPendingRequests(); // Already silent as it doesn't set isLoading
+        fetchSentRequests();    // Already silent as it doesn't set isLoading
     }, [fetchPendingRequests, fetchSentRequests]);
 
     const handleFriendRequestAccepted = useCallback((data: any) => {
         setNotification({ ...data.friend, type: 'accepted' });
-        fetchFriends();
+        fetchFriends(true);
         fetchPendingRequests();
         fetchSentRequests();
     }, [fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
-    const handleFriendRemoved = useCallback(() => { fetchFriends(); }, [fetchFriends]);
+    const handleFriendRemoved = useCallback(() => { fetchFriends(true); }, [fetchFriends]);
 
     useSocketEvent(SocketEvents.MATCH_FOUND, handleMatchFound);
     useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentifySuccess);
     useSocketEvent(SocketEvents.FRIEND_REQUEST_RECEIVED, handleFriendRequestReceived);
     useSocketEvent(SocketEvents.FRIEND_REQUEST_ACCEPTED, handleFriendRequestAccepted);
     useSocketEvent(SocketEvents.FRIEND_REMOVED, handleFriendRemoved);
-    useSocketEvent(SocketEvents.CALL_ENDED, fetchHistory);
-    useSocketEvent(SocketEvents.MATCH_FOUND, fetchHistory);
-    useSocketEvent(SocketEvents.SESSION_END, fetchHistory);
-    useSocketEvent(SocketEvents.MATCH_CANCELLED, fetchHistory);
+    useSocketEvent(SocketEvents.CALL_ENDED, () => fetchHistory(true));
+    useSocketEvent(SocketEvents.MATCH_FOUND, () => fetchHistory(true));
+    useSocketEvent(SocketEvents.SESSION_END, () => fetchHistory(true));
+    useSocketEvent(SocketEvents.MATCH_CANCELLED, () => fetchHistory(true));
 
     const identifySocket = useCallback(() => {
         if (!token) return;
@@ -187,7 +194,6 @@ export const VoiceGameRoom = () => {
         };
     }, [token, refreshUser, identifySocket]);
 
-    useEffect(() => { ensureToken(); }, [ensureToken]);
 
     const handleLeave = () => {
         setIsConnected(false);
@@ -227,13 +233,6 @@ export const VoiceGameRoom = () => {
         };
     }, [voiceRoomData.callRoomState.is_searching, voiceRoomData.callRoomState.is_connected]);
 
-    if (isChecking || isVerifyingSession) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-[#fdfbfc]">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-500/20 border-t-pink-500"></div>
-            </div>
-        );
-    }
 
     const layoutProps = {
         onLeave: handleLeave,

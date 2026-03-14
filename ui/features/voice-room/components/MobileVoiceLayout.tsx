@@ -530,7 +530,7 @@ export const MobileVoiceLayout = ({
 
 // --- Subcomponents for Drawers ---
 
-const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOptions, onCall, isBusy }: any) => {
+const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, onSelectOptions, onCall, isBusy }: any) => {
     const profile = item.partnerProfile || item.peerProfile || {};
     const userId = item.partner_id || item.peer_user_id || profile.id;
     const isFriend = (friends && friends.some((f: any) => String(f.id) === String(userId))) || item.friendship_status === 'friends';
@@ -605,9 +605,9 @@ const HistoryItem = ({ item, friends, sentRequests, pendingRequests, onSelectOpt
             </div>
         </div>
     );
-};
+});
 
-const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions, onCall, isBusy }: any) => {
+const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSelectOptions, onCall, isBusy }: any) => {
     const [tab, setTab] = useState<'friends' | 'pending'>('friends');
 
     return (
@@ -722,7 +722,7 @@ const CommunityView = ({ friends, pendingRequests, sentRequests, onSelectOptions
             </div>
         </div>
     );
-};
+});
 
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
     return (
@@ -758,7 +758,7 @@ const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }:
     );
 }
 
-const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
+const EmptyState = React.memo(({ icon: Icon, title, subtitle }: any) => (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center animate-in fade-in duration-700">
         <div className="w-16 h-16 rounded-3xl bg-zinc-50 flex items-center justify-center mb-6">
             <Icon className="w-8 h-8 text-zinc-200" strokeWidth={1.5} />
@@ -766,7 +766,7 @@ const EmptyState = ({ icon: Icon, title, subtitle }: any) => (
         <h3 className="text-sm font-bold text-zinc-900 mb-2">{title}</h3>
         <p className="text-xs text-zinc-400 leading-relaxed">{subtitle}</p>
     </div>
-);
+));
 
 const formatDate = (ts: any) => formatFullTimeAgo(ts);
 

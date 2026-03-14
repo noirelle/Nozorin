@@ -10,12 +10,14 @@ import { useUI, UIProvider } from '@/contexts/UIContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { MediaProvider } from '@/contexts/MediaContext';
 import { DirectCallProvider } from '@/contexts/DirectCallContext';
+import { SessionProvider, useSessionContext } from '@/contexts/SessionContext';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const { isMobile, isMounted } = useUI();
     const { user } = useAuth();
+    const { isVerifyingSession } = useSessionContext();
 
-    if (!isMounted) {
+    if (!isMounted || isVerifyingSession) {
         return <GlobalLoader />;
     }
 
@@ -47,13 +49,15 @@ export default function AppLayout({
     return (
         <AuthProvider>
             <UIProvider>
-                <SocketProvider>
-                    <MediaProvider>
-                        <DirectCallProvider>
-                            <LayoutContent>{children}</LayoutContent>
-                        </DirectCallProvider>
-                    </MediaProvider>
-                </SocketProvider>
+                <SessionProvider>
+                    <SocketProvider>
+                        <MediaProvider>
+                            <DirectCallProvider>
+                                <LayoutContent>{children}</LayoutContent>
+                            </DirectCallProvider>
+                        </MediaProvider>
+                    </SocketProvider>
+                </SessionProvider>
             </UIProvider>
         </AuthProvider>
     );
