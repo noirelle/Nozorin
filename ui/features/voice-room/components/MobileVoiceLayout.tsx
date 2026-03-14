@@ -62,26 +62,26 @@ export const MobileVoiceLayout = ({
 }: MobileVoiceLayoutProps) => {
     const { stats, isConnected: isSocketConnected } = useStatsContext();
     const {
-        callRoomState,
-        messages,
+        callRoomState = { is_connected: false, is_searching: false, is_muted: false, partner_user_id: null, partner_username: '', partner_avatar: '', partner_country: '', permission_denied: false },
+        messages = [],
         messagesEndRef,
         remoteAudioRef,
-        actions,
+        actions = { matching: { status: 'Ready', position: null, reconnectCountdown: null }, handleToggleMute: () => {}, handleUserStop: () => {}, handleSendMessage: () => {} },
         handleNext,
         handleUserStop,
         isReconnecting,
-        callDuration,
-    } = voiceRoomData;
+        callDuration = '00:00',
+    } = voiceRoomData || {};
 
     const [activeDrawer, setActiveDrawer] = useState<'history' | 'community' | 'chat' | null>(null);
     const [selectedUserForOptions, setSelectedUserForOptions] = useState<any>(null);
     const [inputText, setInputText] = useState('');
 
     const { user: localUser } = useUser();
-    const isConnected = callRoomState.is_connected;
-    const isSearching = callRoomState.is_searching;
-    const isMuted = callRoomState.is_muted;
-    const partnerId = callRoomState.partner_user_id;
+    const isConnected = callRoomState?.is_connected || false;
+    const isSearching = callRoomState?.is_searching || false;
+    const isMuted = callRoomState?.is_muted || false;
+    const partnerId = callRoomState?.partner_user_id || null;
 
 
     // Prevent body scroll and rubber-banding
@@ -102,7 +102,7 @@ export const MobileVoiceLayout = ({
     const requestId = pendingRequests.find(r => (r.user?.id || r.from_user_id) === partnerId)?.id;
 
     const handleSendMessage = () => {
-        if (inputText.trim()) {
+        if (inputText.trim() && actions?.handleSendMessage) {
             actions.handleSendMessage(inputText, setInputText);
         }
     };
