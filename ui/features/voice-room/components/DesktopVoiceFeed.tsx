@@ -224,12 +224,12 @@ export const DesktopVoiceFeed = ({
                         <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
-                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : isSearching ? 'In Position Queue' : 'Start a Match'}
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : actions.matching.status === 'MATCHED' ? 'Linking Session' : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.2em] mt-1">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Awaiting return • ${actions.matching.reconnectCountdown}s` : `Restoring connection...`
-                            ) : isConnected ? 'In Call' : isSearching ? (
+                            ) : isConnected ? 'In Call' : actions.matching.status === 'MATCHED' ? 'Establishing voice connection...' : isSearching ? (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`

@@ -12,6 +12,9 @@ export const useRoomActionsState = () => {
     const startSearchRef = useRef<(options?: { preferred_country?: string; user_id?: string; peer_id?: string }) => Promise<void>>(() => Promise.resolve());
     const stopSearchRef = useRef<() => void>(() => { });
     const endCallRef = useRef<(id: string | null) => void>(() => { });
+    const cancelReconnectRef = useRef<() => void>(() => { });
+    const matchingStatusRef = useRef<string>('IDLE');
+    const lastPartnerIdRef = useRef<string | null>(null);
 
     // Cleanup deferred timers on unmount
     useEffect(() => {
@@ -32,6 +35,9 @@ export const useRoomActionsState = () => {
         startSearchRef,
         stopSearchRef,
         endCallRef,
+        cancelReconnectRef,
+        matchingStatusRef,
+        lastPartnerIdRef,
     };
 };
 

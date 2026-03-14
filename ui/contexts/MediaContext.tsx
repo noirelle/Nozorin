@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
 import { MediaStreamManager } from '@/lib/mediaStream';
 
 interface MediaContextType {
@@ -20,11 +20,21 @@ const MediaContext = createContext<MediaContextType | undefined>(undefined);
 
 export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
     const [isMuted, setIsMuted] = useState(false);
+    const isMutedRef = useRef(isMuted);
     const [isMediaReady, setIsMediaReady] = useState(false);
     const [permissionDenied, setPermissionDenied] = useState(false);
     const [hasPromptedForPermission, setHasPromptedForPermission] = useState(false);
 
     const mediaManagerRef = useRef<MediaStreamManager | null>(null);
+
+    // CRITICAL: Keep hardware state in sync with UI state whenever media becomes ready
+    // or the toggle is flipped. This serves as a "source of truth" synchronization.
+    useEffect(() => {
+        isMutedRef.current = isMuted;
+        if (isMediaReady && mediaManagerRef.current) {
+            mediaManagerRef.current.setAudioEnabled(!isMuted);
+        }
+    }, [isMuted, isMediaReady]);
 
     const cleanupMedia = useCallback(() => {
         mediaManagerRef.current?.cleanup();
@@ -36,7 +46,11 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
         const existingStream = mediaManagerRef.current?.getStream();
         const isHealthy = existingStream && existingStream.active && existingStream.getAudioTracks().some(t => t.readyState === 'live');
 
-        if (isHealthy) return true;
+        if (isHealthy) {
+            // Even if healthy, ensure the mute state matches the current UI state
+            mediaManagerRef.current?.setAudioEnabled(!isMutedRef.current);
+            return true;
+        }
 
         if (mediaManagerRef.current) {
             cleanupMedia();
@@ -73,7 +87,7 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
             });
 
             // Ensure our global mute state syncs with the fresh stream
-            manager.setAudioEnabled(!isMuted);
+            manager.setAudioEnabled(!isMutedRef.current);
 
             setIsMediaReady(true);
             setPermissionDenied(false);
@@ -86,14 +100,10 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
             }
             return false;
         }
-    }, [cleanupMedia, isMuted]);
+    }, [cleanupMedia]);
 
     const toggleMute = useCallback(() => {
-        setIsMuted(prev => {
-            const newMuted = !prev;
-            mediaManagerRef.current?.setAudioEnabled(!newMuted);
-            return newMuted;
-        });
+        setIsMuted(prev => !prev);
     }, []);
 
     const getMediaManager = useCallback(() => mediaManagerRef.current, []);
