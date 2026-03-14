@@ -195,7 +195,7 @@ export const MobileVoiceLayout = ({
                                             <div className="w-12 h-12 rounded-full border border-zinc-100/80 flex items-center justify-center mb-4 bg-white/50 backdrop-blur-sm">
                                                 <div className="w-4 h-4 bg-pink-300/90 rounded-full shadow-[0_0_12px_rgba(244,114,182,0.4)] animate-[pulse_3s_ease-in-out_infinite]" />
                                             </div>
-                                             <span className={`text-[11px] font-black uppercase tracking-widest text-center px-4 ${isSocketConnected ? 'text-zinc-400' : 'text-rose-400'}`}>
+                                            <span className={`text-[11px] font-black uppercase tracking-widest text-center px-4 ${isSocketConnected ? 'text-zinc-400' : 'text-rose-400'}`}>
                                                 {!isSocketConnected ? 'Offline - Waiting for connection' :
                                                     (callRoomState.permission_denied && isInAppBrowser()) ?
                                                         `Tap ... and choose 'Open in Browser' to start` :
@@ -229,12 +229,12 @@ export const MobileVoiceLayout = ({
                         <h3 className="text-lg font-bold text-zinc-900 mb-1 truncate w-full">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner reconnecting` : `Linking Session`
-                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : 'In Position Queue'}
+                            ) : isConnected ? (callRoomState.partner_username || 'Stranger') : actions.matching.status === 'MATCHED' ? 'Linking Session' : 'In Position Queue'}
                         </h3>
                         <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-4">
                             {isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Awaiting return • ${actions.matching.reconnectCountdown}s` : `Restoring connection...`
-                            ) : isConnected ? 'In Call' : (
+                            ) : isConnected ? 'In Call' : actions.matching.status === 'MATCHED' ? 'Establishing voice connection...' : (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
                                     : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`

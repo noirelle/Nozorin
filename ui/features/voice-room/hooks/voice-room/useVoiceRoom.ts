@@ -59,7 +59,11 @@ export const useVoiceRoom = ({
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
-            if (state === 'failed') {
+            if (state === 'connected') {
+                setConnected(true);
+                setSearching(false);
+            }
+            else if (state === 'failed') {
                 console.warn('[useVoiceRoom] WebRTC connection failed, waiting for recovery...');
                 setTimeout(() => {
                     if (actionsRef.current?.callRoomState.partner_id) {

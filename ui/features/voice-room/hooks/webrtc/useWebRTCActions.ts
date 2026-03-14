@@ -89,9 +89,8 @@ export const useWebRTCActions = ({
                 console.error('[WebRTC] Connection failed. Check network/TURN config.');
             }
 
-            if (state === 'failed' || state === 'closed' || state === 'disconnected') {
-                onConnectionStateChange?.(state);
-            }
+            // Always notify about state changes so the UI can coordinate transitions
+            onConnectionStateChange?.(state);
         };
         pc.onsignalingstatechange = updateDebugState;
 
