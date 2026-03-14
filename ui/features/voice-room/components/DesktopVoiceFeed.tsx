@@ -45,17 +45,17 @@ export const DesktopVoiceFeed = ({
     const mode = 'voice';
 
     const {
-        callRoomState = { is_connected: false, is_searching: false, is_muted: false, partner_user_id: null, partner_username: '', partner_avatar: '', partner_country: '', permission_denied: false },
-        messages = [],
+        callRoomState,
+        messages,
         messagesEndRef,
         remoteAudioRef,
-        actions = { matching: { status: 'Ready', position: null, reconnectCountdown: null }, handleToggleMute: () => {}, handleUserStop: () => {}, handleSendMessage: () => {} },
+        actions,
         handleNext,
         handleUserStop,
         isReconnecting,
-        callDuration = '00:00',
-        selectedCountry = 'GLOBAL',
-        setSelectedCountry = () => {}
+        callDuration,
+        selectedCountry,
+        setSelectedCountry
     } = voiceRoomData || {};
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -63,7 +63,7 @@ export const DesktopVoiceFeed = ({
     const [inputText, setInputText] = useState('');
 
     const handleSendMessageWrapper = () => {
-        if (inputText.trim() && actions?.handleSendMessage) {
+        if (inputText.trim()) {
             actions.handleSendMessage(inputText, setInputText);
         }
     };
@@ -71,19 +71,19 @@ export const DesktopVoiceFeed = ({
     const handleNextWrapper = handleNext;
     const handleUserStopWrapper = handleUserStop;
 
-    const isConnected = callRoomState?.is_connected || false;
-    const isSearching = callRoomState?.is_searching || false;
-    const isMuted = callRoomState?.is_muted || false;
-    const partnerId = callRoomState?.partner_user_id || null;
-    const isFriends = (callRoomState?.friendship_status === 'friends') || (partnerId ? friends.some(f => f.id === partnerId) : false);
+    const isConnected = callRoomState.is_connected;
+    const isSearching = callRoomState.is_searching;
+    const isMuted = callRoomState.is_muted;
+    const partnerId = callRoomState.partner_user_id;
+    const isFriends = callRoomState.friendship_status === 'friends' || friends.some(f => f.id === partnerId);
 
 
     // Distinguish pending states
-    const pendingSentReq = partnerId ? sentRequests?.find(r => (r.user?.id || r.target_user_id) === partnerId) : null;
-    const pendingReceivedReq = partnerId ? pendingRequests?.find(r => (r.user?.id || r.from_user_id) === partnerId) : null;
+    const pendingSentReq = sentRequests?.find(r => (r.user?.id || r.target_user_id) === partnerId);
+    const pendingReceivedReq = pendingRequests?.find(r => (r.user?.id || r.from_user_id) === partnerId);
 
-    const isPendingSent = (callRoomState?.friendship_status === 'pending_sent') || !!pendingSentReq;
-    const isPendingReceived = (callRoomState?.friendship_status === 'pending_received') || !!pendingReceivedReq;
+    const isPendingSent = callRoomState.friendship_status === 'pending_sent' || !!pendingSentReq;
+    const isPendingReceived = callRoomState.friendship_status === 'pending_received' || !!pendingReceivedReq;
     const requestId = pendingReceivedReq?.id;
 
 

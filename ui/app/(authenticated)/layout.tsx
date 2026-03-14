@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileNavbar } from '@/components/MobileNavbar';
 import { MobileTabbar } from '@/components/MobileTabbar';
@@ -15,17 +14,10 @@ import { SessionProvider, useSessionContext } from '@/contexts/SessionContext';
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
     const { isMobile, isMounted } = useUI();
-    const [layoutState, setLayoutState] = useState<'undetermined' | 'determined'>('undetermined');
     const { user } = useAuth();
     const { isVerifyingSession } = useSessionContext();
 
-    useEffect(() => {
-        if (isMounted) {
-            setLayoutState('determined');
-        }
-    }, [isMounted]);
-
-    if (!isMounted || isVerifyingSession || layoutState === 'undetermined') {
+    if (!isMounted || isVerifyingSession) {
         return <GlobalLoader />;
     }
 
