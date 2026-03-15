@@ -23,6 +23,7 @@ export const useWebRTCActions = ({
     peerConnectionRef,
     ICE_CONFIG,
     pendingOfferRef,
+    pendingCreateOfferRef,
     pendingAnswerRef,
     pendingIceCandidatesRef,
     mediaManager,
@@ -168,6 +169,11 @@ export const useWebRTCActions = ({
     }, [peerConnectionRef, remoteAudioRef]);
 
     const createOffer = useCallback(async (partnerId: string, options?: RTCOfferOptions) => {
+        if (!is_media_ready) {
+            pendingCreateOfferRef.current = { partnerId, options };
+            return;
+        }
+
         const pc = peerConnectionRef.current || createPeerConnection(partnerId);
         if (!pc) {
             return;
@@ -175,7 +181,7 @@ export const useWebRTCActions = ({
         const offer = await pc.createOffer(options);
         await pc.setLocalDescription(offer);
         emitOffer(partnerId, offer);
-    }, [createPeerConnection, peerConnectionRef]);
+    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingCreateOfferRef]);
 
     useEffect(() => {
         createOfferRef.current = createOffer;
@@ -249,21 +255,28 @@ export const useWebRTCActions = ({
         const processQueues = async () => {
             // Processing should be sequential to avoid race conditions
 
-            // 1. Process Offer
+            // 1. Process Pending Outgoing Offer
+            if (pendingCreateOfferRef.current) {
+                const { partnerId, options } = pendingCreateOfferRef.current;
+                pendingCreateOfferRef.current = null;
+                await createOffer(partnerId, options);
+            }
+
+            // 2. Process Incoming Offer
             if (pendingOfferRef.current) {
                 const { sdp, callerId } = pendingOfferRef.current;
                 pendingOfferRef.current = null;
                 await handleOffer(sdp, callerId);
             }
 
-            // 2. Process Answer
+            // 3. Process Answer
             if (pendingAnswerRef.current) {
                 const sdp = pendingAnswerRef.current;
                 pendingAnswerRef.current = null;
                 await handleAnswer(sdp);
             }
 
-            // 3. Process ICE Candidates
+            // 4. Process ICE Candidates
             const pc = peerConnectionRef.current;
             if (pc && pc.remoteDescription && pendingIceCandidatesRef.current.length > 0) {
                 await processQueuedIceCandidates(pc);
@@ -271,7 +284,7 @@ export const useWebRTCActions = ({
         };
 
         processQueues();
-    }, [is_media_ready, handleOffer, handleAnswer, processQueuedIceCandidates, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
+    }, [is_media_ready, createOffer, handleOffer, handleAnswer, processQueuedIceCandidates, pendingCreateOfferRef, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
 
     return {
         createPeerConnection,

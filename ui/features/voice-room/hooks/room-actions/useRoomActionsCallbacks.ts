@@ -244,6 +244,8 @@ export const useRoomActionsCallbacks = ({
     }) => {
         // Ensure UI transitions to connected state (in dual-refresh, this may be the only event)
         closePeerConnection();
+        setSearching(false);
+        setConnected(true);
 
         setPartner(
             data.new_socket_id,
@@ -269,6 +271,8 @@ export const useRoomActionsCallbacks = ({
 
     const onRejoinSuccess = useCallback(async (data: any) => {
         closePeerConnection();
+        setSearching(false);
+        setConnected(true);
         setPartner(
             data.partner_id,
             data.partner_country_name || callRoomState.partner_country_name,
