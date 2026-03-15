@@ -78,7 +78,7 @@ export const MobileVoiceLayout = ({
     const [inputText, setInputText] = useState('');
 
     const { user: localUser } = useUser();
-    const isConnected = callRoomState.is_connected;
+    const isConnected = callRoomState.is_connected && actions.matching.status !== 'RECONNECTING';
     const isSearching = callRoomState.is_searching;
     const isMuted = callRoomState.is_muted;
     const partnerId = callRoomState.partner_user_id;
@@ -128,7 +128,7 @@ export const MobileVoiceLayout = ({
                     <div className="flex items-center gap-1.5 ">
                         <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
-                            {isConnected ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? 'Linking' : isSearching ? 'Scanning' : 'Ready'}
+                            {isConnected ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (actions.matching.status === 'RECONNECTING' ? 'Reconnecting' : 'Linking') : isSearching ? actions.matching.status : 'Ready'}
                         </span>
                         <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mx-1">•</span>
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest tabular-nums animate-pulse">
@@ -170,25 +170,19 @@ export const MobileVoiceLayout = ({
                                     alt="Partner"
                                     className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
                                 />
-                            ) : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
-                                <div className="w-full h-full rounded-full bg-zinc-50/50 flex flex-col items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
-                                    <div className="flex items-center gap-1 mb-2">
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="w-1.5 h-1.5 bg-pink-300 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                                        ))}
+                            ) : isReconnecting || actions.matching.status === 'MATCHED' || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                                <div className="w-full h-full rounded-full bg-zinc-50/50 flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce mb-1" />
+                                        <span className="text-[8px] font-black text-pink-400 uppercase tracking-tighter">Waiting</span>
                                     </div>
-                                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">Syncing</span>
                                 </div>
                             ) : (
                                 <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-zinc-50/80 flex flex-col items-center justify-center">
                                     {isSearching ? (
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1 mb-3">
-                                                {[1, 2, 3, 2, 1].map((h, i) => (
-                                                    <div key={i} className="w-1 bg-pink-300 rounded-full animate-[pulse_1.5s_ease-in-out_infinite]" style={{ height: `${h * 4}px`, animationDelay: `${i * 0.1}s` }} />
-                                                ))}
-                                            </div>
-                                            <span className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">{actions.matching.status}</span>
+                                        <div className="relative flex items-center justify-center">
+                                            <div className="absolute w-12 h-12 bg-pink-50/60 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
+                                            <Mic2 className="w-8 h-8 text-pink-400 relative z-10 animate-[pulse_2s_ease-in-out_infinite]" />
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center">
@@ -224,15 +218,16 @@ export const MobileVoiceLayout = ({
                 </div>
 
                 {/* Connection Details Card */}
-                <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                    <div className="flex flex-col items-center text-center">                        <h3 className="text-lg font-bold text-zinc-900 mb-1 truncate w-full">
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
-                                actions.matching.reconnectCountdown !== null ? `Partner reconnecting` : `Linking Session`
+                <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <div className="flex flex-col items-center text-center">
+                        <h4 className="text-base font-bold text-zinc-900 truncate w-full">
+                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
                             ) : 'In Position Queue'}
-                        </h3>
-                        <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mb-4">
-                            {isConnected ? 'In Call' : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
-                                actions.matching.reconnectCountdown !== null ? `Awaiting return • ${actions.matching.reconnectCountdown}s` : `Establishing connection...`
+                        </h4>
+                        <p className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mt-1 mb-4">
+                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? 'In Call' : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                                actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : `Waiting for Connection...`
                             ) : (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
@@ -242,12 +237,12 @@ export const MobileVoiceLayout = ({
 
                         <div className="flex items-center justify-center gap-2 w-full">
                             {/* Stop Button */}
-                            {(isConnected || isSearching) && (
+                            {(isConnected || isSearching || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting') && (
                                 <button
                                     onClick={handleUserStop}
                                     className={isConnected
-                                        ? "w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center bg-zinc-50 border border-zinc-100 text-zinc-600 active:scale-95 transition-all shadow-sm"
-                                        : "flex-1 h-11 rounded-2xl flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 active:scale-95 transition-all shadow-sm text-[11px] font-black uppercase tracking-widest"
+                                        ? "w-11 h-11 shrink-0 rounded-full flex items-center justify-center bg-zinc-50 border border-zinc-100 text-zinc-600 active:scale-95 transition-all shadow-sm"
+                                        : "px-8 py-2.5 rounded-full flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 active:scale-95 transition-all shadow-sm text-[10px] font-black uppercase tracking-widest"
                                     }
                                 >
                                     {isConnected ? <div className="w-3.5 h-3.5 bg-current rounded-sm" /> : 'Stop'}

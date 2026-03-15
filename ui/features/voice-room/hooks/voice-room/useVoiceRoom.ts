@@ -62,9 +62,14 @@ export const useVoiceRoom = ({
             if (state === 'connected') {
                 setConnected(true);
                 setSearching(false);
+                setPartnerSignalStrength('good');
+            }
+            else if (state === 'disconnected') {
+                setPartnerSignalStrength('reconnecting');
             }
             else if (state === 'failed') {
                 console.warn('[useVoiceRoom] WebRTC connection failed, waiting for recovery...');
+                setPartnerSignalStrength('reconnecting');
                 setTimeout(() => {
                     if (actionsRef.current?.callRoomState.partner_id) {
                         // Potential recovery logic
@@ -75,6 +80,7 @@ export const useVoiceRoom = ({
             }
         },
         onSignalQuality: (quality) => {
+            setPartnerSignalStrength(quality);
             const partner_id = callRoomState.partner_id;
             if (partner_id) emitSignalStrength(partner_id, quality);
         },
