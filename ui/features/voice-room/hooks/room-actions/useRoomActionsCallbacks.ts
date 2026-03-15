@@ -151,12 +151,11 @@ export const useRoomActionsCallbacks = ({
         }
 
         // If we're already connected, clean up the old session first 
-        // to ensure the UI resets to "Linking" for the new partner.
+        // transition to the connected UI once the connection is actually READY.
         if (callRoomState.is_connected) {
             closePeerConnection();
             setConnected(false);
         }
-        setSearching(false);
 
         setPartner(
             data.partner_id,
