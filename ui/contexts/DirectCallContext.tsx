@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDirectCallState } from '@/features/direct-call/hooks/direct-call/useDirectCallState';
 import { useDirectCallActions } from '@/features/direct-call/hooks/direct-call/useDirectCallActions';
 import { useDirectCallListeners } from '@/features/direct-call/hooks/direct-call/useDirectCallListeners';
+import { useMedia } from '@/contexts/MediaContext';
 import { IncomingCallPayload } from '@/lib/socket/direct-call/directCall.types';
 import { IncomingCallOverlay } from '@/features/direct-call/components/IncomingCallOverlay';
 import { OutgoingCallOverlay } from '@/features/direct-call/components/OutgoingCallOverlay';
@@ -31,6 +32,8 @@ export const DirectCallProvider = ({ children }: { children: React.ReactNode }) 
         router.push('/app/voice');
     }, [router]);
 
+    const { initMediaManager } = useMedia();
+
     const actions = useDirectCallActions({
         incomingCall: state.incomingCall,
         callTarget: state.callTarget,
@@ -40,6 +43,7 @@ export const DirectCallProvider = ({ children }: { children: React.ReactNode }) 
         setIncomingCall: state.setIncomingCall,
         setError: state.setError,
         onCallStarted,
+        initMediaManager,
     });
 
     useDirectCallListeners({

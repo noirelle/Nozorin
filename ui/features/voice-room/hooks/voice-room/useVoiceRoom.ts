@@ -180,5 +180,7 @@ export const useVoiceRoom = ({
         selectedCountry,
         setSelectedCountry,
         iceDebugData,
+        initMediaManager,
+        cleanupMedia,
     };
 };

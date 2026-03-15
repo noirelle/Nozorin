@@ -146,6 +146,9 @@ export const useRoomActionsCallbacks = ({
         // OR if the hook was initialized as part of a direct call flow.
         if (data.is_direct_call || isDirectCall) {
             roomActionsState.setIsDirectCall(true);
+            // Explicitly set searching to true for direct calls to show the 
+            // "Connecting" visual state (pulsing circle) during handshake.
+            setSearching(true);
         } else {
             roomActionsState.setIsDirectCall(false);
         }

@@ -2,7 +2,7 @@ import { useDirectCallState } from './useDirectCallState';
 import { useDirectCallActions } from './useDirectCallActions';
 import { useDirectCallListeners } from './useDirectCallListeners';
 
-export const useDirectCall = (onCallStarted?: () => void) => {
+export const useDirectCall = (initMediaManager: () => Promise<boolean>, onCallStarted?: () => void) => {
     const state = useDirectCallState();
     const actions = useDirectCallActions({
         incomingCall: state.incomingCall,
@@ -13,6 +13,7 @@ export const useDirectCall = (onCallStarted?: () => void) => {
         setIncomingCall: state.setIncomingCall,
         setError: state.setError,
         onCallStarted,
+        initMediaManager,
     });
 
     useDirectCallListeners({
