@@ -289,22 +289,10 @@ export const useMatchingActions = ({
     }, [setStatus]);
 
     const buildHandleUserLeft = useCallback(() => (data: { socketId: string }) => {
-        // If we were matched, don't just end — trigger a reconnection state
-        // This gives the other person a chance to refresh and come back
-        setStatus('RECONNECTING');
-        setReconnectCountdown(15); // Standard 15s wait for a return
-        if (reconnectTimerRef.current) clearInterval(reconnectTimerRef.current);
-        reconnectTimerRef.current = setInterval(() => {
-            setReconnectCountdown(prev => {
-                if (prev === null || prev <= 1) { 
-                    clearReconnectTimer(); 
-                    callbacksRef.current.onCallEnded?.({ reason: 'partner-left' });
-                    return null; 
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    }, [setStatus, setReconnectCountdown, reconnectTimerRef, clearReconnectTimer]);
+        // Only trigger cleanup if we are currently in an active session
+        // PARTNER_RECONNECTING is the event that actually starts the grace period
+        callbacksRef.current.onCallEnded?.({ reason: 'partner-left' });
+    }, []);
 
     return {
         startSearch,
