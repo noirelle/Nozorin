@@ -139,6 +139,14 @@ export const useRoomActionsCallbacks = ({
     }, [callRoomState.is_muted, callRoomState.is_connected, callRoomState.partner_id, toggleLocalMute]);
 
     const onMatchFound = useCallback(async (data: MatchFoundPayload) => {
+        // If we're already connected, clean up the old session first 
+        // to ensure the UI resets to "Linking" for the new partner.
+        if (callRoomState.is_connected) {
+            closePeerConnection();
+            setConnected(false);
+        }
+        setSearching(false);
+
         setPartner(
             data.partner_id,
             data.partner_country_name,
@@ -157,7 +165,7 @@ export const useRoomActionsCallbacks = ({
         await initMediaManager();
 
         if (mode === 'voice' && data.role === 'offerer') await createOffer(data.partner_id);
-    }, [mode, createOffer, setSearching, setConnected, setPartner, setPartnerIsMuted, trackSessionStart, initMediaManager]);
+    }, [mode, createOffer, setSearching, setConnected, setPartner, setPartnerIsMuted, trackSessionStart, initMediaManager, callRoomState.is_connected, closePeerConnection]);
 
     const onCallEnded = useCallback(() => {
         if (manualStopRef.current) { manualStopRef.current = false; return; }
