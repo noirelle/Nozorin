@@ -290,59 +290,69 @@ export const MobileVoiceLayout = ({
                 </div>
             </main>
 
-            {/* 3. Bottom Action Bar */}
-            <nav className="relative z-[60] pb-8 pt-4 px-6 bg-white/80 backdrop-blur-3xl border-t border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                    {/* History Button */}
-                    <button
-                        onClick={() => setActiveDrawer('history')}
-                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
-                    >
-                        <History className="w-6 h-6" strokeWidth={2} />
-                        {history.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
-                    </button>
+            {/* 3. Bottom Action Bar (Aligned with MobileTabbar.tsx) */}
+            <nav className="h-[52px] flex-none border-t border-zinc-100 bg-white flex items-center justify-around relative z-[60]">
+                {/* History Button */}
+                <button
+                    onClick={() => setActiveDrawer('history')}
+                    className="relative w-12 h-12 flex items-center justify-center transition-all active:scale-95"
+                >
+                    <History 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'history' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'history' ? 2.5 : 2} 
+                    />
+                    {history.length > 0 && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                </button>
 
-                    {/* Friends Button */}
-                    <button
-                        onClick={() => setActiveDrawer('community')}
-                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
-                    >
-                        <Users className="w-6 h-6" strokeWidth={2} />
-                        {(pendingRequests.length > 0) && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white animate-pulse" />}
-                    </button>
+                {/* Friends Button */}
+                <button
+                    onClick={() => setActiveDrawer('community')}
+                    className="relative w-12 h-12 flex items-center justify-center transition-all active:scale-95"
+                >
+                    <Users 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'community' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'community' ? 2.5 : 2} 
+                    />
+                    {(pendingRequests.length > 0) && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white animate-pulse" />}
+                </button>
+
+                {/* Primary Mic Button (Special for Voice Room) */}
+                <div className="relative w-14 h-12 flex items-center justify-center">
+                    <div className="absolute -top-7">
+                        <button
+                            onClick={actions.handleToggleMute}
+                            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 border-white ${isMuted ? 'bg-rose-500 text-white' : 'bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-pink-200'} active:scale-90`}
+                        >
+                            {isMuted ? <MicOff className="w-6 h-6" strokeWidth={2.5} /> : <Mic2 className="w-6 h-6" strokeWidth={2.5} />}
+                        </button>
+                    </div>
                 </div>
 
-                {/* Primary Mic Button */}
-                <div className="absolute left-1/2 -translate-x-1/2 -top-10">
-                    <button
-                        onClick={actions.handleToggleMute}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 border-white ${isMuted ? 'bg-rose-500 text-white' : 'bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-pink-200'} active:scale-90`}
-                    >
-                        {isMuted ? <MicOff className="w-7 h-7" strokeWidth={2.5} /> : <Mic2 className="w-7 h-7" strokeWidth={2.5} />}
-                    </button>
-                </div>
+                {/* Chat Button */}
+                <button
+                    onClick={() => setActiveDrawer('chat')}
+                    className={`relative w-12 h-12 flex items-center justify-center transition-all active:scale-95 ${isConnected || actions.matching.status === 'MATCHED' || isReconnecting ? '' : 'opacity-20 pointer-events-none'}`}
+                >
+                    <MessageCircle 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'chat' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'chat' ? 2.5 : 2} 
+                    />
+                    {messages.length > 0 && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                </button>
 
-                <div className="flex items-center gap-6">
-                    {/* Chat Button */}
-                    <button
-                        onClick={() => setActiveDrawer('chat')}
-                        className={`relative w-10 h-10 flex items-center justify-center transition-colors ${isConnected || actions.matching.status === 'MATCHED' || isReconnecting ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
-                    >
-                        <MessageCircle className="w-6 h-6" strokeWidth={2} />
-                        {messages.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
-                    </button>
-
-                    {/* Filter Button */}
-                    <button
-                        onClick={() => setActiveDrawer('filter' as any)}
-                        className={`w-10 h-10 flex items-center justify-center transition-colors ${isSearching || !isConnected ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
-                    >
-                        <SlidersHorizontal className="w-6 h-6" strokeWidth={2} />
-                        {voiceRoomData.selectedCountry !== 'GLOBAL' && (
-                            <div className="absolute top-2 right-1.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />
-                        )}
-                    </button>
-                </div>
+                {/* Filter Button */}
+                <button
+                    onClick={() => setActiveDrawer('filter' as any)}
+                    className={`relative w-12 h-12 flex items-center justify-center transition-all active:scale-95 ${isSearching || !isConnected ? '' : 'opacity-20 pointer-events-none'}`}
+                >
+                    <SlidersHorizontal 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === ('filter' as any) ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === ('filter' as any) ? 2.5 : 2} 
+                    />
+                    {voiceRoomData.selectedCountry !== 'GLOBAL' && (
+                        <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />
+                    )}
+                </button>
             </nav>
 
             {/* 4. Drawers System */}
