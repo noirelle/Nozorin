@@ -126,9 +126,9 @@ export const MobileVoiceLayout = ({
                 <div className="flex flex-col items-center">
                     <span style={{ fontFamily: "'Satisfy', cursive" }} className="text-xl font-bold text-zinc-900">nozorin</span>
                     <div className="flex items-center gap-1.5 ">
-                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
+                        <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
-                            {isConnected ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'Reconnecting' : actions.isDirectCall ? 'Voice Call' : 'Linking') : isSearching ? actions.matching.status : 'Ready'}
+                            {isConnected ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'Reconnecting' : 'Connecting') : isSearching ? actions.matching.status : 'Ready'}
                         </span>
                         <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mx-1">•</span>
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest tabular-nums animate-pulse">
@@ -170,12 +170,12 @@ export const MobileVoiceLayout = ({
                                     alt="Partner"
                                     className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
                                 />
-                            ) : isReconnecting || actions.matching.status === 'MATCHED' || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                            ) : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
                                 <div className="w-full h-full rounded-full bg-zinc-50/50 flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
                                     <div className="flex flex-col items-center">
                                         <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce mb-1" />
                                         <span className="text-[8px] font-black text-pink-400 uppercase tracking-tighter">
-                                            {actions.matching.status === 'RECONNECTING' || isReconnecting || callRoomState.partner_signal_strength === 'reconnecting' ? 'Waiting' : (actions.isDirectCall ? 'Calling' : 'Linking')}
+                                            {actions.matching.status === 'RECONNECTING' || isReconnecting || callRoomState.partner_signal_strength === 'reconnecting' ? 'Waiting' : 'Connecting'}
                                         </span>
                                     </div>
                                 </div>
@@ -223,14 +223,14 @@ export const MobileVoiceLayout = ({
                 <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex flex-col items-center text-center">
                         <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
-                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
-                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : actions.isDirectCall ? `Direct Voice Call` : `Linking Session`
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' ? (
+                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Connecting Session`
                             ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? 'In Position Queue' : 'Start a Match'}
                         </h4>
 
                         <p className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mt-1 mb-4">
-                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
-                            actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : (actions.matching.status === 'MATCHED' ? (actions.isDirectCall ? `Voice Call...` : `Linking Session...`) : `Waiting for Connection...`)
+                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                            actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : `Waiting for Connection...`
                             ) : (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
