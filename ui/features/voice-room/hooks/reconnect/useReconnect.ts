@@ -44,8 +44,9 @@ export const useReconnect = ({
         rejoinStartTimeRef.current = performance.now();
 
         await executeSessionVerification({
-            onStart: () => setIsReconnecting(true),
+            onStart: () => { },
             onSuccess: (activeCall) => {
+                setIsReconnecting(true);
                 activeCallRef.current = activeCall;
                 onRestorePartnerRef.current?.(activeCall);
             },
