@@ -44,6 +44,7 @@ export const useCallRoom = (mode: 'voice') => {
         setConnected: actions.setConnected,
         setPartner: actions.setPartner,
         setPartnerSignalStrength: actions.setPartnerSignalStrength,
+        setPartnerReady: actions.setPartnerReady,
         setPermissionDenied: media.setPermissionDenied,
         setHasPromptedForPermission: media.setHasPromptedForPermission,
         resetState: actions.resetState,

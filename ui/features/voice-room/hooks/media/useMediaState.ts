@@ -18,6 +18,7 @@ export interface CallRoomState {
     has_prompted_for_permission: boolean;
     friendship_status: 'none' | 'friends' | 'pending_sent' | 'pending_received';
     role: 'offerer' | 'answerer' | null;
+    partner_ready: boolean;
 }
 
 export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
@@ -37,6 +38,7 @@ export const INITIAL_CALL_ROOM_STATE: CallRoomState = {
     has_prompted_for_permission: false,
     friendship_status: 'none',
     role: null,
+    partner_ready: false,
 };
 
 export const useMediaState = () => {

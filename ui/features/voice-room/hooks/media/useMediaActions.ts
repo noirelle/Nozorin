@@ -44,6 +44,10 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
         setState(prev => ({ ...prev, partner_signal_strength: strength }));
     }, [setState]);
 
+    const setPartnerReady = useCallback((ready: boolean) => {
+        setState(prev => ({ ...prev, partner_ready: ready }));
+    }, [setState]);
+
     const resetState = useCallback(() => {
         setState(prev => ({
             is_searching: false,
@@ -63,6 +67,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
             partner_signal_strength: 'good',
             has_prompted_for_permission: prev.has_prompted_for_permission,
             friendship_status: 'none',
+            partner_ready: false,
         }));
     }, [setState]);
 
@@ -71,6 +76,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
         setConnected,
         setPartner,
         setPartnerSignalStrength,
+        setPartnerReady,
         resetState,
     };
 };

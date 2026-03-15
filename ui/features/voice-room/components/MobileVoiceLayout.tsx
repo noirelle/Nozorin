@@ -128,7 +128,7 @@ export const MobileVoiceLayout = ({
                     <div className="flex items-center gap-1.5 ">
                         <div className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]' : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'bg-pink-400 animate-[pulse_2s_ease-in-out_infinite]' : 'bg-zinc-300'}`} />
                         <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest tabular-nums">
-                            {isConnected ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'Reconnecting' : 'Connecting') : isSearching ? actions.matching.status : 'Ready'}
+                            {isConnected ? callDuration : (isReconnecting || actions.matching.status === 'RECONNECTING') ? 'Connecting' : callRoomState.partner_signal_strength === 'reconnecting' ? 'Signaling...' : isSearching ? actions.matching.status : 'Ready'}
                         </span>
                         <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mx-1">•</span>
                         <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest tabular-nums animate-pulse">
@@ -164,20 +164,33 @@ export const MobileVoiceLayout = ({
 
                         {/* Partner Avatar / Pulse Icon */}
                         <div className="relative z-10 w-full h-full p-1.5">
-                            {isConnected || ((isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting') && (callRoomState.partner_avatar || callRoomState.partner_username)) ? (
+                            {isConnected ? (
                                 <div className="relative w-full h-full">
                                     <img
                                         src={getAvatarUrl(callRoomState.partner_avatar || callRoomState.partner_username)}
                                         alt="Partner"
-                                        className={`w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700 ${(isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting') ? 'opacity-50 grayscale-[0.5]' : ''}`}
+                                        className="w-full h-full rounded-full object-cover animate-in zoom-in fade-in duration-700"
                                     />
-                                    {(isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting') && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
+                                    {callRoomState.partner_signal_strength === 'reconnecting' && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[2px] rounded-full transition-all">
                                             <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-pink-100 animate-pulse">
-                                                <span className="text-[8px] font-black text-pink-500 uppercase tracking-widest">Reconnecting</span>
+                                                <span className="text-[8px] font-black text-pink-500 uppercase tracking-widest">Signal Lost</span>
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            ) : (isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting') && (callRoomState.partner_avatar || callRoomState.partner_username) ? (
+                                <div className="relative w-full h-full">
+                                    <img
+                                        src={getAvatarUrl(callRoomState.partner_avatar || callRoomState.partner_username)}
+                                        alt="Partner"
+                                        className="w-full h-full rounded-full object-cover opacity-50 grayscale-[0.5]"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-pink-100 animate-pulse">
+                                            <span className="text-[8px] font-black text-pink-500 uppercase tracking-widest">Reconnecting</span>
+                                        </div>
+                                    </div>
                                 </div>
                             ) : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
                                 <div className="w-full h-full rounded-full bg-zinc-50/50 flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
