@@ -196,9 +196,19 @@ export const useRoomActionsCallbacks = ({
 
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
-
         if (roomActionsState.isDirectCall) {
             roomActionsState.setIsDirectCall(false);
+            return;
+        }
+
+        // CRITICAL: If we are CURRENTLY verifying a session (e.g. during page refresh), 
+        // we MUST NOT set isSearching(true). This prevents the "Queue Position: Evaluating" 
+        // flicker while the app is still determining if it should reconnect to a previous partner.
+        // We only allow transition to searching if we're not in a direct call and NOT verifying.
+        // The session verification logic in useSessionActions will eventually resolve 
+        // this component's state to either MATCHED or IDLE.
+        const isVerifying = (window as any)._isVerifyingSession; 
+        if (isVerifying) {
             return;
         }
 

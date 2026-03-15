@@ -26,7 +26,7 @@ import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
-import { formatTimeAgo, formatFullTimeAgo } from '@/utils/time';
+import { formatTimeAgo, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
 import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
@@ -181,7 +181,7 @@ export const MobileVoiceLayout = ({
                                 </div>
                             ) : (
                                 <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-zinc-50/80 flex flex-col items-center justify-center">
-                                    {isSearching ? (
+                                    {isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING' ? (
                                         <div className="relative flex items-center justify-center">
                                             <div className="absolute w-12 h-12 bg-pink-50/60 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
                                             <Mic2 className="w-8 h-8 text-pink-400 relative z-10 animate-[pulse_2s_ease-in-out_infinite]" />
@@ -222,11 +222,12 @@ export const MobileVoiceLayout = ({
                 {/* Connection Details Card */}
                 <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex flex-col items-center text-center">
-                        <h4 className="text-base font-bold text-zinc-900 truncate w-full">
-                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : actions.isDirectCall ? `Direct Voice Call` : `Linking Session`
-                            ) : 'In Position Queue'}
+                            ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? 'In Position Queue' : 'Start a Match'}
                         </h4>
+
                         <p className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mt-1 mb-4">
                             {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
                             actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : (actions.matching.status === 'MATCHED' ? (actions.isDirectCall ? `Voice Call...` : `Linking Session...`) : `Waiting for Connection...`)
@@ -290,59 +291,69 @@ export const MobileVoiceLayout = ({
                 </div>
             </main>
 
-            {/* 3. Bottom Action Bar */}
-            <nav className="relative z-[60] pb-8 pt-4 px-6 bg-white/80 backdrop-blur-3xl border-t border-zinc-100 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                    {/* History Button */}
-                    <button
-                        onClick={() => setActiveDrawer('history')}
-                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
-                    >
-                        <History className="w-6 h-6" strokeWidth={2} />
-                        {history.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
-                    </button>
+            {/* 3. Bottom Action Bar (Aligned with MobileTabbar.tsx) */}
+            <nav className="h-[52px] flex-none border-t border-zinc-100 bg-white flex items-center justify-around relative z-[60]">
+                {/* History Button */}
+                <button
+                    onClick={() => setActiveDrawer('history')}
+                    className="relative w-12 h-12 flex items-center justify-center transition-all active:scale-95"
+                >
+                    <History 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'history' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'history' ? 2.5 : 2} 
+                    />
+                    {history.length > 0 && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                </button>
 
-                    {/* Friends Button */}
-                    <button
-                        onClick={() => setActiveDrawer('community')}
-                        className="relative w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 transition-colors"
-                    >
-                        <Users className="w-6 h-6" strokeWidth={2} />
-                        {(pendingRequests.length > 0) && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white animate-pulse" />}
-                    </button>
+                {/* Friends Button */}
+                <button
+                    onClick={() => setActiveDrawer('community')}
+                    className="relative w-12 h-12 flex items-center justify-center transition-all active:scale-95"
+                >
+                    <Users 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'community' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'community' ? 2.5 : 2} 
+                    />
+                    {(pendingRequests.length > 0) && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white animate-pulse" />}
+                </button>
+
+                {/* Primary Mic Button (Special for Voice Room) */}
+                <div className="relative w-14 h-12 flex items-center justify-center">
+                    <div className="absolute -top-7">
+                        <button
+                            onClick={actions.handleToggleMute}
+                            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 border-white ${isMuted ? 'bg-rose-500 text-white' : 'bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-pink-200'} active:scale-90`}
+                        >
+                            {isMuted ? <MicOff className="w-6 h-6" strokeWidth={2.5} /> : <Mic2 className="w-6 h-6" strokeWidth={2.5} />}
+                        </button>
+                    </div>
                 </div>
 
-                {/* Primary Mic Button */}
-                <div className="absolute left-1/2 -translate-x-1/2 -top-10">
-                    <button
-                        onClick={actions.handleToggleMute}
-                        className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border-4 border-white ${isMuted ? 'bg-rose-500 text-white' : 'bg-gradient-to-br from-pink-400 to-rose-500 text-white shadow-pink-200'} active:scale-90`}
-                    >
-                        {isMuted ? <MicOff className="w-7 h-7" strokeWidth={2.5} /> : <Mic2 className="w-7 h-7" strokeWidth={2.5} />}
-                    </button>
-                </div>
+                {/* Chat Button */}
+                <button
+                    onClick={() => setActiveDrawer('chat')}
+                    className={`relative w-12 h-12 flex items-center justify-center transition-all active:scale-95 ${isConnected || actions.matching.status === 'MATCHED' || isReconnecting ? '' : 'opacity-20 pointer-events-none'}`}
+                >
+                    <MessageCircle 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === 'chat' ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === 'chat' ? 2.5 : 2} 
+                    />
+                    {messages.length > 0 && <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
+                </button>
 
-                <div className="flex items-center gap-6">
-                    {/* Chat Button */}
-                    <button
-                        onClick={() => setActiveDrawer('chat')}
-                        className={`relative w-10 h-10 flex items-center justify-center transition-colors ${isConnected || actions.matching.status === 'MATCHED' || isReconnecting ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
-                    >
-                        <MessageCircle className="w-6 h-6" strokeWidth={2} />
-                        {messages.length > 0 && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />}
-                    </button>
-
-                    {/* Filter Button */}
-                    <button
-                        onClick={() => setActiveDrawer('filter' as any)}
-                        className={`w-10 h-10 flex items-center justify-center transition-colors ${isSearching || !isConnected ? 'text-zinc-600 hover:text-pink-600' : 'text-zinc-200 pointer-events-none'}`}
-                    >
-                        <SlidersHorizontal className="w-6 h-6" strokeWidth={2} />
-                        {voiceRoomData.selectedCountry !== 'GLOBAL' && (
-                            <div className="absolute top-2 right-1.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />
-                        )}
-                    </button>
-                </div>
+                {/* Filter Button */}
+                <button
+                    onClick={() => setActiveDrawer('filter' as any)}
+                    className={`relative w-12 h-12 flex items-center justify-center transition-all active:scale-95 ${isSearching || !isConnected ? '' : 'opacity-20 pointer-events-none'}`}
+                >
+                    <SlidersHorizontal 
+                        className={`w-6 h-6 transition-colors ${activeDrawer === ('filter' as any) ? 'text-pink-600' : 'text-zinc-900'}`} 
+                        strokeWidth={activeDrawer === ('filter' as any) ? 2.5 : 2} 
+                    />
+                    {voiceRoomData.selectedCountry !== 'GLOBAL' && (
+                        <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-pink-500 rounded-full ring-2 ring-white" />
+                    )}
+                </button>
             </nav>
 
             {/* 4. Drawers System */}
@@ -355,7 +366,7 @@ export const MobileVoiceLayout = ({
                     />
 
                     {/* Drawer Content */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500 overflow-hidden">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] h-[85dvh] max-h-[85%] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500 overflow-hidden overscroll-behavior-contain">
                         {/* Pull handle */}
                         <div className="flex justify-center pt-4 pb-2">
                             <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
@@ -573,6 +584,11 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                         <p className="text-[10px] font-medium text-zinc-500">
                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
                         </p>
+                        {item.disconnect_reason && (
+                            <p className="text-[10px] font-medium text-zinc-500">
+                                <span className="text-zinc-400">Reason:</span> <span className="text-pink-500 font-bold uppercase tracking-tight">{formatDisconnectReason(item.disconnect_reason)}</span>
+                            </p>
+                        )}
                         <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
                             {item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)}
                         </p>
@@ -844,7 +860,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
     return (
         <div className="fixed inset-0 z-[110] flex flex-col justify-end">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
-            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100 max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100 max-h-[85vh] max-h-[85dvh] flex flex-col overflow-hidden overscroll-behavior-contain">
                 <div className="flex justify-center mb-6 shrink-0">
                     <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
                 </div>
@@ -877,8 +893,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                             </>
                         )}
 
-                        {(isFriend || (!isPendingSent && !isPendingReceived)) && (
-                            <button
+                        <button
                                 onClick={() => { onCall?.(user.id); onClose(); }}
                                 disabled={isBusy || !user.isOnline || isActioning}
                                 className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy || !user.isOnline || isActioning
@@ -891,7 +906,6 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                                     {isBusy ? 'System Busy' : !user.isOnline ? 'User Offline' : 'Start Voice Call'}
                                 </span>
                             </button>
-                        )}
 
                         {isFriend && (
                             <button disabled={isActioning} onClick={() => handleAction(() => onRemove?.(user.id), 'remove')} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
