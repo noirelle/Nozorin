@@ -365,7 +365,7 @@ export const MobileVoiceLayout = ({
                     />
 
                     {/* Drawer Content */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500 overflow-hidden">
+                    <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[80] h-[85vh] h-[85dvh] max-h-[85%] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.1)] border-t border-zinc-50 animate-in slide-in-from-bottom duration-500 overflow-hidden overscroll-behavior-contain">
                         {/* Pull handle */}
                         <div className="flex justify-center pt-4 pb-2">
                             <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
@@ -859,7 +859,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
     return (
         <div className="fixed inset-0 z-[110] flex flex-col justify-end">
             <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
-            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100 max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="relative bg-white rounded-t-[40px] p-6 pb-12 animate-in slide-in-from-bottom duration-500 shadow-2xl border-t border-zinc-100 max-h-[85vh] max-h-[85dvh] flex flex-col overflow-hidden overscroll-behavior-contain">
                 <div className="flex justify-center mb-6 shrink-0">
                     <div className="w-12 h-1.5 bg-zinc-100 rounded-full" />
                 </div>
