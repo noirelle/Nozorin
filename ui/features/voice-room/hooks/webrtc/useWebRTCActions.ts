@@ -108,29 +108,27 @@ export const useWebRTCActions = ({
             const remoteStream = event.streams[0];
             
             if (remoteAudioRef.current) {
+                // Ensure the stream is attached
                 if (remoteAudioRef.current.srcObject !== remoteStream) {
                     remoteAudioRef.current.srcObject = remoteStream;
                 }
                 
-                remoteAudioRef.current.play()
-                    .catch(e => {
-                        console.warn('[WebRTC] Autoplay blocked. Attempting muted autoplay fallback.', e);
-                        if (remoteAudioRef.current) {
-                            remoteAudioRef.current.muted = true;
-                            remoteAudioRef.current.play().catch(err => console.error('[WebRTC] Muted autoplay also failed:', err));
-                        }
-                    });
+                // Attempt to play. 
+                // We DON'T catch and mute here for audio-only, because a muted stream 
+                // is useless for a voice chat and just confuses the user.
+                remoteAudioRef.current.play().catch(e => {
+                    console.warn('[WebRTC] Autoplay prevented. User interaction may be required.', e);
+                });
             } else {
-                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — will retry attachment');
-                // Fallback: poll for ref or rely on the next render
+                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — retrying attachment');
                 const checkRef = setInterval(() => {
                     if (remoteAudioRef.current) {
                         remoteAudioRef.current.srcObject = remoteStream;
                         remoteAudioRef.current.play().catch(() => {});
                         clearInterval(checkRef);
                     }
-                }, 500);
-                setTimeout(() => clearInterval(checkRef), 5000);
+                }, 200);
+                setTimeout(() => clearInterval(checkRef), 3000);
             }
         };
 
@@ -163,12 +161,10 @@ export const useWebRTCActions = ({
 
     const closePeerConnection = useCallback(() => {
         if (peerConnectionRef.current) {
-            // Actively stop sender tracks on the RTCPeerConnection to force immediate hardware release
-            peerConnectionRef.current.getSenders().forEach(sender => {
-                if (sender.track) {
-                    sender.track.stop();
-                }
-            });
+            // CRITICAL: We DO NOT stop sender tracks here. 
+            // sender.track.stop() kills the microphone hardware, meaning the user 
+            // loses audio for ALL subsequent sessions until a page refresh.
+            // cleanupMedia() should be used when the hardware needs to be released.
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }
