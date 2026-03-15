@@ -208,8 +208,25 @@ export const register = (io: Server, socket: Socket): void => {
                     // Set up activeCalls for the waiting user (they haven't gone through
                     // the success path yet — their entry may already be set from above if
                     // we used their socket ID, but set it cleanly regardless)
-                    activeCalls.set(waitingSocketId, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-                    activeCalls.set(socket.id, { partner_id: waitingSocketId, partner_user_id: waitingUserId, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+                    // Set up activeCalls for the waiting user (they haven't gone through
+                    // the success path yet — their entry may already be set from above if
+                    // we used their socket ID, but set it cleanly regardless)
+                    activeCalls.set(waitingSocketId, { 
+                        partner_id: socket.id, 
+                        partner_user_id: userId, 
+                        start_time: startTime, 
+                        last_seen: Date.now(), 
+                        is_offerer: !rejoinInfo.is_offerer, 
+                        room_id: rejoinInfo.room_id 
+                    });
+                    activeCalls.set(socket.id, { 
+                        partner_id: waitingSocketId, 
+                        partner_user_id: waitingUserId, 
+                        start_time: startTime, 
+                        last_seen: Date.now(), 
+                        is_offerer: rejoinInfo.is_offerer, 
+                        room_id: rejoinInfo.room_id 
+                    });
 
                     reconnectingUsers.delete(waitingUserId);
 
@@ -230,7 +247,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_country: waitingPartnerProfile?.country,
                         friendship_status: waitingFriendshipStatus,
                         room_id: waitingRejoinInfo.room_id,
-                        role: waitingRejoinInfo.is_offerer ? 'offerer' : 'answerer'
+                        role: !rejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
 
                     let waitingReverseStatus = waitingFriendshipStatus;
@@ -250,7 +267,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_country_name: waitingUserProfile?.country_name,
                         partner_country: waitingUserProfile?.country,
                         friendship_status: waitingReverseStatus,
-                        your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
+                        your_role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
 
                     logger.info({ waitingSocketId, waitingUserId, resolvedBySocketId: socket.id }, '[CALL] Proactively resolved waiting user via waitingForPartner');

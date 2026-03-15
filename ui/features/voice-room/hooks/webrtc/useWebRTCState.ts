@@ -25,6 +25,11 @@ export const useWebRTCState = () => {
     const pendingCreateOfferRef = useRef<{ partnerId: string; options?: RTCOfferOptions } | null>(null);
     const pendingAnswerRef = useRef<RTCSessionDescriptionInit | null>(null);
     const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+    
+    // Perfect Negotiation (Glare Handling) State
+    const makingOfferRef = useRef(false);
+    const ignoringOfferRef = useRef(false);
+    const isSettingRemoteAnswerPendingRef = useRef(false);
 
     const [iceDebugData, setIceDebugData] = useState<IceDebugData>({
         localCandidates: [],
@@ -75,6 +80,9 @@ export const useWebRTCState = () => {
         pendingCreateOfferRef,
         pendingAnswerRef,
         pendingIceCandidatesRef,
+        makingOfferRef,
+        ignoringOfferRef,
+        isSettingRemoteAnswerPendingRef,
         iceDebugData,
         setIceDebugData
     };
