@@ -10,7 +10,6 @@ interface UseRoomActionsProps {
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
     setPartner: (id: string | null, country_name?: string, country?: string, username?: string, avatar?: string, gender?: string, user_id?: string | null) => void;
-    setPartnerSignalStrength: (strength: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     initMediaManager: () => Promise<boolean>;

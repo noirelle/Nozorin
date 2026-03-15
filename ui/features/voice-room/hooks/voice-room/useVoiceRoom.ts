@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback } from 'react';
 import { emitSignalStrength } from '@/lib/socket/matching/matching.actions';
 import { useRoomActions, useWebRTC, useCallRoom, useChat } from '@/hooks';
 import { useRoomEffects } from '@/features/voice-room/hooks/room-effects/useRoomEffects';
@@ -113,11 +113,28 @@ export const useVoiceRoom = ({
         cleanupMedia,
         setHasPromptedForPermission,
         isDirectCall: !!initialMatchData,
-        setPartnerSignalStrength,
     });
     actionsRef.current = baseActions;
 
-    // 8. Reconnection Logic
+    // 8. Room Lifecycle Effects
+    useRoomEffects({
+        mode,
+        callRoomState,
+        setPartnerIsMuted: baseActions.setPartnerIsMuted,
+        setPartnerSignalStrength,
+        initMediaManager,
+        cleanupMedia,
+        onConnectionChange: onConnectionChange || (() => { }),
+        initialMatchData,
+        createOffer,
+        handleStop: baseActions.handleStop,
+        handleNext: baseActions.handleNext,
+        findMatch: baseActions.findMatch,
+        handleUserStop: baseActions.handleUserStop,
+        onMatchFound: baseActions.onMatchFound,
+    });
+
+    // 9. Reconnection Logic
     const { isReconnecting, clearReconnectState } = useReconnect({
         rejoinCall: baseActions.matching.rejoinCall,
         onRestorePartner: useCallback((data: any) => {
@@ -139,35 +156,10 @@ export const useVoiceRoom = ({
         initialCallData,
     });
 
-    // 9. Sync matching status with reconnect state to ensure UI clears correctly
-    useEffect(() => {
-        if (baseActions.matching.status === 'MATCHED') {
-            clearReconnectState();
-        }
-    }, [baseActions.matching.status, clearReconnectState]);
-
-    // 10. Room Lifecycle Effects
-    useRoomEffects({
-        mode,
-        callRoomState,
-        setPartnerIsMuted: baseActions.setPartnerIsMuted,
-        setPartnerSignalStrength,
-        initMediaManager,
-        cleanupMedia,
-        onConnectionChange: onConnectionChange || (() => { }),
-        initialMatchData,
-        createOffer,
-        handleStop: baseActions.handleStop,
-        handleNext: baseActions.handleNext,
-        findMatch: baseActions.findMatch,
-        handleUserStop: baseActions.handleUserStop,
-        onMatchFound: baseActions.onMatchFound,
-    });
-
-    // 11. Call Statistics/Duration
+    // 10. Call Statistics/Duration
     const callDuration = useCallDuration(callRoomState.is_connected);
 
-    // 12. Coordination Actions
+    // 11. Coordination Actions
     const { handleNext, handleStop, handleUserStop } = useVoiceRoomActions({
         actions: baseActions,
         clearReconnectState,
