@@ -882,8 +882,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                             </>
                         )}
 
-                        {(isFriend || (!isPendingSent && !isPendingReceived)) && (
-                            <button
+                        <button
                                 onClick={() => { onCall?.(user.id); onClose(); }}
                                 disabled={isBusy || !user.isOnline || isActioning}
                                 className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all ${isBusy || !user.isOnline || isActioning
@@ -896,7 +895,6 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                                     {isBusy ? 'System Busy' : !user.isOnline ? 'User Offline' : 'Start Voice Call'}
                                 </span>
                             </button>
-                        )}
 
                         {isFriend && (
                             <button disabled={isActioning} onClick={() => handleAction(() => onRemove?.(user.id), 'remove')} className="w-full h-14 bg-zinc-50 text-rose-500 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
