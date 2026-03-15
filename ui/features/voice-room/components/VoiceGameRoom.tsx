@@ -28,7 +28,7 @@ export const VoiceGameRoom = () => {
 
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
     const { isVerifyingSession, initialReconnecting, initialCallData, verifyActiveCallSession } = useSession();
-    
+
     // 1. History first, as other hooks and socket listeners depend on it
     const { history, fetchHistory } = useHistory(token, user?.id, async () => null);
 
@@ -42,7 +42,7 @@ export const VoiceGameRoom = () => {
 
     // 3. Direct Call Hook can now safely use the media manager
     const { incomingCall, isCalling, error: callError, initiateCall, acceptCall: performAcceptCall, declineCall: performDeclineCall, cancelCall, clearCallState } = useDirectCall(voiceRoomData.initMediaManager);
-    
+
     const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends({
         onFriendOnline: (friend) => {
             setNotification({ ...friend, type: 'online' });
@@ -61,8 +61,7 @@ export const VoiceGameRoom = () => {
                     const data = JSON.parse(pending);
                     setDirectMatchData(data);
                     sessionStorage.removeItem('pendingMatch');
-                } catch (e) {
-                    console.error('[VoiceGameRoom] Failed to parse pending match data', e);
+                } catch (_e) {
                 }
             }
         }
@@ -72,7 +71,7 @@ export const VoiceGameRoom = () => {
 
     const initializeAppData = useCallback(async () => {
         if (!token || !user?.id || hasInitialized.current) return;
-        
+
         try {
             await Promise.all([
                 fetchHistory(),
@@ -81,8 +80,7 @@ export const VoiceGameRoom = () => {
                 fetchSentRequests()
             ]);
             hasInitialized.current = true;
-        } catch (error) {
-            console.error('[VoiceGameRoom] Failed to initialize app data:', error);
+        } catch (_error) {
         }
     }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
@@ -97,7 +95,6 @@ export const VoiceGameRoom = () => {
         if (result.success) {
             setNotification({ ...(profile || { id: targetId, username: 'User' }), type: 'sent', isActor: true });
         } else {
-            console.error(`Failed to send request: ${result.error}`);
         }
     }, [sendRequest]);
 
@@ -134,7 +131,9 @@ export const VoiceGameRoom = () => {
         }
     }, [clearCallState]);
 
-    const handleIdentifySuccess = useCallback(() => { }, []);
+    const handleIdentifySuccess = useCallback(() => {
+        console.log('[Room] Identification success received via listener');
+    }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
         setNotification({ ...data.profile, country: data.profile.country, type: 'received' });
@@ -164,34 +163,50 @@ export const VoiceGameRoom = () => {
     const identifySocket = useCallback(() => {
         if (!token) return;
         const s = getSocketClient(token);
-        if (s) s.emit(SocketEvents.USER_IDENTIFY, { token });
+        if (s) {
+            console.log('[Room] Identifying socket...', s.id);
+            s.emit(SocketEvents.USER_IDENTIFY, { token });
+        }
     }, [token]);
 
     useEffect(() => {
         if (!token) return;
+        
+        // updateSocketAuth(token) sets the token in the socket.auth object 
+        // and handles re-identification if already connected.
         updateSocketAuth(token);
+        
         const s = getSocketClient(token);
         if (s && !s.connected) connectSocket();
 
         const handleAuthError = async (err: any) => {
             const isAuthError = !err || Object.keys(err).length === 0 || err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired' || err?.message === 'Invalid or expired token';
             if (isAuthError) {
+                console.log('[Room] Auth error, refreshing token...');
                 const newToken = await refreshUser();
                 if (newToken) {
                     updateSocketAuth(newToken);
-                    if (s?.connected) s?.emit(SocketEvents.UPDATE_TOKEN, { token: newToken });
-                    else connectSocket();
                 } else {
                     s?.disconnect();
                 }
             }
         };
 
-        const handleTokenUpdated = () => { };
+        const handleTokenUpdated = () => {
+            console.log('[Room] Socket token updated successfully');
+        };
 
-        if (s?.connected && token && !isSocketIdentified()) identifySocket();
+        // If s is connected but not identified, we need to identify
+        if (s?.connected && token && !isSocketIdentified()) {
+            identifySocket();
+        }
 
-        const onFocus = () => { if (s?.connected && token && !isSocketIdentified()) identifySocket(); };
+        const onFocus = () => { 
+            if (s?.connected && token && !isSocketIdentified()) {
+                console.log('[Room] Window focused, re-identifying socket...');
+                identifySocket(); 
+            }
+        };
         const onStorageChange = (e: StorageEvent) => { if (e.key === 'nz_token') window.location.reload(); };
 
         s?.on('connect', identifySocket);

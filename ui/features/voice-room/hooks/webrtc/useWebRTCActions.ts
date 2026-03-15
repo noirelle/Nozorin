@@ -23,6 +23,7 @@ export const useWebRTCActions = ({
     peerConnectionRef,
     ICE_CONFIG,
     pendingOfferRef,
+    pendingCreateOfferRef,
     pendingAnswerRef,
     pendingIceCandidatesRef,
     mediaManager,
@@ -40,7 +41,6 @@ export const useWebRTCActions = ({
     const createPeerConnection = useCallback((targetId: string) => {
         const stream = mediaManager.current?.getStream();
         if (!stream) {
-            console.error('[WebRTC] createPeerConnection: no local stream available — mic may not be ready');
             return null;
         }
 
@@ -71,7 +71,7 @@ export const useWebRTCActions = ({
 
             updateDebugState();
             const state = pc.connectionState;
-            
+
             if (state === 'disconnected') {
                 onSignalQuality?.('reconnecting');
                 if (role === 'offerer') {
@@ -86,7 +86,6 @@ export const useWebRTCActions = ({
                 onSignalQuality?.('good');
             }
             else if (state === 'failed') {
-                console.error('[WebRTC] Connection failed. Check network/TURN config.');
             }
 
             // Always notify about state changes so the UI can coordinate transitions
@@ -96,7 +95,7 @@ export const useWebRTCActions = ({
 
         const tracks = stream.getTracks();
         const isAudioEnabled = mediaManager.current?.isAudioEnabled() ?? true;
-        
+
         tracks.forEach(track => {
             if (track.kind === 'audio') {
                 track.enabled = isAudioEnabled;
@@ -106,31 +105,27 @@ export const useWebRTCActions = ({
 
         pc.ontrack = (event) => {
             const remoteStream = event.streams[0];
-            
+
             if (remoteAudioRef.current) {
+                // Ensure the stream is attached
                 if (remoteAudioRef.current.srcObject !== remoteStream) {
                     remoteAudioRef.current.srcObject = remoteStream;
                 }
-                
-                remoteAudioRef.current.play()
-                    .catch(e => {
-                        console.warn('[WebRTC] Autoplay blocked. Attempting muted autoplay fallback.', e);
-                        if (remoteAudioRef.current) {
-                            remoteAudioRef.current.muted = true;
-                            remoteAudioRef.current.play().catch(err => console.error('[WebRTC] Muted autoplay also failed:', err));
-                        }
-                    });
+
+                // Attempt to play. 
+                // We DON'T catch and mute here for audio-only, because a muted stream 
+                // is useless for a voice chat and just confuses the user.
+                remoteAudioRef.current.play().catch(_e => {
+                });
             } else {
-                console.warn('[WebRTC] ontrack fired but remoteAudioRef is null — will retry attachment');
-                // Fallback: poll for ref or rely on the next render
                 const checkRef = setInterval(() => {
                     if (remoteAudioRef.current) {
                         remoteAudioRef.current.srcObject = remoteStream;
-                        remoteAudioRef.current.play().catch(() => {});
+                        remoteAudioRef.current.play().catch(() => { });
                         clearInterval(checkRef);
                     }
-                }, 500);
-                setTimeout(() => clearInterval(checkRef), 5000);
+                }, 200);
+                setTimeout(() => clearInterval(checkRef), 3000);
             }
         };
 
@@ -157,18 +152,16 @@ export const useWebRTCActions = ({
         pendingIceCandidatesRef.current = [];
         for (const candidate of candidates) {
             try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
-            catch (e) { console.error('[WebRTC] Error adding queued ICE candidate:', e); }
+            catch (_e) { }
         }
     }, [pendingIceCandidatesRef]);
 
     const closePeerConnection = useCallback(() => {
         if (peerConnectionRef.current) {
-            // Actively stop sender tracks on the RTCPeerConnection to force immediate hardware release
-            peerConnectionRef.current.getSenders().forEach(sender => {
-                if (sender.track) {
-                    sender.track.stop();
-                }
-            });
+            // CRITICAL: We DO NOT stop sender tracks here. 
+            // sender.track.stop() kills the microphone hardware, meaning the user 
+            // loses audio for ALL subsequent sessions until a page refresh.
+            // cleanupMedia() should be used when the hardware needs to be released.
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }
@@ -176,15 +169,21 @@ export const useWebRTCActions = ({
     }, [peerConnectionRef, remoteAudioRef]);
 
     const createOffer = useCallback(async (partnerId: string, options?: RTCOfferOptions) => {
+        if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing outgoing offer for partner:', partnerId);
+            pendingCreateOfferRef.current = { partnerId, options };
+            return;
+        }
+
+        console.log('[WebRTC] Creating offer for partner:', partnerId);
         const pc = peerConnectionRef.current || createPeerConnection(partnerId);
         if (!pc) {
-            console.error('[WebRTC] createOffer: peer connection could not be created — aborting');
             return;
         }
         const offer = await pc.createOffer(options);
         await pc.setLocalDescription(offer);
         emitOffer(partnerId, offer);
-    }, [createPeerConnection, peerConnectionRef]);
+    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingCreateOfferRef]);
 
     useEffect(() => {
         createOfferRef.current = createOffer;
@@ -192,6 +191,7 @@ export const useWebRTCActions = ({
 
     const handleOffer = useCallback(async (sdp: RTCSessionDescriptionInit, callerId: string) => {
         if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing incoming offer from:', callerId);
             pendingOfferRef.current = { sdp, callerId };
             return;
         }
@@ -201,7 +201,6 @@ export const useWebRTCActions = ({
         }
         const pc = peerConnectionRef.current;
         if (!pc) {
-            console.error('[WebRTC] handleOffer: peer connection is null after createPeerConnection — aborting');
             return;
         }
 
@@ -211,33 +210,31 @@ export const useWebRTCActions = ({
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             emitAnswer(callerId, answer);
-        } catch (e) {
-            console.error('[WebRTC] Error handling offer:', e);
+        } catch (_e) {
         }
     }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingOfferRef, processQueuedIceCandidates]);
 
     const handleAnswer = useCallback(async (sdp: RTCSessionDescriptionInit) => {
         if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing incoming answer');
             pendingAnswerRef.current = sdp;
             return;
         }
 
         const pc = peerConnectionRef.current;
         if (!pc) {
-            console.error('[WebRTC] handleAnswer: no peer connection exists — cannot apply answer');
             return;
         }
         try {
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
             await processQueuedIceCandidates(pc);
-        } catch (e) {
-            console.error('[WebRTC] Error handling answer:', e);
+        } catch (_e) {
         }
     }, [peerConnectionRef, is_media_ready, pendingAnswerRef, processQueuedIceCandidates]);
 
     const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
         const pc = peerConnectionRef.current;
-        
+
         // Candidates MUST NOT be added before remote description is set
         if (!pc || !pc.remoteDescription || pc.signalingState === 'closed') {
             pendingIceCandidatesRef.current.push(candidate);
@@ -251,8 +248,7 @@ export const useWebRTCActions = ({
                 remoteCandidates: [...prev.remoteCandidates, iceCandidate]
             }));
             await pc.addIceCandidate(iceCandidate);
-        } catch (e) {
-            console.error('[WebRTC] Error adding received ice candidate:', e);
+        } catch (_e) {
         }
     }, [peerConnectionRef, pendingIceCandidatesRef, setIceDebugData]);
 
@@ -261,23 +257,34 @@ export const useWebRTCActions = ({
         if (!is_media_ready) return;
 
         const processQueues = async () => {
+            console.log('[WebRTC] Media ready, processing signal queues...');
             // Processing should be sequential to avoid race conditions
-            
-            // 1. Process Offer
+
+            // 1. Process Pending Outgoing Offer
+            if (pendingCreateOfferRef.current) {
+                const { partnerId, options } = pendingCreateOfferRef.current;
+                console.log('[WebRTC] Processing queued outgoing offer for:', partnerId);
+                pendingCreateOfferRef.current = null;
+                await createOffer(partnerId, options);
+            }
+
+            // 2. Process Incoming Offer
             if (pendingOfferRef.current) {
                 const { sdp, callerId } = pendingOfferRef.current;
+                console.log('[WebRTC] Processing queued incoming offer from:', callerId);
                 pendingOfferRef.current = null;
                 await handleOffer(sdp, callerId);
             }
 
-            // 2. Process Answer
+            // 3. Process Answer
             if (pendingAnswerRef.current) {
                 const sdp = pendingAnswerRef.current;
+                console.log('[WebRTC] Processing queued answer');
                 pendingAnswerRef.current = null;
                 await handleAnswer(sdp);
             }
 
-            // 3. Process ICE Candidates
+            // 4. Process ICE Candidates
             const pc = peerConnectionRef.current;
             if (pc && pc.remoteDescription && pendingIceCandidatesRef.current.length > 0) {
                 await processQueuedIceCandidates(pc);
@@ -285,7 +292,7 @@ export const useWebRTCActions = ({
         };
 
         processQueues();
-    }, [is_media_ready, handleOffer, handleAnswer, processQueuedIceCandidates, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
+    }, [is_media_ready, createOffer, handleOffer, handleAnswer, processQueuedIceCandidates, pendingCreateOfferRef, pendingOfferRef, pendingAnswerRef, pendingIceCandidatesRef, peerConnectionRef]);
 
     return {
         createPeerConnection,

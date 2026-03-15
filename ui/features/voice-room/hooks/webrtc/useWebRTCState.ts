@@ -22,6 +22,7 @@ export const useWebRTCState = () => {
 
     // Queues for WebRTC signals received before local media is ready
     const pendingOfferRef = useRef<{ sdp: RTCSessionDescriptionInit; callerId: string } | null>(null);
+    const pendingCreateOfferRef = useRef<{ partnerId: string; options?: RTCOfferOptions } | null>(null);
     const pendingAnswerRef = useRef<RTCSessionDescriptionInit | null>(null);
     const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
@@ -49,6 +50,15 @@ export const useWebRTCState = () => {
                 ],
                 username: turnUsername,
                 credential: turnPassword,
+            },
+            {
+                urls: [
+                    "stun:stun.l.google.com:19302",
+                    "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                    "stun:stun3.l.google.com:19302",
+                    "stun:stun4.l.google.com:19302"
+                ]
             }
         ];
 
@@ -62,6 +72,7 @@ export const useWebRTCState = () => {
         peerConnectionRef,
         ICE_CONFIG,
         pendingOfferRef,
+        pendingCreateOfferRef,
         pendingAnswerRef,
         pendingIceCandidatesRef,
         iceDebugData,

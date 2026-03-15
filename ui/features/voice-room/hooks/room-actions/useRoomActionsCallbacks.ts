@@ -242,8 +242,11 @@ export const useRoomActionsCallbacks = ({
         friendship_status?: string;
         your_role?: 'offerer' | 'answerer';
     }) => {
+        console.log('[Room] Partner reconnected, socket:', data.new_socket_id, 'Role:', data.your_role);
         // Ensure UI transitions to connected state (in dual-refresh, this may be the only event)
         closePeerConnection();
+        setSearching(false);
+        setConnected(true);
 
         setPartner(
             data.new_socket_id,
@@ -268,7 +271,10 @@ export const useRoomActionsCallbacks = ({
     }, [closePeerConnection, setSearching, setConnected, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, initMediaManager, createOffer]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
+        console.log('[Room] Rejoin success, partner:', data.partner_id, 'Role:', data.role);
         closePeerConnection();
+        setSearching(false);
+        setConnected(true);
         setPartner(
             data.partner_id,
             data.partner_country_name || callRoomState.partner_country_name,

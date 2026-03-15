@@ -14,7 +14,7 @@ export function getSocketClient(token?: string | null): Socket | null {
         const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL!;
         _socket = io(SOCKET_URL, {
             autoConnect: false,
-            transports: ['websocket'],
+            transports: ['polling', 'websocket'], // Allow fallback to polling for stability
             secure: SOCKET_URL.startsWith('https'),
             auth: token ? { token } : {},
             reconnection: true,
@@ -24,7 +24,17 @@ export function getSocketClient(token?: string | null): Socket | null {
             timeout: 20000,
         });
 
+        _socket.on('connect', () => {
+            console.log('[Socket] Connected!', _socket?.id, 'Transport:', _socket?.io.engine.transport.name);
+            
+            // Log transport upgrades
+            _socket?.io.engine.on('upgrade', (transport) => {
+                console.log('[Socket] Transport upgraded to:', transport.name);
+            });
+        });
+
         _socket.on(SocketEvents.IDENTIFY_SUCCESS, () => {
+            console.log('[Socket] Identification successful');
             last_identified_socket_id = _socket?.id || null;
         });
 
@@ -33,8 +43,16 @@ export function getSocketClient(token?: string | null): Socket | null {
             console.warn('[Socket] Disconnected:', reason);
         });
 
+        _socket.on('reconnect_attempt', (attempt) => {
+            console.log('[Socket] Reconnection attempt:', attempt);
+        });
+
+        _socket.on('reconnect', (attempt) => {
+            console.log('[Socket] Reconnected after', attempt, 'attempts');
+        });
+
         _socket.on('connect_error', (error) => {
-            console.error('[Socket] Connection error:', error);
+            console.error('[Socket] Connection error:', error.message);
         });
 
         // ── Robustness Listeners ──────────────────────────────────────────────
@@ -42,6 +60,7 @@ export function getSocketClient(token?: string | null): Socket | null {
         // Handle tab visibility changes (e.g., coming back from another tab or sleep)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && _socket) {
+                console.log('[Socket] Tab visible, checking connection status...');
                 if (!_socket.connected && _socket.active) {
                     _socket.connect();
                 }

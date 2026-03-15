@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useReconnectState, ActiveCallData } from './useReconnectState';
 import { useReconnectListeners } from './useReconnectListeners';
 import { executeSessionVerification } from '../../../../hooks/session/useSessionActions';
-import { isSocketIdentified, waitForSocketConnection } from '../../../../lib/socket/core/socketClient';
+import { isSocketIdentified, waitForSocketConnection, getSocketClient } from '../../../../lib/socket/core/socketClient';
 
 interface UseReconnectOptions {
     rejoinCall: (room_id?: string) => void;
@@ -50,8 +50,7 @@ export const useReconnect = ({
                 activeCallRef.current = activeCall;
                 onRestorePartnerRef.current?.(activeCall);
             },
-            onError: (error) => {
-                console.error('[useReconnect] ✗ Session check failed:', error);
+            onError: (_error) => {
                 setIsReconnecting(false);
             },
             onFinally: () => {
@@ -69,6 +68,7 @@ export const useReconnect = ({
     const rejoinRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleIdentified = useCallback(async () => {
+        console.log('[Reconnect] Socket identified, checking active session...');
         await checkActiveSession();
         // If we have an active call, tell the server we're back and wait for partner
         if (activeCallRef.current && !rejoinEmittedRef.current) {
@@ -90,7 +90,6 @@ export const useReconnect = ({
                 if (ready) {
                     handleIdentified();
                 } else {
-                    console.error('[useReconnect] Socket failed to connect/identify after bootstrap');
                 }
             });
         }
@@ -100,19 +99,18 @@ export const useReconnect = ({
     // We only add a single 15-second failsafe timeout here.
     const handleRejoinFailed = useCallback((data: { reason: string }) => {
         const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
+        console.log('[Reconnect] Rejoin failed:', data.reason, 'Elapsed:', elapsed, 'ms');
         if (data.reason === 'partner-not-ready') {
             if (!rejoinRetryTimerRef.current) {
                 // Single 15-second failsafe timeout. If the server doesn't proactively send
                 // REJOIN_SUCCESS (via waitingForPartner resolution) by then, we give up.
                 rejoinRetryTimerRef.current = setTimeout(() => {
-                    console.error(`[useReconnect] Failsafe timeout reached after 15s waiting for partner. Abandoning reconnection.`);
                     setIsReconnecting(false);
                     rejoinRetryRef.current = 0;
                 }, 15000);
             }
         } else {
             // Permanent failure — clear reconnecting state
-            console.error(`[useReconnect] Reconnection failed after ${elapsed}ms — reason: ${data.reason}`);
             setIsReconnecting(false);
             rejoinRetryRef.current = 0;
         }
@@ -144,22 +142,30 @@ export const useReconnect = ({
         if (minDisplayTimerRef.current) { clearTimeout(minDisplayTimerRef.current); minDisplayTimerRef.current = null; }
         if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
         rejoinRetryRef.current = 0;
+        rejoinEmittedRef.current = false; // Also reset here for explicit clears
         setIsReconnecting(false);
-    }, [minDisplayTimerRef, setIsReconnecting]);
+    }, [minDisplayTimerRef, setIsReconnecting, rejoinEmittedRef]);
 
-    const clearWithMinDelay = useCallback(() => {
-        rejoinRetryRef.current = 0;
-        if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
-        const elapsed = Date.now() - reconnectStartRef.current;
-        const remaining = Math.max(0, 3000 - elapsed);
-        if (remaining === 0) setIsReconnecting(false);
-        else minDisplayTimerRef.current = setTimeout(() => setIsReconnecting(false), remaining);
-    }, [reconnectStartRef, minDisplayTimerRef, setIsReconnecting]);
+    // Handle session reset on physical disconnect
+    useEffect(() => {
+        const s = getSocketClient();
+        if (!s) return;
+
+        const onDisconnect = () => {
+            console.log('[Reconnect] Socket disconnected, resetting rejoin state');
+            rejoinEmittedRef.current = false;
+        };
+
+        s.on('disconnect', onDisconnect);
+        return () => {
+            s.off('disconnect', onDisconnect);
+        };
+    }, [rejoinEmittedRef]);
+
 
     useReconnectListeners({
         handleIdentified,
         clearImmediately,
-        clearWithMinDelay,
         handleRejoinFailed,
         handlePartnerReconnected,
     });

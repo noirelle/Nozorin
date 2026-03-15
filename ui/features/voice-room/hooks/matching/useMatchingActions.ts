@@ -68,7 +68,6 @@ export const useMatchingActions = ({
                     resolve(!!userRef.current?.id);
                 } else if (Date.now() - start > timeoutMs) {
                     clearInterval(timer);
-                    console.warn('[Matching] Timed out waiting for user identification');
                     resolve(false);
                 }
             }, 100);
@@ -82,7 +81,6 @@ export const useMatchingActions = ({
         isRetry?: boolean;
     }) => {
         if (isJoiningRef.current) {
-            console.warn('[Matching] Join already in progress, ignoring request');
             return;
         }
 
@@ -96,7 +94,7 @@ export const useMatchingActions = ({
             const effectiveUserId = options?.user_id || userRef.current?.id;
 
             if (!effectiveUserId) {
-                console.error('[Matching] Aborting: No user ID available. userAvailable:', userAvailable);
+                // Keep the variable check but remove notification
                 setStatus('IDLE');
                 callbacksRef.current.onFatalError?.();
                 return;
@@ -106,7 +104,6 @@ export const useMatchingActions = ({
             const isConnected = await waitForSocketConnection();
 
             if (!isConnected) {
-                console.error('[Matching] FAILED: Could not establish identified socket connection for join');
                 setStatus('IDLE');
                 callbacksRef.current.onFatalError?.();
                 return;
@@ -132,7 +129,6 @@ export const useMatchingActions = ({
             const { error, data } = await Promise.race([joinPromise, timeoutPromise]);
 
             if (error) {
-                console.error('[Matching] Join queue API failed:', error);
 
                 // Check for transient "not connected" error and retry once
                 const isNotConnectedError = typeof error === 'string' && error.includes('not connected');
@@ -160,8 +156,7 @@ export const useMatchingActions = ({
                     setPosition((data as any).queueLength);
                 }
             }
-        } catch (err) {
-            console.error('[Matching] Join queue caught exception:', err);
+        } catch (_err) {
             setStatus('IDLE');
             callbacksRef.current.onFatalError?.();
         } finally {
@@ -173,7 +168,7 @@ export const useMatchingActions = ({
         setStatus('IDLE');
         setPosition(null);
         try { await matchmaking.leaveQueue(); }
-        catch (err) { console.error('[Matching] Leave queue exception:', err); }
+        catch (_err) { }
     }, [setStatus, setPosition]);
 
     const endCall = useCallback((partnerId: string | null) => {
@@ -222,6 +217,7 @@ export const useMatchingActions = ({
     // ── Stable handler builders used by listeners ──────────────────────────────
 
     const buildHandleMatchFound = useCallback(() => (data: MatchFoundPayload) => {
+        console.log('[Matching] Match found! Room:', data.room_id, 'Role:', data.role);
         clearReconnectTimer();
         setStatus('MATCHED');
         setPosition(null);
@@ -229,7 +225,6 @@ export const useMatchingActions = ({
     }, [clearReconnectTimer, setStatus, setPosition]);
 
     const buildHandleMatchCancelled = useCallback(() => (data: { reason: string }) => {
-        console.warn('[Matching] Match cancelled:', data.reason);
         setStatus('FINDING');
         setPosition(null);
         callbacksRef.current.onMatchCancelled?.(data);
@@ -257,19 +252,20 @@ export const useMatchingActions = ({
     }, [setStatus, setReconnectCountdown, reconnectTimerRef, clearReconnectTimer]);
 
     const buildHandlePartnerReconnected = useCallback(() => (data: PartnerReconnectedPayload) => {
+        console.log('[Matching] Partner reconnected via socket:', data.new_socket_id, 'Your Role:', data.your_role);
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onPartnerReconnected?.(data);
     }, [clearReconnectTimer, setStatus]);
 
     const buildHandleRejoinSuccess = useCallback(() => (data: RejoinSuccessPayload) => {
+        console.log('[Matching] Rejoin success, partner:', data.partner_id, 'Role:', data.role);
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onRejoinSuccess?.(data);
     }, [clearReconnectTimer, setStatus]);
 
     const buildHandleRejoinFailed = useCallback(() => (data: { reason: string }) => {
-        console.warn('[Matching] Rejoin failed:', data.reason);
         // Only reset to IDLE on permanent failures — let the reconnect hook retry
         if (data.reason !== 'partner-not-ready') {
             clearReconnectTimer();
