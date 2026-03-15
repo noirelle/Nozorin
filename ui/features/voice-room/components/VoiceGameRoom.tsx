@@ -116,7 +116,11 @@ export const VoiceGameRoom = () => {
 
     const handleMatchFound = useCallback((data: any) => {
         clearCallState();
-        setDirectMatchData(data);
+        if (data.is_direct_call) {
+            setDirectMatchData(data);
+        } else {
+            setDirectMatchData(null);
+        }
     }, [clearCallState]);
 
     const handleIdentifySuccess = useCallback(() => { }, []);

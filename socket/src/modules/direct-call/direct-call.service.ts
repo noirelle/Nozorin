@@ -114,6 +114,7 @@ export const directCallService = {
             room_id: roomId,
             mode,
             friendship_status: friendshipStatus,
+            is_direct_call: true,
         });
 
         let reverseStatus = friendshipStatus;
@@ -133,6 +134,7 @@ export const directCallService = {
             room_id: roomId,
             mode,
             friendship_status: reverseStatus,
+            is_direct_call: true,
         });
 
         logger.info({ responderUserId, callerUserId }, '[DIRECT-CALL] Call established via API');

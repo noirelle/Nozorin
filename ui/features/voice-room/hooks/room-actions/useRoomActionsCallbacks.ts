@@ -33,6 +33,7 @@ interface UseRoomActionsCallbacksProps {
     initMediaManager: () => Promise<boolean>;
     cleanupMedia: () => void;
     roomActionsState: UseRoomActionsStateReturn;
+    isDirectCall?: boolean;
 }
 
 export const useRoomActionsCallbacks = ({
@@ -54,6 +55,7 @@ export const useRoomActionsCallbacks = ({
     initMediaManager,
     cleanupMedia,
     roomActionsState,
+    isDirectCall,
 }: UseRoomActionsCallbacksProps) => {
     const { user } = useUser();
     const {
@@ -97,6 +99,7 @@ export const useRoomActionsCallbacks = ({
         }
 
         manualStopRef.current = false;
+        roomActionsState.setIsDirectCall(false);
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
@@ -139,6 +142,14 @@ export const useRoomActionsCallbacks = ({
     }, [callRoomState.is_muted, callRoomState.is_connected, callRoomState.partner_id, toggleLocalMute]);
 
     const onMatchFound = useCallback(async (data: MatchFoundPayload) => {
+        // Mark as direct call if server payload says so 
+        // OR if the hook was initialized as part of a direct call flow.
+        if (data.is_direct_call || isDirectCall) {
+            roomActionsState.setIsDirectCall(true);
+        } else {
+            roomActionsState.setIsDirectCall(false);
+        }
+
         // If we're already connected, clean up the old session first 
         // to ensure the UI resets to "Linking" for the new partner.
         if (callRoomState.is_connected) {
