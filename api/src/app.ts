@@ -11,8 +11,15 @@ import callRoutes from './modules/call/call.routes';
 
 const app = express();
 
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+const allowedOrigins = [
+    clientUrl,
+    clientUrl.replace('://', '://www.'),
+    clientUrl.replace('://www.', '://'),
+].filter((url, index, self) => self.indexOf(url) === index);
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(cookieParser());

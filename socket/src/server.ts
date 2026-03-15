@@ -13,9 +13,16 @@ import { callService } from './modules/call/call.service';
 
 const app = express();
 const httpServer = createServer(app);
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+const allowedOrigins = [
+    clientUrl,
+    clientUrl.replace('://', '://www.'),
+    clientUrl.replace('://www.', '://'),
+].filter((url, index, self) => self.indexOf(url) === index);
+
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.CLIENT_URL || 'http://localhost:3000',
+        origin: allowedOrigins,
         methods: ['GET', 'POST'],
         credentials: true,
     },
