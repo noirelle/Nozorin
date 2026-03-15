@@ -20,6 +20,7 @@ interface UseRoomActionsCallbacksProps {
         friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received',
         role?: 'offerer' | 'answerer' | null
     ) => void;
+    setPartnerSignalStrength: (strength: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     createOffer: (partnerId: string) => Promise<void>;
@@ -42,6 +43,7 @@ export const useRoomActionsCallbacks = ({
     setSearching,
     setConnected,
     setPartner,
+    setPartnerSignalStrength,
     setHasPromptedForPermission,
     resetState,
     createOffer,
@@ -247,6 +249,7 @@ export const useRoomActionsCallbacks = ({
         closePeerConnection();
         setSearching(false);
         setConnected(true);
+        setPartnerSignalStrength('good');
 
         setPartner(
             data.new_socket_id,
@@ -275,6 +278,7 @@ export const useRoomActionsCallbacks = ({
         closePeerConnection();
         setSearching(false);
         setConnected(true);
+        setPartnerSignalStrength('good');
         setPartner(
             data.partner_id,
             data.partner_country_name || callRoomState.partner_country_name,
