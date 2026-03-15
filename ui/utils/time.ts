@@ -133,3 +133,24 @@ export const formatFullTimeAgo = (timestamp: number | string | null | undefined)
         year: diffDay > 365 ? 'numeric' : undefined
     });
 };
+
+/**
+ * Formats a technical disconnect reason into a human-readable label.
+ */
+export const formatDisconnectReason = (reason?: string): string => {
+    if (!reason) return '';
+
+    const mapping: Record<string, string> = {
+        'skip': 'You skipped',
+        'user-action': 'Stopped',
+        'partner-skip': 'Partner skipped',
+        'partner-disconnect': 'Partner left',
+        'remote': 'Partner left',
+        'error': 'Connection error',
+        'network': 'Network issue',
+        'answered-another': 'New call answered',
+        'timeout': 'No response'
+    };
+
+    return mapping[reason] || '';
+};

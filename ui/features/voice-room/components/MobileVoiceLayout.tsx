@@ -26,7 +26,7 @@ import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
-import { formatTimeAgo, formatFullTimeAgo } from '@/utils/time';
+import { formatTimeAgo, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
 import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
@@ -573,6 +573,11 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                         <p className="text-[10px] font-medium text-zinc-500">
                             <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
                         </p>
+                        {item.disconnect_reason && (
+                            <p className="text-[10px] font-medium text-zinc-500">
+                                <span className="text-zinc-400">Reason:</span> <span className="text-pink-500 font-bold uppercase tracking-tight">{formatDisconnectReason(item.disconnect_reason)}</span>
+                            </p>
+                        )}
                         <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
                             {item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)}
                         </p>
