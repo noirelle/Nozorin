@@ -29,6 +29,7 @@ export interface MatchFoundPayload {
     partner_is_muted?: boolean;
     room_id?: string;
     friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received';
+    is_direct_call?: boolean;
 }
 
 export interface MatchCancelledPayload {

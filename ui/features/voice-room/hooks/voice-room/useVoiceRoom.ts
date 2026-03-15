@@ -59,22 +59,33 @@ export const useVoiceRoom = ({
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange: (state) => {
+            const currentStatus = actionsRef.current?.matching.status;
+            const isCallActive = currentStatus === 'MATCHED' || currentStatus === 'RECONNECTING';
+
             if (state === 'connected') {
                 setConnected(true);
                 setSearching(false);
+                setPartnerSignalStrength('good');
+            }
+            else if (state === 'disconnected') {
+                if (isCallActive) setPartnerSignalStrength('reconnecting');
             }
             else if (state === 'failed') {
-                console.warn('[useVoiceRoom] WebRTC connection failed, waiting for recovery...');
-                setTimeout(() => {
-                    if (actionsRef.current?.callRoomState.partner_id) {
-                        // Potential recovery logic
-                    } else {
-                        actionsRef.current?.handleStop();
-                    }
-                }, 5000);
+                console.warn('[useVoiceRoom] WebRTC connection failed');
+                if (isCallActive) {
+                    setPartnerSignalStrength('reconnecting');
+                    setTimeout(() => {
+                        if (actionsRef.current?.callRoomState.partner_id) {
+                            // Potential recovery logic
+                        } else {
+                            actionsRef.current?.handleStop();
+                        }
+                    }, 5000);
+                }
             }
         },
         onSignalQuality: (quality) => {
+            setPartnerSignalStrength(quality);
             const partner_id = callRoomState.partner_id;
             if (partner_id) emitSignalStrength(partner_id, quality);
         },

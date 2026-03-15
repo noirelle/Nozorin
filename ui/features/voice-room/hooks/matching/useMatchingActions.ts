@@ -289,8 +289,8 @@ export const useMatchingActions = ({
     }, [setStatus]);
 
     const buildHandleUserLeft = useCallback(() => (data: { socketId: string }) => {
-        // If we are matched, we might want to end the call or show a message
-        // For now, let's treat it as a trigger to ensure UI remains deterministic
+        // Only trigger cleanup if we are currently in an active session
+        // PARTNER_RECONNECTING is the event that actually starts the grace period
         callbacksRef.current.onCallEnded?.({ reason: 'partner-left' });
     }, []);
 
