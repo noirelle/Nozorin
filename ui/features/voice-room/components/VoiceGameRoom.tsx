@@ -131,7 +131,9 @@ export const VoiceGameRoom = () => {
         }
     }, [clearCallState]);
 
-    const handleIdentifySuccess = useCallback(() => { }, []);
+    const handleIdentifySuccess = useCallback(() => {
+        console.log('[Room] Identification success received via listener');
+    }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
         setNotification({ ...data.profile, country: data.profile.country, type: 'received' });
@@ -161,34 +163,50 @@ export const VoiceGameRoom = () => {
     const identifySocket = useCallback(() => {
         if (!token) return;
         const s = getSocketClient(token);
-        if (s) s.emit(SocketEvents.USER_IDENTIFY, { token });
+        if (s) {
+            console.log('[Room] Identifying socket...', s.id);
+            s.emit(SocketEvents.USER_IDENTIFY, { token });
+        }
     }, [token]);
 
     useEffect(() => {
         if (!token) return;
+        
+        // updateSocketAuth(token) sets the token in the socket.auth object 
+        // and handles re-identification if already connected.
         updateSocketAuth(token);
+        
         const s = getSocketClient(token);
         if (s && !s.connected) connectSocket();
 
         const handleAuthError = async (err: any) => {
             const isAuthError = !err || Object.keys(err).length === 0 || err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired' || err?.message === 'Invalid or expired token';
             if (isAuthError) {
+                console.log('[Room] Auth error, refreshing token...');
                 const newToken = await refreshUser();
                 if (newToken) {
                     updateSocketAuth(newToken);
-                    if (s?.connected) s?.emit(SocketEvents.UPDATE_TOKEN, { token: newToken });
-                    else connectSocket();
                 } else {
                     s?.disconnect();
                 }
             }
         };
 
-        const handleTokenUpdated = () => { };
+        const handleTokenUpdated = () => {
+            console.log('[Room] Socket token updated successfully');
+        };
 
-        if (s?.connected && token && !isSocketIdentified()) identifySocket();
+        // If s is connected but not identified, we need to identify
+        if (s?.connected && token && !isSocketIdentified()) {
+            identifySocket();
+        }
 
-        const onFocus = () => { if (s?.connected && token && !isSocketIdentified()) identifySocket(); };
+        const onFocus = () => { 
+            if (s?.connected && token && !isSocketIdentified()) {
+                console.log('[Room] Window focused, re-identifying socket...');
+                identifySocket(); 
+            }
+        };
         const onStorageChange = (e: StorageEvent) => { if (e.key === 'nz_token') window.location.reload(); };
 
         s?.on('connect', identifySocket);

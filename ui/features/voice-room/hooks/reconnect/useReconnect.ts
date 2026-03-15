@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useReconnectState, ActiveCallData } from './useReconnectState';
 import { useReconnectListeners } from './useReconnectListeners';
 import { executeSessionVerification } from '../../../../hooks/session/useSessionActions';
-import { isSocketIdentified, waitForSocketConnection } from '../../../../lib/socket/core/socketClient';
+import { isSocketIdentified, waitForSocketConnection, getSocketClient } from '../../../../lib/socket/core/socketClient';
 
 interface UseReconnectOptions {
     rejoinCall: (room_id?: string) => void;
@@ -142,8 +142,25 @@ export const useReconnect = ({
         if (minDisplayTimerRef.current) { clearTimeout(minDisplayTimerRef.current); minDisplayTimerRef.current = null; }
         if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
         rejoinRetryRef.current = 0;
+        rejoinEmittedRef.current = false; // Also reset here for explicit clears
         setIsReconnecting(false);
-    }, [minDisplayTimerRef, setIsReconnecting]);
+    }, [minDisplayTimerRef, setIsReconnecting, rejoinEmittedRef]);
+
+    // Handle session reset on physical disconnect
+    useEffect(() => {
+        const s = getSocketClient();
+        if (!s) return;
+
+        const onDisconnect = () => {
+            console.log('[Reconnect] Socket disconnected, resetting rejoin state');
+            rejoinEmittedRef.current = false;
+        };
+
+        s.on('disconnect', onDisconnect);
+        return () => {
+            s.off('disconnect', onDisconnect);
+        };
+    }, [rejoinEmittedRef]);
 
 
     useReconnectListeners({
