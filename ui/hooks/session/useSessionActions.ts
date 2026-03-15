@@ -43,6 +43,7 @@ export const executeSessionVerification = async (callbacks: {
     verificationResult = null;
     verificationPromise = (async () => {
         callbacks.onStart?.();
+        if (typeof window !== 'undefined') (window as any)._isVerifyingSession = true;
         try {
             const res = await apiRequest<{ active: boolean }>('/api/session/current');
             if (!res.error && res.data?.active) {
@@ -56,6 +57,7 @@ export const executeSessionVerification = async (callbacks: {
             console.error('[Session] Verification failed:', err);
             callbacks.onError?.(err);
         } finally {
+            if (typeof window !== 'undefined') (window as any)._isVerifyingSession = false;
             callbacks.onFinally?.();
             // Clear the lock after a short delay to catch rapid subsequent calls
             setTimeout(() => { verificationPromise = null; verificationResult = null; }, 1000);

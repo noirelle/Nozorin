@@ -181,7 +181,7 @@ export const MobileVoiceLayout = ({
                                 </div>
                             ) : (
                                 <div className="w-full h-full rounded-full bg-gradient-to-br from-white to-zinc-50/80 flex flex-col items-center justify-center">
-                                    {isSearching ? (
+                                    {isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING' ? (
                                         <div className="relative flex items-center justify-center">
                                             <div className="absolute w-12 h-12 bg-pink-50/60 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
                                             <Mic2 className="w-8 h-8 text-pink-400 relative z-10 animate-[pulse_2s_ease-in-out_infinite]" />
@@ -222,11 +222,12 @@ export const MobileVoiceLayout = ({
                 {/* Connection Details Card */}
                 <div className={`w-full max-w-[320px] bg-white/80 backdrop-blur-xl rounded-[32px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white transition-all duration-700 ${isConnected || isSearching || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                     <div className="flex flex-col items-center text-center">
-                        <h4 className="text-base font-bold text-zinc-900 truncate w-full">
-                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
+                            {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : actions.isDirectCall ? `Direct Voice Call` : `Linking Session`
-                            ) : 'In Position Queue'}
+                            ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? 'In Position Queue' : 'Start a Match'}
                         </h4>
+
                         <p className="text-[9px] font-extrabold text-zinc-400 uppercase tracking-[0.2em] mt-1 mb-4">
                             {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
                             actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : (actions.matching.status === 'MATCHED' ? (actions.isDirectCall ? `Voice Call...` : `Linking Session...`) : `Waiting for Connection...`)
