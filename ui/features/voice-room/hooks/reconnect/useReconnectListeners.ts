@@ -3,7 +3,6 @@ import { useSocketEvent, SocketEvents } from '../../../../lib/socket';
 interface UseReconnectListenersProps {
     handleIdentified: () => void;
     clearImmediately: () => void;
-    clearWithMinDelay: () => void;
     handleRejoinFailed: (data: { reason: string }) => void;
     handlePartnerReconnected: (data: { new_socket_id: string; new_user_id: string }) => void;
 }
@@ -11,7 +10,6 @@ interface UseReconnectListenersProps {
 export const useReconnectListeners = ({
     handleIdentified,
     clearImmediately,
-    clearWithMinDelay,
     handleRejoinFailed,
     handlePartnerReconnected,
 }: UseReconnectListenersProps) => {

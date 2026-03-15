@@ -147,19 +147,10 @@ export const useReconnect = ({
         setIsReconnecting(false);
     }, [minDisplayTimerRef, setIsReconnecting]);
 
-    const clearWithMinDelay = useCallback(() => {
-        rejoinRetryRef.current = 0;
-        if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
-        const elapsed = Date.now() - reconnectStartRef.current;
-        const remaining = Math.max(0, 3000 - elapsed);
-        if (remaining === 0) setIsReconnecting(false);
-        else minDisplayTimerRef.current = setTimeout(() => setIsReconnecting(false), remaining);
-    }, [reconnectStartRef, minDisplayTimerRef, setIsReconnecting]);
 
     useReconnectListeners({
         handleIdentified,
         clearImmediately,
-        clearWithMinDelay,
         handleRejoinFailed,
         handlePartnerReconnected,
     });
