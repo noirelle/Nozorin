@@ -104,7 +104,7 @@ export const useReconnect = ({
                 rejoinRetryTimerRef.current = setTimeout(() => {
                     setIsReconnecting(false);
                     rejoinRetryRef.current = 0;
-                }, 15000);
+                }, 35000);
             }
         } else {
             // Permanent failure — clear reconnecting state

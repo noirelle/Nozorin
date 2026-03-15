@@ -38,6 +38,13 @@ export const userService = {
         return primarySocketId;
     },
 
+    /** Helper to have a socket join its private user room */
+    joinUserRoom(socket: any, userId: string): void {
+        const room = `user:${userId}`;
+        socket.join(room);
+        logger.debug({ socketId: socket.id, userId }, '[USER-SERVICE] Socket joined user room');
+    },
+
     getUserId(socketId: string): string | null {
         return socketToUser.get(socketId) || null;
     },

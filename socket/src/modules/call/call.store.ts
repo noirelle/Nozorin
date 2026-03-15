@@ -7,8 +7,8 @@ export interface RejoinInfo {
     is_offerer: boolean;
 }
 
-/** socketId → { partner_id, start_time, last_seen, is_offerer, room_id } */
-export const activeCalls = new Map<string, { partner_id: string, start_time: number, last_seen: number, is_offerer: boolean, room_id: string }>();
+/** socketId → { partner_id, partner_user_id, start_time, last_seen, is_offerer, room_id } */
+export const activeCalls = new Map<string, { partner_id: string, partner_user_id: string, start_time: number, last_seen: number, is_offerer: boolean, room_id: string }>();
 
 /** userId → reconnection info */
 export const reconnectingUsers = new Map<string, RejoinInfo>();

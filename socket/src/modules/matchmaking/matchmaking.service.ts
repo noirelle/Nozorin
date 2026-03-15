@@ -34,8 +34,7 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
     const mediaB = userMediaState.get(partner.id) || { is_muted: false };
 
     const startTime = Date.now();
-    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime, last_seen: startTime, is_offerer: true, room_id });
-    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime, last_seen: startTime, is_offerer: false, room_id });
+    callService.setupActiveCall(queued.id, partner.id, queued.user_id, partner.user_id, room_id);
 
     // Persist room data in Redis for reliable reconnection (survives fast refresh)
     const redis = getRedisClient();

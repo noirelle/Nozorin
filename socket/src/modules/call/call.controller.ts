@@ -138,10 +138,11 @@ export const register = (io: Server, socket: Socket): void => {
             activeCalls.delete(oldSocketId);
         }
 
-        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        reconnectingUsers.delete(userId);
-        waitingForPartner.delete(userId);
+        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, partner_user_id: rejoinInfo.partner_user_id, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+        activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+        userService.setUserForSocket(socket.id, userId);
+        userService.joinUserRoom(socket, userId);
+        await userService.registerUser(userId);
 
         // Also clean up partner's reconnect entry if they had one
         if (rejoinInfo.partner_user_id !== 'unknown') {
@@ -214,8 +215,8 @@ export const register = (io: Server, socket: Socket): void => {
                     // Set up activeCalls for the waiting user (they haven't gone through
                     // the success path yet — their entry may already be set from above if
                     // we used their socket ID, but set it cleanly regardless)
-                    activeCalls.set(waitingSocketId, { partner_id: socket.id, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-                    activeCalls.set(socket.id, { partner_id: waitingSocketId, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+                    activeCalls.set(waitingSocketId, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+                    activeCalls.set(socket.id, { partner_id: waitingSocketId, partner_user_id: waitingUserId, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
 
                     reconnectingUsers.delete(waitingUserId);
 
