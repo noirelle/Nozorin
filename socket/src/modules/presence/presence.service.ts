@@ -17,6 +17,20 @@ export const presenceService = {
         }
     },
 
+    /** Periodically refresh status for all currently connected users */
+    startPresenceHeartbeat(io: Server): void {
+        setInterval(async () => {
+            const activeUserIds = userService.getActiveUserIds();
+            if (activeUserIds.length === 0) return;
+
+            logger.debug({ count: activeUserIds.length }, '[PRESENCE] Refreshing status heartbeat');
+            for (const userId of activeUserIds) {
+                // This keeps the Redis key alive (TTL 2m, heartbeat 1m)
+                await userService.updateUserStatus(userId, true);
+            }
+        }, 60000); // Every 60 seconds
+    },
+
     handleConnection(io: Server, socket: Socket): void {
         presenceStore.add(socket.id);
         statsService.setOnlineUsers(presenceStore.count());
@@ -42,6 +56,7 @@ export const presenceService = {
 
         if (userId && isLastSocket) {
             // Last socket for this user disconnected
+            logger.info({ userId }, '[PRESENCE] Last socket disconnected, marking user offline');
             await userService.deactivateUser(userId);
             await this.broadcastUserStatus(io, userId);
         }

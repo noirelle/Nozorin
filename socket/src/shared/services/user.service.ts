@@ -10,7 +10,7 @@ import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
 
-const STATUS_TTL = 3600; // 1 hour for status if not updated
+const STATUS_TTL = 120; // 2 minutes for status if not updated (shorter TTL to prevent stale online status)
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
@@ -69,6 +69,11 @@ export const userService = {
         }
         socketToUser.delete(socketId);
         return false;
+    },
+
+    /** Returns all user IDs currently associated with at least one socket */
+    getActiveUserIds(): string[] {
+        return Array.from(userToSockets.keys());
     },
 
     /** Register/activate a user (marking existence in Redis) */
@@ -133,12 +138,44 @@ export const userService = {
         return { is_online: false, last_seen: 0 };
     },
 
-    /** Fetch statuses for multiple users from Redis */
-    async getUserStatuses(user_ids: string[]): Promise<Record<string, unknown>> {
-        const results: Record<string, unknown> = {};
-        for (const userId of user_ids) {
-            results[userId] = await this.getUserStatus(userId);
+    /** Fetch statuses for multiple users from Redis in a single batch (MGET) */
+    async getUserStatuses(user_ids: string[]): Promise<Record<string, any>> {
+        if (!user_ids.length) return {};
+        
+        const redis = getRedisClient();
+        const results: Record<string, any> = {};
+
+        if (!redis) {
+            for (const userId of user_ids) {
+                results[userId] = { is_online: false, last_seen: 0 };
+            }
+            return results;
         }
+
+        try {
+            const keys = user_ids.map(id => `user:status:${id}`);
+            const statuses = await redis.mget(...keys);
+
+            user_ids.forEach((userId, index) => {
+                const statusJson = statuses[index];
+                if (statusJson) {
+                    try {
+                        results[userId] = JSON.parse(statusJson);
+                    } catch (e) {
+                        results[userId] = { is_online: false, last_seen: 0 };
+                    }
+                } else {
+                    results[userId] = { is_online: false, last_seen: 0 };
+                }
+            });
+        } catch (error) {
+            logger.warn({ error }, '[USER-SERVICE] Redis error in batch getUserStatuses');
+            // Fallback to individual calls or defaults if MGET fails
+            for (const userId of user_ids) {
+                results[userId] = await this.getUserStatus(userId);
+            }
+        }
+
         return results;
     },
 
