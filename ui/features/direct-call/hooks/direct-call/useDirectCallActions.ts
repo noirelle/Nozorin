@@ -12,6 +12,7 @@ interface UseDirectCallActionsProps {
     setIncomingCall: UseDirectCallStateReturn['setIncomingCall'];
     setError: UseDirectCallStateReturn['setError'];
     onCallStarted?: () => void;
+    initMediaManager: () => Promise<boolean>;
 }
 
 export const useDirectCallActions = ({
@@ -23,6 +24,7 @@ export const useDirectCallActions = ({
     setIncomingCall,
     setError,
     onCallStarted,
+    initMediaManager,
 }: UseDirectCallActionsProps) => {
     const { requestCall, respondToCall } = useCall({ setError });
 
@@ -41,13 +43,18 @@ export const useDirectCallActions = ({
 
     const acceptCall = useCallback(async () => {
         if (!incomingCall) return;
+
+        // Proactively warm up media manager before joining the room
+        // to ensure tracks are ready by the time WebRTC handshake begins.
+        await initMediaManager();
+
         onCallStarted?.();
 
         const success = await respondToCall(incomingCall.from_user_id, true, incomingCall.mode);
         if (success) {
             setIncomingCall(null);
         }
-    }, [incomingCall, onCallStarted, setIncomingCall, respondToCall]);
+    }, [incomingCall, onCallStarted, setIncomingCall, respondToCall, initMediaManager]);
 
     const declineCall = useCallback(async () => {
         if (!incomingCall) return;

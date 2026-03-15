@@ -223,18 +223,18 @@ export const DesktopVoiceFeed = ({
 
                     {/* Meta/Status block - Centered & Spaced */}
                     <div className="mt-4 flex flex-col items-center w-full text-center">
-                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
+                        <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-all duration-500`}>
                             {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' ? (
                                 actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Connecting Session`
-                            ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? 'In Position Queue' : 'Start a Match'}
+                            ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? (actions.isDirectCall ? 'Connecting...' : 'In Position Queue') : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.2em] mt-1">
                             {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? (
                                 actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : `Waiting for Connection...`
                             ) : (isSearching && !isReconnecting && actions.matching.status !== 'RECONNECTING') ? (
-                                actions.matching.position !== null ?
+                                actions.matching.position !== null && !actions.isDirectCall ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
-                                    : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
+                                    : actions.isDirectCall ? 'Direct Voice Call' : `Queue Position: Evaluating • Wait Time: ${Math.floor(searchTimer / 60)}:${(searchTimer % 60).toString().padStart(2, '0')}`
                             ) : !isSocketConnected ? 'Waiting for connection' : (callRoomState.permission_denied && isInAppBrowser()) ? 'In-app browsers restrict microphone access' : callRoomState.permission_denied ? 'Tap circle to try again' : 'Tap the circle to begin'}
                         </p>
 

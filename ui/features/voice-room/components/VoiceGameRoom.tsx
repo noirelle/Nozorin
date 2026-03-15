@@ -28,12 +28,30 @@ export const VoiceGameRoom = () => {
 
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
     const { isVerifyingSession, initialReconnecting, initialCallData, verifyActiveCallSession } = useSession();
+    
+    // 1. History first, as other hooks and socket listeners depend on it
+    const { history, fetchHistory } = useHistory(token, user?.id, async () => null);
+
+    // 2. Voice Room Hook provides the media manager needed by direct calls
+    const voiceRoomData = useVoiceRoom({
+        onConnectionChange: setIsConnected,
+        initialMatchData: directMatchData,
+        initialReconnecting,
+        initialCallData
+    });
+
+    // 3. Direct Call Hook can now safely use the media manager
+    const { incomingCall, isCalling, error: callError, initiateCall, acceptCall: performAcceptCall, declineCall: performDeclineCall, cancelCall, clearCallState } = useDirectCall(voiceRoomData.initMediaManager);
+    
+    const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends({
+        onFriendOnline: (friend) => {
+            setNotification({ ...friend, type: 'online' });
+        }
+    });
 
     useEffect(() => {
         ensureToken();
     }, [ensureToken]);
-
-    const { history, fetchHistory } = useHistory(token, user?.id, async () => null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -49,13 +67,6 @@ export const VoiceGameRoom = () => {
             }
         }
     }, []);
-
-    const { incomingCall, isCalling, error: callError, initiateCall, acceptCall: performAcceptCall, declineCall: performDeclineCall, cancelCall, clearCallState } = useDirectCall();
-    const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends({
-        onFriendOnline: (friend) => {
-            setNotification({ ...friend, type: 'online' });
-        }
-    });
 
     const hasInitialized = useRef(false);
 
@@ -210,14 +221,6 @@ export const VoiceGameRoom = () => {
     const handleCloseNotif = useCallback(() => {
         setNotification(null);
     }, []);
-
-    // THE CENTRAL CONNECTION HOOK
-    const voiceRoomData = useVoiceRoom({
-        onConnectionChange: setIsConnected,
-        initialMatchData: directMatchData,
-        initialReconnecting,
-        initialCallData
-    });
 
     // Centralized Search Timer
     useEffect(() => {
