@@ -1,5 +1,20 @@
 export type MatchState = 'IDLE' | 'FINDING' | 'NEGOTIATING' | 'MATCHED';
 
+export interface UserProfile {
+    id: string;
+    username: string;
+    avatar: string;
+    gender: string;
+    profile_completed: boolean;
+    is_claimed: boolean;
+    created_at: number;
+    country: string;
+    country_name: string;
+    last_ip?: string;
+    device_id?: string;
+    last_active_at: number;
+}
+
 export interface User {
     id: string;
     user_id: string;

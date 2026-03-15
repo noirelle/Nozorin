@@ -3,6 +3,7 @@ import { getClientIp, getGeoInfo } from '../../core/utils/ip.utils';
 import { userService } from '../../shared/services/user.service';
 import { addConnectedUser } from '../../modules/tracking/tracking.service';
 import { presenceService } from '../../modules/presence/presence.service';
+import * as matchmakingService from '../../modules/matchmaking/matchmaking.service';
 import { logger } from '../../core/logger';
 import { SocketEvents } from '../socket.events';
 
@@ -28,6 +29,13 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
 
         userService.setUserForSocket(socket.id, user_id);
         await userService.registerUser(user_id);
+
+        // SYNC: update queue if already there (edge case)
+        const profile = await userService.getUserProfile(user_id);
+        if (profile) {
+            await matchmakingService.updateUserInQueue(socket.id, profile);
+        }
+
         await presenceService.handleUserConnection(io, user_id);
         logger.info({ socketId: socket.id, user_id: user_id.substring(0, 8) }, '[CONNECT] Auto-registered');
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id, auto: true });

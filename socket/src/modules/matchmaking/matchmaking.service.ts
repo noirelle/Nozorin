@@ -3,9 +3,9 @@ import { SocketEvents } from '../../socket/socket.events';
 import { logger } from '../../core/logger';
 import { userService } from '../../shared/services/user.service';
 import { voiceQueue, voiceBuckets, removeUserFromQueues } from './matchmaking.store';
+import { User, UserProfile } from '../../shared/types/socket.types';
 import { activeCalls, reconnectingUsers } from '../call/call.store';
 import { userMediaState } from '../media/media.store';
-import { User } from '../../shared/types/socket.types';
 import { statsService } from '../../shared/services/stats.service';
 import { getIo } from '../../api/emit.controller';
 import { callService } from '../call/call.service';
@@ -162,13 +162,13 @@ export const joinQueue = async (
 
     const user: User = {
         id: socketId,
-        user_id: userId || 'unknown',
-        username: profile?.username || 'Guest',
-        avatar: profile?.avatar || '/avatars/avatar1.webp',
-        gender: profile?.gender || 'unknown',
-        country_name: profile?.country_name || country_name || 'Unknown',
-        country: profile?.country || country || 'UN',
-        mode: mode || 'voice',
+        user_id: userId ?? 'unknown',
+        username: profile?.username ?? 'Anonymous',
+        avatar: profile?.avatar ?? '/avatars/avatar1.webp',
+        gender: profile?.gender ?? 'unknown',
+        country_name: profile?.country_name ?? country_name ?? 'Unknown',
+        country: profile?.country ?? country ?? 'UN',
+        mode: mode ?? 'voice',
         joined_at: Date.now(),
         state: 'FINDING',
         preferences,
@@ -190,6 +190,36 @@ export const joinQueue = async (
 
 export const leaveQueue = (socketId: string): void => {
     removeUserFromQueues(socketId);
+};
+
+/**
+ * Updates a user's profile information while they are still in the queue.
+ * This is crucial when a user joins the queue as 'unknown' and later identifies.
+ */
+export const updateUserInQueue = async (socketId: string, profile: UserProfile): Promise<void> => {
+    const user = voiceQueue.find(u => u.id === socketId);
+    if (user) {
+        user.user_id = profile.id;
+        user.username = profile.username;
+        user.avatar = profile.avatar;
+        user.gender = profile.gender;
+        user.country = profile.country;
+        user.country_name = profile.country_name;
+        logger.info({ socketId, user_id: profile.id, username: user.username }, '[MATCHMAKING] Updated user in queue after identification');
+    }
+
+    // Update buckets
+    voiceBuckets.forEach((bucket, country) => {
+        const u = bucket.find(entry => entry.id === socketId);
+        if (u) {
+            u.user_id = profile.id;
+            u.username = profile.username;
+            u.avatar = profile.avatar;
+            u.gender = profile.gender;
+            u.country = profile.country;
+            u.country_name = profile.country_name;
+        }
+    });
 };
 
 // ── Heartbeat ─────────────────────────────────────────────────────────────────

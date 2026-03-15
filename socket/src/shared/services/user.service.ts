@@ -8,6 +8,7 @@ import { AppDataSource } from '../../core/config/database.config';
 import { User } from '../../modules/user/user.entity';
 import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
+import { UserProfile } from '../types/socket.types';
 
 const STATUS_TTL = 3600; // 1 hour for status if not updated
 
@@ -156,11 +157,11 @@ export const userService = {
     },
 
     /** Fetch full profile from Redis or DB */
-    async getUserProfile(userId: string): Promise<any | null> {
-        // Priority 1: Fetch from Redis
+    async getUserProfile(userId: string): Promise<UserProfile | null> {
         const redis = getRedisClient();
         if (redis) {
             try {
+                // Tier 1: Standard Profile (Hash)
                 const data = await redis.hgetall(`user:${userId}`);
                 if (data && Object.keys(data).length > 0) {
                     return {
@@ -178,15 +179,54 @@ export const userService = {
                         last_active_at: parseInt(data.last_active_at || '0')
                     };
                 }
+
+                // Tier 2: Temp User (JSON) - Used for guests who just registered
+                const tempJson = await redis.get(`temp_user:${userId}`);
+                if (tempJson) {
+                    try {
+                        const tempData = JSON.parse(tempJson);
+                        return {
+                            id: userId,
+                            username: tempData.username ?? 'Anonymous',
+                            avatar: tempData.avatar ?? '/avatars/avatar1.webp',
+                            gender: tempData.gender ?? 'unknown',
+                            profile_completed: false,
+                            is_claimed: false,
+                            created_at: tempData.created_at ?? Date.now(),
+                            country: tempData.country ?? 'UN',
+                            country_name: tempData.country_name ?? 'Unknown',
+                            last_ip: tempData.last_ip,
+                            device_id: tempData.device_id,
+                            last_active_at: Date.now()
+                        };
+                    } catch (e) {
+                        logger.warn({ userId }, '[USER-SERVICE] Failed to parse temp_user JSON');
+                    }
+                }
             } catch (error) {
                 logger.warn({ error, userId }, '[USER-SERVICE] Redis error getting profile');
             }
         }
 
-        // Priority 2: Fallback to DB
+        // Priority 3: Fallback to DB
         try {
             const user = await userRepository.findOneBy({ id: userId });
-            return user;
+            if (!user) return null;
+            
+            return {
+                id: user.id,
+                username: user.username,
+                avatar: user.avatar,
+                gender: user.gender,
+                profile_completed: user.profile_completed,
+                is_claimed: user.is_claimed,
+                created_at: Number(user.created_at),
+                country: user.country ?? 'UN',
+                country_name: user.country_name ?? 'Unknown',
+                last_ip: user.last_ip,
+                device_id: user.device_id,
+                last_active_at: Number(user.last_active_at)
+            };
         } catch (error) {
             logger.warn({ error, userId }, '[USER-SERVICE] DB error getting profile');
             return null;

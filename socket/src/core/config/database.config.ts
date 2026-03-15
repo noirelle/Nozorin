@@ -8,6 +8,7 @@ dotenv.config();
 export const AppDataSource = new DataSource({
     type: 'mysql',
     driver: mysql2,
+    connectorPackage: 'mysql2',
     host: process.env.MYSQLHOST!,
     port: parseInt(process.env.MYSQLPORT!),
     username: process.env.MYSQLUSER!,
