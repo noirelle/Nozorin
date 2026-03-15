@@ -66,6 +66,8 @@ export const useVoiceRoom = ({
                 setConnected(true);
                 setSearching(false);
                 setPartnerSignalStrength('good');
+                // Ensure reconnection overlay is cleared if it was active
+                clearReconnectState?.();
             }
             else if (state === 'disconnected') {
                 if (isCallActive) setPartnerSignalStrength('reconnecting');
