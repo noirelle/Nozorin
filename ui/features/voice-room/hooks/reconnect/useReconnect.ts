@@ -68,7 +68,6 @@ export const useReconnect = ({
     const rejoinRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleIdentified = useCallback(async () => {
-        console.log('[Reconnect] Socket identified, checking active session...');
         await checkActiveSession();
         // If we have an active call, tell the server we're back and wait for partner
         if (activeCallRef.current && !rejoinEmittedRef.current) {
@@ -98,8 +97,6 @@ export const useReconnect = ({
     // Handle rejoin failures — rely on server's proactive REJOIN_SUCCESS instead of polling.
     // We only add a single 15-second failsafe timeout here.
     const handleRejoinFailed = useCallback((data: { reason: string }) => {
-        const elapsed = Math.round(performance.now() - rejoinStartTimeRef.current);
-        console.log('[Reconnect] Rejoin failed:', data.reason, 'Elapsed:', elapsed, 'ms');
         if (data.reason === 'partner-not-ready') {
             if (!rejoinRetryTimerRef.current) {
                 // Single 15-second failsafe timeout. If the server doesn't proactively send
@@ -107,7 +104,7 @@ export const useReconnect = ({
                 rejoinRetryTimerRef.current = setTimeout(() => {
                     setIsReconnecting(false);
                     rejoinRetryRef.current = 0;
-                }, 15000);
+                }, 35000);
             }
         } else {
             // Permanent failure — clear reconnecting state
@@ -152,7 +149,6 @@ export const useReconnect = ({
         if (!s) return;
 
         const onDisconnect = () => {
-            console.log('[Reconnect] Socket disconnected, resetting rejoin state');
             rejoinEmittedRef.current = false;
         };
 

@@ -17,6 +17,7 @@ export const presenceService = {
         }
     },
 
+
     handleConnection(io: Server, socket: Socket): void {
         presenceStore.add(socket.id);
         statsService.setOnlineUsers(presenceStore.count());
@@ -42,6 +43,7 @@ export const presenceService = {
 
         if (userId && isLastSocket) {
             // Last socket for this user disconnected
+            logger.info({ userId }, '[PRESENCE] Last socket disconnected, marking user offline');
             await userService.deactivateUser(userId);
             await this.broadcastUserStatus(io, userId);
         }
@@ -63,5 +65,13 @@ export const register = (io: Server, socket: Socket): void => {
         const { user_ids } = data;
         if (!user_ids || !Array.isArray(user_ids)) return;
         user_ids.forEach(uid => { if (uid) socket.leave(`status:${uid}`); });
+    });
+
+    // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
+    socket.conn.on('heartbeat', async () => {
+        const userId = userService.getUserId(socket.id);
+        if (userId) {
+            await userService.updateUserStatus(userId, true);
+        }
     });
 };

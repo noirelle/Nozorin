@@ -84,8 +84,7 @@ export const directCallService = {
         }
 
         const start_time = Date.now();
-        activeCalls.set(responderSocketId, { partner_id: callerSocketId, start_time, last_seen: start_time, is_offerer: false, room_id: roomId });
-        activeCalls.set(callerSocketId, { partner_id: responderSocketId, start_time, last_seen: start_time, is_offerer: true, room_id: roomId });
+        callService.setupActiveCall(callerSocketId, responderSocketId, callerUserId, responderUserId, roomId);
 
         responderSocket.join(roomId);
         callerSocket.join(roomId);

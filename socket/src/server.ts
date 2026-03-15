@@ -5,6 +5,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { bootstrapSocket } from './socket';
+import { presenceService } from './modules/presence/presence.service';
 import internalRouter from './api/router';
 import { logger } from './core/logger';
 import { initRedis } from './core/config/redis.config';

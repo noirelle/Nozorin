@@ -20,15 +20,31 @@ export const register = (io: Server, socket: Socket): void => {
             return;
         }
 
-        // Check if our partner already successfully reconstructed the call for us concurrently.
-        // If we are already in activeCalls, we don't need to rebuild from rejoinInfo.
-        const alreadyActive = activeCalls.get(socket.id);
-        if (alreadyActive) {
-            logger.info({ userId, socketId: socket.id }, '[CALL] User is already in activeCalls. Partner likely restored the session concurrently.');
-            // We can optionally emit REJOIN_SUCCESS to ensure they have the latest data,
-            // or we can just return because PARTNER_RECONNECTED was already sent to them.
-            // Let's just return to avoid tearing down the connection they are building.
-            return;
+        // Reconnection Fix 2: Handle concurrent rejoin
+        // If our partner already restored the session for us, we MUST still emit REJOIN_SUCCESS
+        // so the client can transition out of the RECONNECTING state.
+        const activeCall = activeCalls.get(socket.id);
+        if (activeCall) {
+            const partnerUserId = userService.getUserId(activeCall.partner_id);
+            if (partnerUserId) {
+                const partnerProfile = await userService.getUserProfile(partnerUserId);
+                const friendshipStatus = await userService.getFriendshipStatus(userId, partnerUserId);
+                
+                socket.emit(SocketEvents.REJOIN_SUCCESS, {
+                    partner_id: activeCall.partner_id,
+                    partner_user_id: partnerUserId,
+                    partner_username: partnerProfile?.username,
+                    partner_avatar: partnerProfile?.avatar,
+                    partner_gender: partnerProfile?.gender,
+                    partner_country_name: partnerProfile?.country_name,
+                    partner_country: partnerProfile?.country,
+                    friendship_status: friendshipStatus,
+                    room_id: activeCall.room_id,
+                    role: activeCall.is_offerer ? 'offerer' : 'answerer'
+                });
+                logger.info({ userId, socketId: socket.id }, '[CALL] Rejoin success (concurrently restored by partner)');
+                return;
+            }
         }
 
         // Check in-memory first, then fall back to Redis
@@ -54,16 +70,29 @@ export const register = (io: Server, socket: Socket): void => {
             return;
         }
 
-        // Single synchronous check — no polling loop
+        // Synchronized Rejoin Barrier
+        // We only proceed if the partner is ALREADY in an active call with us (they didn't refresh)
+        // OR if they have also signaled their intent to rejoin (they are in waitingForPartner).
         let currentPartnerSocketId = userService.getSocketId(rejoinInfo.partner_user_id);
+        
+        // Case A: Partner is already active in a call (didn't refresh)
+        let partnerIsActive = false;
+        if (currentPartnerSocketId) {
+            const partnerCall = activeCalls.get(currentPartnerSocketId);
+            if (partnerCall && partnerCall.partner_user_id === userId) {
+                partnerIsActive = true;
+            }
+        }
 
-        if (!currentPartnerSocketId && rejoinInfo.partner_user_id !== 'unknown') {
-            // Partner not yet identified. Register ourselves as waiting and tell the
-            // client to stand by. When the partner's REJOIN_CALL handler runs it will
-            // find this entry and resolve us immediately — no polling needed.
+        // Case B: Partner arrived first and is explicitly waiting for us
+        const waitingPartnerSocketId = waitingForPartner.get(userId);
+        const partnerIsWaiting = !!waitingPartnerSocketId;
+
+        if (!partnerIsActive && !partnerIsWaiting) {
+            // Neither side is ready. Register ourselves as waiting.
             waitingForPartner.set(rejoinInfo.partner_user_id, socket.id);
 
-            // Also update the partner's rejoin entry so they know our new socket ID
+            // Update partner's rejoin entry with our new socket ID so they can find us
             const partnerRejoin = reconnectingUsers.get(rejoinInfo.partner_user_id);
             if (partnerRejoin) {
                 partnerRejoin.partner_socket_id = socket.id;
@@ -74,58 +103,39 @@ export const register = (io: Server, socket: Socket): void => {
                 }
             }
 
-            logger.info({ userId, partnerUserId: rejoinInfo.partner_user_id }, '[CALL] Partner not ready yet — registered in waitingForPartner');
+            logger.info({ userId, partnerUserId: rejoinInfo.partner_user_id }, '[CALL] Partner not explicitly ready — entering rejoin barrier');
             socket.emit(SocketEvents.REJOIN_FAILED, { reason: 'partner-not-ready' });
             return;
         }
 
-        // Guard: if the partner is already in a new call with a DIFFERENT user, the session is stale
-        // Compare by user ID, not socket ID, because sockets change on refresh
+        // If we reached here, we can proceed. Resolve whichever side is ready.
+        if (partnerIsWaiting) {
+            // Both are now ready. resolveBoth() logic will handle both emitters.
+            // We'll let the code below handle it by setting currentPartnerSocketId.
+            currentPartnerSocketId = waitingPartnerSocketId;
+        }
+
+        // Guard: Check if partner is in a different call (redundancy check)
         const partnerActiveCall = activeCalls.get(currentPartnerSocketId!);
-        if (partnerActiveCall && partnerActiveCall.partner_id !== socket.id) {
-            const partnerCurrentPartnerUserId = userService.getUserId(partnerActiveCall.partner_id);
-            if (partnerCurrentPartnerUserId && partnerCurrentPartnerUserId !== userId) {
-                logger.info({ userId, partnerSocketId: currentPartnerSocketId, partnerCurrentPartnerUserId },
-                    '[CALL] Partner already in a new call with a different user — rejoin session is stale');
-                reconnectingUsers.delete(userId);
-                waitingForPartner.delete(userId);
-                const redis = getRedisClient();
-                if (redis) await redis.del(`call:reconnect:${userId}`);
-                socket.emit(SocketEvents.REJOIN_FAILED, { reason: 'session-expired' });
-                socket.emit(SocketEvents.CALL_ENDED, { reason: 'session-expired' });
-                return;
-            }
-            // Same user, different socket (refresh) — continue normally
+        if (partnerActiveCall && partnerActiveCall.partner_user_id !== userId) {
+            reconnectingUsers.delete(userId);
+            socket.emit(SocketEvents.REJOIN_FAILED, { reason: 'session-expired' });
+            return;
         }
 
         const startTime = rejoinInfo.start_time;
 
-        // Guard: if the partner's concurrent REJOIN handler already set up activeCalls for us,
-        // just clean up and return. The user already received PARTNER_RECONNECTED from the
-        // other handler, which handles WebRTC setup. Emitting REJOIN_SUCCESS here would cause
-        // the client to call closePeerConnection() and destroy the connection just established.
-        const existingCall = activeCalls.get(socket.id);
-        if (existingCall && existingCall.partner_id === currentPartnerSocketId) {
-            reconnectingUsers.delete(userId);
-            waitingForPartner.delete(userId);
-            const redis = getRedisClient();
-            if (redis) await redis.del(`call:reconnect:${userId}`);
-            logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Concurrent rejoin detected — already set up by partner handler, skipping');
-            return;
-        }
+        // Cleanup old socket mapping if it exists
+        const oldSocketId = [...activeCalls.entries()].find(([k, v]) => v.partner_id === currentPartnerSocketId)?.[0];
+        if (oldSocketId) activeCalls.delete(oldSocketId);
 
-        const oldSocketId = [...activeCalls.entries()].find(
-            ([k, v]) => v.partner_id === currentPartnerSocketId
-        )?.[0];
-
-        if (oldSocketId) {
-            activeCalls.delete(oldSocketId);
-        }
-
-        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        reconnectingUsers.delete(userId);
-        waitingForPartner.delete(userId);
+        // Setup active state for both
+        activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, partner_user_id: rejoinInfo.partner_user_id, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+        activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+        
+        userService.setUserForSocket(socket.id, userId);
+        userService.joinUserRoom(socket, userId);
+        await userService.registerUser(userId);
 
         // Also clean up partner's reconnect entry if they had one
         if (rejoinInfo.partner_user_id !== 'unknown') {
@@ -161,17 +171,22 @@ export const register = (io: Server, socket: Socket): void => {
 
         const userProfile = await userService.getUserProfile(userId);
 
-        io.to(currentPartnerSocketId!).emit(SocketEvents.PARTNER_RECONNECTED, {
-            new_socket_id: socket.id,
-            new_user_id: userId,
-            partner_username: userProfile?.username,
-            partner_avatar: userProfile?.avatar,
-            partner_gender: userProfile?.gender,
-            partner_country_name: userProfile?.country_name,
-            partner_country: userProfile?.country,
-            friendship_status: reverseStatus,
-            your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
-        });
+        // Reconnection Fix 3: Multi-socket broadcast
+        // Notify ALL active sockets of the partner to ensure reliability during fast refresh
+        const partnerSockets = userService.getAllSockets(rejoinInfo.partner_user_id);
+        for (const pid of partnerSockets) {
+            io.to(pid).emit(SocketEvents.PARTNER_RECONNECTED, {
+                new_socket_id: socket.id,
+                new_user_id: userId,
+                partner_username: userProfile?.username,
+                partner_avatar: userProfile?.avatar,
+                partner_gender: userProfile?.gender,
+                partner_country_name: userProfile?.country_name,
+                partner_country: userProfile?.country,
+                friendship_status: reverseStatus,
+                your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
+            });
+        }
 
         logger.info({ socketId: socket.id, user_id: userId, partner_id: currentPartnerSocketId }, '[CALL] Call rejoined successfully');
 
@@ -193,8 +208,8 @@ export const register = (io: Server, socket: Socket): void => {
                     // Set up activeCalls for the waiting user (they haven't gone through
                     // the success path yet — their entry may already be set from above if
                     // we used their socket ID, but set it cleanly regardless)
-                    activeCalls.set(waitingSocketId, { partner_id: socket.id, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-                    activeCalls.set(socket.id, { partner_id: waitingSocketId, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+                    activeCalls.set(waitingSocketId, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
+                    activeCalls.set(socket.id, { partner_id: waitingSocketId, partner_user_id: waitingUserId, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
 
                     reconnectingUsers.delete(waitingUserId);
 

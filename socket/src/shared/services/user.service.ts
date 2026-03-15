@@ -8,8 +8,9 @@ import { AppDataSource } from '../../core/config/database.config';
 import { User } from '../../modules/user/user.entity';
 import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
+import { UserProfile } from '../types/socket.types';
 
-const STATUS_TTL = 3600; // 1 hour for status if not updated
+const STATUS_TTL = 60; // 1 minute for status if not updated (real-time approach)
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
@@ -37,13 +38,22 @@ export const userService = {
         return primarySocketId;
     },
 
+    /** Helper to have a socket join its private user room */
+    joinUserRoom(socket: any, userId: string): void {
+        const room = `user:${userId}`;
+        socket.join(room);
+        logger.debug({ socketId: socket.id, userId }, '[USER-SERVICE] Socket joined user room');
+    },
+
     getUserId(socketId: string): string | null {
         return socketToUser.get(socketId) || null;
     },
 
     getSocketId(userId: string): string | null {
         const sockets = userToSockets.get(userId);
-        return (sockets && sockets.size > 0) ? Array.from(sockets)[0] : null;
+        if (!sockets || sockets.size === 0) return null;
+        // Return the LAST added socket (most recent) to avoid stale references during fast refresh
+        return Array.from(sockets).slice(-1)[0];
     },
 
     /** Returns all socket IDs associated with a user */
@@ -68,6 +78,11 @@ export const userService = {
         }
         socketToUser.delete(socketId);
         return false;
+    },
+
+    /** Returns all user IDs currently associated with at least one socket */
+    getActiveUserIds(): string[] {
+        return Array.from(userToSockets.keys());
     },
 
     /** Register/activate a user (marking existence in Redis) */
@@ -132,12 +147,44 @@ export const userService = {
         return { is_online: false, last_seen: 0 };
     },
 
-    /** Fetch statuses for multiple users from Redis */
-    async getUserStatuses(user_ids: string[]): Promise<Record<string, unknown>> {
-        const results: Record<string, unknown> = {};
-        for (const userId of user_ids) {
-            results[userId] = await this.getUserStatus(userId);
+    /** Fetch statuses for multiple users from Redis in a single batch (MGET) */
+    async getUserStatuses(user_ids: string[]): Promise<Record<string, any>> {
+        if (!user_ids.length) return {};
+        
+        const redis = getRedisClient();
+        const results: Record<string, any> = {};
+
+        if (!redis) {
+            for (const userId of user_ids) {
+                results[userId] = { is_online: false, last_seen: 0 };
+            }
+            return results;
         }
+
+        try {
+            const keys = user_ids.map(id => `user:status:${id}`);
+            const statuses = await redis.mget(...keys);
+
+            user_ids.forEach((userId, index) => {
+                const statusJson = statuses[index];
+                if (statusJson) {
+                    try {
+                        results[userId] = JSON.parse(statusJson);
+                    } catch (e) {
+                        results[userId] = { is_online: false, last_seen: 0 };
+                    }
+                } else {
+                    results[userId] = { is_online: false, last_seen: 0 };
+                }
+            });
+        } catch (error) {
+            logger.warn({ error }, '[USER-SERVICE] Redis error in batch getUserStatuses');
+            // Fallback to individual calls or defaults if MGET fails
+            for (const userId of user_ids) {
+                results[userId] = await this.getUserStatus(userId);
+            }
+        }
+
         return results;
     },
 
@@ -156,11 +203,11 @@ export const userService = {
     },
 
     /** Fetch full profile from Redis or DB */
-    async getUserProfile(userId: string): Promise<any | null> {
-        // Priority 1: Fetch from Redis
+    async getUserProfile(userId: string): Promise<UserProfile | null> {
         const redis = getRedisClient();
         if (redis) {
             try {
+                // Tier 1: Standard Profile (Hash)
                 const data = await redis.hgetall(`user:${userId}`);
                 if (data && Object.keys(data).length > 0) {
                     return {
@@ -178,15 +225,54 @@ export const userService = {
                         last_active_at: parseInt(data.last_active_at || '0')
                     };
                 }
+
+                // Tier 2: Temp User (JSON) - Used for guests who just registered
+                const tempJson = await redis.get(`temp_user:${userId}`);
+                if (tempJson) {
+                    try {
+                        const tempData = JSON.parse(tempJson);
+                        return {
+                            id: userId,
+                            username: tempData.username ?? 'Anonymous',
+                            avatar: tempData.avatar ?? '/avatars/avatar1.webp',
+                            gender: tempData.gender ?? 'unknown',
+                            profile_completed: false,
+                            is_claimed: false,
+                            created_at: tempData.created_at ?? Date.now(),
+                            country: tempData.country ?? 'UN',
+                            country_name: tempData.country_name ?? 'Unknown',
+                            last_ip: tempData.last_ip,
+                            device_id: tempData.device_id,
+                            last_active_at: Date.now()
+                        };
+                    } catch (e) {
+                        logger.warn({ userId }, '[USER-SERVICE] Failed to parse temp_user JSON');
+                    }
+                }
             } catch (error) {
                 logger.warn({ error, userId }, '[USER-SERVICE] Redis error getting profile');
             }
         }
 
-        // Priority 2: Fallback to DB
+        // Priority 3: Fallback to DB
         try {
             const user = await userRepository.findOneBy({ id: userId });
-            return user;
+            if (!user) return null;
+            
+            return {
+                id: user.id,
+                username: user.username,
+                avatar: user.avatar,
+                gender: user.gender,
+                profile_completed: user.profile_completed,
+                is_claimed: user.is_claimed,
+                created_at: Number(user.created_at),
+                country: user.country ?? 'UN',
+                country_name: user.country_name ?? 'Unknown',
+                last_ip: user.last_ip,
+                device_id: user.device_id,
+                last_active_at: Number(user.last_active_at)
+            };
         } catch (error) {
             logger.warn({ error, userId }, '[USER-SERVICE] DB error getting profile');
             return null;

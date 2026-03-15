@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { getUserIdFromToken } from '../../core/utils/jwt.utils';
 import { userService } from '../../shared/services/user.service';
+import * as matchmakingService from '../matchmaking/matchmaking.service';
 import { presenceService } from '../presence/presence.service';
 import { logger } from '../../core/logger';
 
@@ -18,10 +19,33 @@ export const authService = {
         await authService.cleanupOtherSessions(io, userId, socket.id);
 
         userService.setUserForSocket(socket.id, userId);
+        userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
+
+        // SYNC: if user is already in queue, update their profile there
+        const profile = await userService.getUserProfile(userId);
+        if (profile) {
+            await matchmakingService.updateUserInQueue(socket.id, profile);
+        }
+
         logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
         await presenceService.broadcastUserStatus(io, userId);
-        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
+
+        // Proactive Session Push
+        const { callService } = require('../call/call.service'); // circular dep avoidance
+        const activeCall = await callService.getActiveCall(userId);
+        if (activeCall) {
+            const partnerProfile = await userService.getUserProfile(activeCall.partner_user_id);
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { 
+                user_id: userId,
+                active_session: {
+                    ...activeCall,
+                    partner_profile: partnerProfile
+                }
+            });
+        } else {
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
+        }
         return userId;
     },
 
@@ -38,6 +62,12 @@ export const authService = {
 
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
+
+        const profile = await userService.getUserProfile(userId);
+        if (profile) {
+            await matchmakingService.updateUserInQueue(socket.id, profile);
+        }
+
         socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, user_id: userId });
     },
 
@@ -50,6 +80,12 @@ export const authService = {
 
         userService.setUserForSocket(socket.id, userId);
         await userService.registerUser(userId);
+
+        const profile = await userService.getUserProfile(userId);
+        if (profile) {
+            await matchmakingService.updateUserInQueue(socket.id, profile);
+        }
+
         await presenceService.broadcastUserStatus(io, userId);
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
     },

@@ -11,6 +11,7 @@ export const SocketEvents = {
     AUTH_ERROR: 'auth-error',
     TOKEN_UPDATED: 'token-updated',
     MULTI_SESSION: 'multi-session',
+    SESSION_RESTORED: 'session-restored',
 
     // ── Matchmaking ──────────────────────────────────────────────────────────
     WAITING_FOR_MATCH: 'waiting-for-match',

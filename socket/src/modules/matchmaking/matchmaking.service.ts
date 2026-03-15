@@ -3,9 +3,9 @@ import { SocketEvents } from '../../socket/socket.events';
 import { logger } from '../../core/logger';
 import { userService } from '../../shared/services/user.service';
 import { voiceQueue, voiceBuckets, removeUserFromQueues } from './matchmaking.store';
+import { User, UserProfile } from '../../shared/types/socket.types';
 import { activeCalls, reconnectingUsers } from '../call/call.store';
 import { userMediaState } from '../media/media.store';
-import { User } from '../../shared/types/socket.types';
 import { statsService } from '../../shared/services/stats.service';
 import { getIo } from '../../api/emit.controller';
 import { callService } from '../call/call.service';
@@ -17,10 +17,40 @@ let heartbeatSetup = false;
 // ── Matching logic ────────────────────────────────────────────────────────────
 
 const tryMatch = async (io: Server, queued: User): Promise<void> => {
-    const idx = voiceQueue.findIndex(u => u.id !== queued.id);
-    if (idx === -1) return;
+    let partner: User | undefined;
+    
+    // Preference: Country Filter
+    const preferredCountry = queued.preferred_country;
+    if (preferredCountry && preferredCountry !== 'GLOBAL') {
+        const bucket = voiceBuckets.get(preferredCountry);
+        if (bucket) {
+            const partnerIdx = bucket.findIndex(u => u.id !== queued.id);
+            if (partnerIdx !== -1) {
+                partner = bucket.splice(partnerIdx, 1)[0];
+                // Sync with main queue
+                const mainIdx = voiceQueue.findIndex(u => u.id === partner!.id);
+                if (mainIdx !== -1) voiceQueue.splice(mainIdx, 1);
+            }
+        }
+    }
 
-    const partner = voiceQueue.splice(idx, 1)[0];
+    // Fallback: Global Queue
+    if (!partner) {
+        const idx = voiceQueue.findIndex(u => u.id !== queued.id);
+        if (idx === -1) return;
+        partner = voiceQueue.splice(idx, 1)[0];
+        // Sync with buckets
+        if (partner.country) {
+            const bucket = voiceBuckets.get(partner.country);
+            if (bucket) {
+                const bIdx = bucket.findIndex(u => u.id === partner!.id);
+                if (bIdx !== -1) bucket.splice(bIdx, 1);
+            }
+        }
+    }
+
+    if (!partner) return;
+
     removeUserFromQueues(queued.id);
 
     // Fetch friendship status if both have user_id
@@ -34,8 +64,7 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
     const mediaB = userMediaState.get(partner.id) || { is_muted: false };
 
     const startTime = Date.now();
-    activeCalls.set(queued.id, { partner_id: partner.id, start_time: startTime, last_seen: startTime, is_offerer: true, room_id });
-    activeCalls.set(partner.id, { partner_id: queued.id, start_time: startTime, last_seen: startTime, is_offerer: false, room_id });
+    callService.setupActiveCall(queued.id, partner.id, queued.user_id, partner.user_id, room_id);
 
     // Persist room data in Redis for reliable reconnection (survives fast refresh)
     const redis = getRedisClient();
@@ -82,7 +111,7 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
     });
 
     statsService.incrementMatchesToday();
-    logger.info({ room_id, userA: queued.id, userB: partner.id, friendship_status: friendshipStatus }, '[MATCHMAKING] Match found');
+    logger.info({ room_id, userA: queued.id, userB: partner.id, friendship_status: friendshipStatus }, '[MATCHMAKING] Match found (filtered)');
 };
 
 
@@ -162,13 +191,13 @@ export const joinQueue = async (
 
     const user: User = {
         id: socketId,
-        user_id: userId || 'unknown',
-        username: profile?.username || 'Guest',
-        avatar: profile?.avatar || '/avatars/avatar1.webp',
-        gender: profile?.gender || 'unknown',
-        country_name: profile?.country_name || country_name || 'Unknown',
-        country: profile?.country || country || 'UN',
-        mode: mode || 'voice',
+        user_id: userId ?? 'unknown',
+        username: profile?.username ?? 'Anonymous',
+        avatar: profile?.avatar ?? '/avatars/avatar1.webp',
+        gender: profile?.gender ?? 'unknown',
+        country_name: profile?.country_name ?? country_name ?? 'Unknown',
+        country: profile?.country ?? country ?? 'UN',
+        mode: mode ?? 'voice',
         joined_at: Date.now(),
         state: 'FINDING',
         preferences,
@@ -190,6 +219,36 @@ export const joinQueue = async (
 
 export const leaveQueue = (socketId: string): void => {
     removeUserFromQueues(socketId);
+};
+
+/**
+ * Updates a user's profile information while they are still in the queue.
+ * This is crucial when a user joins the queue as 'unknown' and later identifies.
+ */
+export const updateUserInQueue = async (socketId: string, profile: UserProfile): Promise<void> => {
+    const user = voiceQueue.find(u => u.id === socketId);
+    if (user) {
+        user.user_id = profile.id;
+        user.username = profile.username;
+        user.avatar = profile.avatar;
+        user.gender = profile.gender;
+        user.country = profile.country;
+        user.country_name = profile.country_name;
+        logger.info({ socketId, user_id: profile.id, username: user.username }, '[MATCHMAKING] Updated user in queue after identification');
+    }
+
+    // Update buckets
+    voiceBuckets.forEach((bucket, country) => {
+        const u = bucket.find(entry => entry.id === socketId);
+        if (u) {
+            u.user_id = profile.id;
+            u.username = profile.username;
+            u.avatar = profile.avatar;
+            u.gender = profile.gender;
+            u.country = profile.country;
+            u.country_name = profile.country_name;
+        }
+    });
 };
 
 // ── Heartbeat ─────────────────────────────────────────────────────────────────

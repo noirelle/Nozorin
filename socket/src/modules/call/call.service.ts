@@ -68,11 +68,14 @@ export const callService = {
             if (userId) await cleanupSession(userId);
             if (partnerUserId) await cleanupSession(partnerUserId);
 
-            // Notify partner at their CURRENT socket (if they refreshed/reconnected)
-            const currentPartnerSocketId = partnerUserId ? userService.getSocketId(partnerUserId) : null;
-            const targetSocketId = currentPartnerSocketId || partnerId;
-            io.to(targetSocketId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
-            io.to(targetSocketId).emit(SocketEvents.USER_LEFT, { socketId });
+            // Notify partner via their user room to ensure all tabs/refreshed sockets receive it
+            if (partnerUserId) {
+                io.to(`user:${partnerUserId}`).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
+                io.to(`user:${partnerUserId}`).emit(SocketEvents.USER_LEFT, { socketId });
+            } else {
+                io.to(partnerId).emit(SocketEvents.CALL_ENDED, { by: socketId, reason });
+                io.to(partnerId).emit(SocketEvents.USER_LEFT, { socketId });
+            }
 
             // Record history if we have start time
             if (startTime) {
@@ -95,7 +98,33 @@ export const callService = {
         const userId = userService.getUserId(socketId);
 
         if (partnerId && userId) {
-            const partnerUserId = userService.getUserId(partnerId);
+            let partnerUserId = userService.getUserId(partnerId);
+
+            // Reconnection Fix 1: Robust partner ID recovery
+            // If the partner refreshed just before us, their socket→user mapping might be gone.
+            // We check our own reconnect entry (if it exists) or Redis room data to find who we were matched with.
+            if (!partnerUserId || partnerUserId === 'unknown') {
+                const existingEntry = reconnectingUsers.get(userId);
+                if (existingEntry && existingEntry.partner_user_id !== 'unknown') {
+                    partnerUserId = existingEntry.partner_user_id;
+                } else {
+                    const redis = getRedisClient();
+                    if (redis) {
+                        const roomDataStr = await redis.get(`call:room:${userId}`);
+                        if (roomDataStr) {
+                            try {
+                                const roomData = JSON.parse(roomDataStr);
+                                if (roomData.partner_user_id !== 'unknown') {
+                                    partnerUserId = roomData.partner_user_id;
+                                }
+                            } catch (e) {
+                                logger.error({ userId }, '[CALL] Failed to recover partner ID from Redis during disconnect');
+                            }
+                        }
+                    }
+                }
+            }
+
             const expiresAt = Date.now() + 30000;
             // Use the stable room_id generated at match time
             const stableRoomId = info.room_id || `match-${socketId}-${partnerId}`;
@@ -156,8 +185,13 @@ export const callService = {
             // from firing handleEndCall and destroying the reconnection data.
             // Keep the partner's entry so they can still send pings during the grace period.
             activeCalls.delete(socketId);
+            
+            if (partnerUserId) {
+                io.to(`user:${partnerUserId}`).emit(SocketEvents.PARTNER_RECONNECTING, { timeout_ms: 30000 });
+            } else {
+                io.to(partnerId).emit(SocketEvents.PARTNER_RECONNECTING, { timeout_ms: 30000 });
+            }
 
-            io.to(partnerId).emit(SocketEvents.PARTNER_RECONNECTING, { timeout_ms: 30000 });
             logger.info({ socketId, userId, partnerId }, '[CALL] Partner disconnected, starting grace period');
         } else if (partnerId) {
             // No chance to reconnect, end it and record
@@ -255,6 +289,13 @@ export const callService = {
             return true;
         }
         return false;
+    },
+
+    // New method for direct calls / matchmaking to set up active call state
+    setupActiveCall: (callerSocketId: string, responderSocketId: string, callerUserId: string, responderUserId: string, roomId: string) => {
+        const start_time = Date.now();
+        activeCalls.set(responderSocketId, { partner_id: callerSocketId, partner_user_id: callerUserId, start_time, last_seen: start_time, is_offerer: false, room_id: roomId });
+        activeCalls.set(callerSocketId, { partner_id: responderSocketId, partner_user_id: responderUserId, start_time, last_seen: start_time, is_offerer: true, room_id: roomId });
     },
 
     getActiveCall: async (userId: string) => {

@@ -132,7 +132,6 @@ export const VoiceGameRoom = () => {
     }, [clearCallState]);
 
     const handleIdentifySuccess = useCallback(() => {
-        console.log('[Room] Identification success received via listener');
     }, []);
 
     const handleFriendRequestReceived = useCallback((data: any) => {
@@ -164,7 +163,6 @@ export const VoiceGameRoom = () => {
         if (!token) return;
         const s = getSocketClient(token);
         if (s) {
-            console.log('[Room] Identifying socket...', s.id);
             s.emit(SocketEvents.USER_IDENTIFY, { token });
         }
     }, [token]);
@@ -182,7 +180,6 @@ export const VoiceGameRoom = () => {
         const handleAuthError = async (err: any) => {
             const isAuthError = !err || Object.keys(err).length === 0 || err?.message === 'Authentication error: Invalid token' || err?.message === 'jwt expired' || err?.message === 'Invalid or expired token';
             if (isAuthError) {
-                console.log('[Room] Auth error, refreshing token...');
                 const newToken = await refreshUser();
                 if (newToken) {
                     updateSocketAuth(newToken);
@@ -193,7 +190,6 @@ export const VoiceGameRoom = () => {
         };
 
         const handleTokenUpdated = () => {
-            console.log('[Room] Socket token updated successfully');
         };
 
         // If s is connected but not identified, we need to identify
@@ -203,7 +199,6 @@ export const VoiceGameRoom = () => {
 
         const onFocus = () => { 
             if (s?.connected && token && !isSocketIdentified()) {
-                console.log('[Room] Window focused, re-identifying socket...');
                 identifySocket(); 
             }
         };

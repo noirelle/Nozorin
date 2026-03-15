@@ -25,34 +25,27 @@ export function getSocketClient(token?: string | null): Socket | null {
         });
 
         _socket.on('connect', () => {
-            console.log('[Socket] Connected!', _socket?.id, 'Transport:', _socket?.io.engine.transport.name);
             
             // Log transport upgrades
             _socket?.io.engine.on('upgrade', (transport) => {
-                console.log('[Socket] Transport upgraded to:', transport.name);
             });
         });
 
         _socket.on(SocketEvents.IDENTIFY_SUCCESS, () => {
-            console.log('[Socket] Identification successful');
             last_identified_socket_id = _socket?.id || null;
         });
 
         _socket.on('disconnect', (reason) => {
             last_identified_socket_id = null;
-            console.warn('[Socket] Disconnected:', reason);
         });
 
         _socket.on('reconnect_attempt', (attempt) => {
-            console.log('[Socket] Reconnection attempt:', attempt);
         });
 
         _socket.on('reconnect', (attempt) => {
-            console.log('[Socket] Reconnected after', attempt, 'attempts');
         });
 
         _socket.on('connect_error', (error) => {
-            console.error('[Socket] Connection error:', error.message);
         });
 
         // ── Robustness Listeners ──────────────────────────────────────────────
@@ -60,7 +53,6 @@ export function getSocketClient(token?: string | null): Socket | null {
         // Handle tab visibility changes (e.g., coming back from another tab or sleep)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && _socket) {
-                console.log('[Socket] Tab visible, checking connection status...');
                 if (!_socket.connected && _socket.active) {
                     _socket.connect();
                 }
@@ -137,7 +129,6 @@ export async function waitForSocketConnection(timeout_ms = 10000): Promise<boole
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
             cleanup();
-            console.warn('[Socket] Connection/Identification timed out after', timeout_ms, 'ms');
             resolve(false);
         }, timeout_ms);
 
@@ -166,7 +157,6 @@ export async function waitForSocketConnection(timeout_ms = 10000): Promise<boole
 
         const on_error = (err: any) => {
             cleanup();
-            console.error('[Socket] Connection/Auth error:', err);
             resolve(false);
         };
 
