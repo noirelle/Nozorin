@@ -93,6 +93,8 @@ class UserService {
      */
     async getUserStatuses(userIds: string[]): Promise<Record<string, UserStatus>> {
         const results: Record<string, UserStatus> = {};
+        if (!userIds || userIds.length === 0) return results;
+
         const missingUserIds: string[] = [];
 
         const redis = getRedisClient();
