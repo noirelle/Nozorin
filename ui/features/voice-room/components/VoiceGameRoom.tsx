@@ -28,7 +28,7 @@ export const VoiceGameRoom = () => {
 
     const { token, ensureToken, user, isChecking, isChecked, refreshUser } = useUser();
     const { isVerifyingSession, initialReconnecting, initialCallData, verifyActiveCallSession } = useSession();
-    
+
     // 1. History first, as other hooks and socket listeners depend on it
     const { history, fetchHistory } = useHistory(token, user?.id, async () => null);
 
@@ -42,7 +42,7 @@ export const VoiceGameRoom = () => {
 
     // 3. Direct Call Hook can now safely use the media manager
     const { incomingCall, isCalling, error: callError, initiateCall, acceptCall: performAcceptCall, declineCall: performDeclineCall, cancelCall, clearCallState } = useDirectCall(voiceRoomData.initMediaManager);
-    
+
     const { friends, pendingRequests, sentRequests, sendRequest, acceptRequest, declineRequest, cancelRequest, removeFriend, fetchFriends, fetchPendingRequests, fetchSentRequests } = useFriends({
         onFriendOnline: (friend) => {
             setNotification({ ...friend, type: 'online' });
@@ -61,8 +61,7 @@ export const VoiceGameRoom = () => {
                     const data = JSON.parse(pending);
                     setDirectMatchData(data);
                     sessionStorage.removeItem('pendingMatch');
-                } catch (e) {
-                    console.error('[VoiceGameRoom] Failed to parse pending match data', e);
+                } catch (_e) {
                 }
             }
         }
@@ -72,7 +71,7 @@ export const VoiceGameRoom = () => {
 
     const initializeAppData = useCallback(async () => {
         if (!token || !user?.id || hasInitialized.current) return;
-        
+
         try {
             await Promise.all([
                 fetchHistory(),
@@ -81,8 +80,7 @@ export const VoiceGameRoom = () => {
                 fetchSentRequests()
             ]);
             hasInitialized.current = true;
-        } catch (error) {
-            console.error('[VoiceGameRoom] Failed to initialize app data:', error);
+        } catch (_error) {
         }
     }, [token, user?.id, fetchHistory, fetchFriends, fetchPendingRequests, fetchSentRequests]);
 
@@ -97,7 +95,6 @@ export const VoiceGameRoom = () => {
         if (result.success) {
             setNotification({ ...(profile || { id: targetId, username: 'User' }), type: 'sent', isActor: true });
         } else {
-            console.error(`Failed to send request: ${result.error}`);
         }
     }, [sendRequest]);
 

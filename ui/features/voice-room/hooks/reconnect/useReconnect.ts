@@ -50,8 +50,7 @@ export const useReconnect = ({
                 activeCallRef.current = activeCall;
                 onRestorePartnerRef.current?.(activeCall);
             },
-            onError: (error) => {
-                console.error('[useReconnect] ✗ Session check failed:', error);
+            onError: (_error) => {
                 setIsReconnecting(false);
             },
             onFinally: () => {
@@ -90,7 +89,6 @@ export const useReconnect = ({
                 if (ready) {
                     handleIdentified();
                 } else {
-                    console.error('[useReconnect] Socket failed to connect/identify after bootstrap');
                 }
             });
         }
@@ -105,14 +103,12 @@ export const useReconnect = ({
                 // Single 15-second failsafe timeout. If the server doesn't proactively send
                 // REJOIN_SUCCESS (via waitingForPartner resolution) by then, we give up.
                 rejoinRetryTimerRef.current = setTimeout(() => {
-                    console.error(`[useReconnect] Failsafe timeout reached after 15s waiting for partner. Abandoning reconnection.`);
                     setIsReconnecting(false);
                     rejoinRetryRef.current = 0;
                 }, 15000);
             }
         } else {
             // Permanent failure — clear reconnecting state
-            console.error(`[useReconnect] Reconnection failed after ${elapsed}ms — reason: ${data.reason}`);
             setIsReconnecting(false);
             rejoinRetryRef.current = 0;
         }

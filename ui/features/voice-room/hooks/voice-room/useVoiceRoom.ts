@@ -71,7 +71,6 @@ export const useVoiceRoom = ({
                 if (isCallActive) setPartnerSignalStrength('reconnecting');
             }
             else if (state === 'failed') {
-                console.warn('[useVoiceRoom] WebRTC connection failed');
                 if (isCallActive) {
                     setPartnerSignalStrength('reconnecting');
                     setTimeout(() => {
