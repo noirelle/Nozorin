@@ -127,7 +127,7 @@ export const DesktopVoiceFeed = ({
                             </>
                         ) : (
                             <span className="text-[10px] font-bold text-zinc-500 tabular-nums tracking-widest uppercase truncate max-w-[150px]">
-                                {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'Reconnecting' : 'Linking') : isSearching ? actions.matching.status : 'Ready'}
+                                {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? callDuration : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (actions.matching.status === 'RECONNECTING' || callRoomState.partner_signal_strength === 'reconnecting' ? 'Reconnecting' : actions.isDirectCall ? 'Voice Call' : 'Linking') : isSearching ? actions.matching.status : 'Ready'}
                             </span>
                         )}
                     </div>
@@ -177,7 +177,9 @@ export const DesktopVoiceFeed = ({
                                 <div className="w-full h-full rounded-full bg-zinc-50/50 flex items-center justify-center animate-[pulse_2s_ease-in-out_infinite]">
                                     <div className="flex flex-col items-center">
                                         <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce mb-1" />
-                                        <span className="text-[8px] font-black text-pink-400 uppercase tracking-tighter">Waiting</span>
+                                        <span className="text-[8px] font-black text-pink-400 uppercase tracking-tighter">
+                                            {actions.matching.status === 'RECONNECTING' || isReconnecting || callRoomState.partner_signal_strength === 'reconnecting' ? 'Waiting' : (actions.isDirectCall ? 'Calling' : 'Linking')}
+                                        </span>
                                     </div>
                                 </div>
                             ) : (
@@ -223,12 +225,12 @@ export const DesktopVoiceFeed = ({
                     <div className="mt-4 flex flex-col items-center w-full text-center">
                         <h4 className={`text-base font-bold ${isConnected || isReconnecting || actions.matching.status === 'RECONNECTING' || callRoomState.permission_denied ? 'text-zinc-900' : 'text-zinc-500'} transition-colors duration-500`}>
                             {isConnected ? (callRoomState.partner_username || 'Stranger') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' ? (
-                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : `Linking Session`
+                                actions.matching.reconnectCountdown !== null ? `Partner Reconnecting` : actions.isDirectCall ? `Direct Voice Call` : `Linking Session`
                             ) : !isSocketConnected ? 'Offline' : (callRoomState.permission_denied && isInAppBrowser()) ? `Open in ${getInAppBrowserName() || 'Browser'}` : callRoomState.permission_denied ? 'Mic Permission Denied' : isSearching ? 'In Position Queue' : 'Start a Match'}
                         </h4>
                         <p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-[0.2em] mt-1">
-                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? 'In Call' : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
-                                actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : `Waiting for Connection...`
+                            {isConnected && callRoomState.partner_signal_strength !== 'reconnecting' ? (actions.isDirectCall ? 'Voice Session' : 'In Call') : isReconnecting || actions.matching.status === 'RECONNECTING' || actions.matching.status === 'MATCHED' || callRoomState.partner_signal_strength === 'reconnecting' ? (
+                                actions.matching.reconnectCountdown !== null ? `Waiting for Connection • ${actions.matching.reconnectCountdown}s` : (actions.matching.status === 'MATCHED' ? (actions.isDirectCall ? `Voice Call...` : `Linking Session...`) : `Waiting for Connection...`)
                             ) : isSearching ? (
                                 actions.matching.position !== null ?
                                     `Queue Position: ${actions.matching.position} • Possible Match Time: ${Math.floor((actions.matching.position * 2) / 60)}:${((actions.matching.position * 2) % 60).toString().padStart(2, '0')}`
@@ -275,7 +277,7 @@ export const DesktopVoiceFeed = ({
                                 </button>
                             )}
 
-                            {isConnected && (
+                            {isConnected && !actions.isDirectCall && (
                                 <button
                                     onClick={handleNextWrapper}
                                     className="px-8 py-2.5 bg-pink-50 hover:bg-pink-100 text-pink-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all active:scale-95 border border-pink-100 shadow-sm"
