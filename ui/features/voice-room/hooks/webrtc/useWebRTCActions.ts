@@ -170,10 +170,12 @@ export const useWebRTCActions = ({
 
     const createOffer = useCallback(async (partnerId: string, options?: RTCOfferOptions) => {
         if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing outgoing offer for partner:', partnerId);
             pendingCreateOfferRef.current = { partnerId, options };
             return;
         }
 
+        console.log('[WebRTC] Creating offer for partner:', partnerId);
         const pc = peerConnectionRef.current || createPeerConnection(partnerId);
         if (!pc) {
             return;
@@ -189,6 +191,7 @@ export const useWebRTCActions = ({
 
     const handleOffer = useCallback(async (sdp: RTCSessionDescriptionInit, callerId: string) => {
         if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing incoming offer from:', callerId);
             pendingOfferRef.current = { sdp, callerId };
             return;
         }
@@ -213,6 +216,7 @@ export const useWebRTCActions = ({
 
     const handleAnswer = useCallback(async (sdp: RTCSessionDescriptionInit) => {
         if (!is_media_ready) {
+            console.log('[WebRTC] Media not ready, queuing incoming answer');
             pendingAnswerRef.current = sdp;
             return;
         }
@@ -253,11 +257,13 @@ export const useWebRTCActions = ({
         if (!is_media_ready) return;
 
         const processQueues = async () => {
+            console.log('[WebRTC] Media ready, processing signal queues...');
             // Processing should be sequential to avoid race conditions
 
             // 1. Process Pending Outgoing Offer
             if (pendingCreateOfferRef.current) {
                 const { partnerId, options } = pendingCreateOfferRef.current;
+                console.log('[WebRTC] Processing queued outgoing offer for:', partnerId);
                 pendingCreateOfferRef.current = null;
                 await createOffer(partnerId, options);
             }
@@ -265,6 +271,7 @@ export const useWebRTCActions = ({
             // 2. Process Incoming Offer
             if (pendingOfferRef.current) {
                 const { sdp, callerId } = pendingOfferRef.current;
+                console.log('[WebRTC] Processing queued incoming offer from:', callerId);
                 pendingOfferRef.current = null;
                 await handleOffer(sdp, callerId);
             }
@@ -272,6 +279,7 @@ export const useWebRTCActions = ({
             // 3. Process Answer
             if (pendingAnswerRef.current) {
                 const sdp = pendingAnswerRef.current;
+                console.log('[WebRTC] Processing queued answer');
                 pendingAnswerRef.current = null;
                 await handleAnswer(sdp);
             }

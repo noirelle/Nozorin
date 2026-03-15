@@ -217,6 +217,7 @@ export const useMatchingActions = ({
     // ── Stable handler builders used by listeners ──────────────────────────────
 
     const buildHandleMatchFound = useCallback(() => (data: MatchFoundPayload) => {
+        console.log('[Matching] Match found! Room:', data.room_id, 'Role:', data.role);
         clearReconnectTimer();
         setStatus('MATCHED');
         setPosition(null);
@@ -251,12 +252,14 @@ export const useMatchingActions = ({
     }, [setStatus, setReconnectCountdown, reconnectTimerRef, clearReconnectTimer]);
 
     const buildHandlePartnerReconnected = useCallback(() => (data: PartnerReconnectedPayload) => {
+        console.log('[Matching] Partner reconnected via socket:', data.new_socket_id, 'Your Role:', data.your_role);
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onPartnerReconnected?.(data);
     }, [clearReconnectTimer, setStatus]);
 
     const buildHandleRejoinSuccess = useCallback(() => (data: RejoinSuccessPayload) => {
+        console.log('[Matching] Rejoin success, partner:', data.partner_id, 'Role:', data.role);
         clearReconnectTimer();
         setStatus('MATCHED');
         callbacksRef.current.onRejoinSuccess?.(data);
