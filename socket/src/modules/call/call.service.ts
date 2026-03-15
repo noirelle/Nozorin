@@ -95,7 +95,33 @@ export const callService = {
         const userId = userService.getUserId(socketId);
 
         if (partnerId && userId) {
-            const partnerUserId = userService.getUserId(partnerId);
+            let partnerUserId = userService.getUserId(partnerId);
+
+            // Reconnection Fix 1: Robust partner ID recovery
+            // If the partner refreshed just before us, their socket→user mapping might be gone.
+            // We check our own reconnect entry (if it exists) or Redis room data to find who we were matched with.
+            if (!partnerUserId || partnerUserId === 'unknown') {
+                const existingEntry = reconnectingUsers.get(userId);
+                if (existingEntry && existingEntry.partner_user_id !== 'unknown') {
+                    partnerUserId = existingEntry.partner_user_id;
+                } else {
+                    const redis = getRedisClient();
+                    if (redis) {
+                        const roomDataStr = await redis.get(`call:room:${userId}`);
+                        if (roomDataStr) {
+                            try {
+                                const roomData = JSON.parse(roomDataStr);
+                                if (roomData.partner_user_id !== 'unknown') {
+                                    partnerUserId = roomData.partner_user_id;
+                                }
+                            } catch (e) {
+                                logger.error({ userId }, '[CALL] Failed to recover partner ID from Redis during disconnect');
+                            }
+                        }
+                    }
+                }
+            }
+
             const expiresAt = Date.now() + 30000;
             // Use the stable room_id generated at match time
             const stableRoomId = info.room_id || `match-${socketId}-${partnerId}`;

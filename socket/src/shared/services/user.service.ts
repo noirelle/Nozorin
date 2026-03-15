@@ -10,7 +10,7 @@ import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
 
-const STATUS_TTL = 120; // 2 minutes for status if not updated (shorter TTL to prevent stale online status)
+const STATUS_TTL = 60; // 1 minute for status if not updated (real-time approach)
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
@@ -44,7 +44,9 @@ export const userService = {
 
     getSocketId(userId: string): string | null {
         const sockets = userToSockets.get(userId);
-        return (sockets && sockets.size > 0) ? Array.from(sockets)[0] : null;
+        if (!sockets || sockets.size === 0) return null;
+        // Return the LAST added socket (most recent) to avoid stale references during fast refresh
+        return Array.from(sockets).slice(-1)[0];
     },
 
     /** Returns all socket IDs associated with a user */

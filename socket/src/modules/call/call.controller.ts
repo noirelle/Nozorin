@@ -20,15 +20,31 @@ export const register = (io: Server, socket: Socket): void => {
             return;
         }
 
-        // Check if our partner already successfully reconstructed the call for us concurrently.
-        // If we are already in activeCalls, we don't need to rebuild from rejoinInfo.
-        const alreadyActive = activeCalls.get(socket.id);
-        if (alreadyActive) {
-            logger.info({ userId, socketId: socket.id }, '[CALL] User is already in activeCalls. Partner likely restored the session concurrently.');
-            // We can optionally emit REJOIN_SUCCESS to ensure they have the latest data,
-            // or we can just return because PARTNER_RECONNECTED was already sent to them.
-            // Let's just return to avoid tearing down the connection they are building.
-            return;
+        // Reconnection Fix 2: Handle concurrent rejoin
+        // If our partner already restored the session for us, we MUST still emit REJOIN_SUCCESS
+        // so the client can transition out of the RECONNECTING state.
+        const activeCall = activeCalls.get(socket.id);
+        if (activeCall) {
+            const partnerUserId = userService.getUserId(activeCall.partner_id);
+            if (partnerUserId) {
+                const partnerProfile = await userService.getUserProfile(partnerUserId);
+                const friendshipStatus = await userService.getFriendshipStatus(userId, partnerUserId);
+                
+                socket.emit(SocketEvents.REJOIN_SUCCESS, {
+                    partner_id: activeCall.partner_id,
+                    partner_user_id: partnerUserId,
+                    partner_username: partnerProfile?.username,
+                    partner_avatar: partnerProfile?.avatar,
+                    partner_gender: partnerProfile?.gender,
+                    partner_country_name: partnerProfile?.country_name,
+                    partner_country: partnerProfile?.country,
+                    friendship_status: friendshipStatus,
+                    room_id: activeCall.room_id,
+                    role: activeCall.is_offerer ? 'offerer' : 'answerer'
+                });
+                logger.info({ userId, socketId: socket.id }, '[CALL] Rejoin success (concurrently restored by partner)');
+                return;
+            }
         }
 
         // Check in-memory first, then fall back to Redis
@@ -161,17 +177,22 @@ export const register = (io: Server, socket: Socket): void => {
 
         const userProfile = await userService.getUserProfile(userId);
 
-        io.to(currentPartnerSocketId!).emit(SocketEvents.PARTNER_RECONNECTED, {
-            new_socket_id: socket.id,
-            new_user_id: userId,
-            partner_username: userProfile?.username,
-            partner_avatar: userProfile?.avatar,
-            partner_gender: userProfile?.gender,
-            partner_country_name: userProfile?.country_name,
-            partner_country: userProfile?.country,
-            friendship_status: reverseStatus,
-            your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
-        });
+        // Reconnection Fix 3: Multi-socket broadcast
+        // Notify ALL active sockets of the partner to ensure reliability during fast refresh
+        const partnerSockets = userService.getAllSockets(rejoinInfo.partner_user_id);
+        for (const pid of partnerSockets) {
+            io.to(pid).emit(SocketEvents.PARTNER_RECONNECTED, {
+                new_socket_id: socket.id,
+                new_user_id: userId,
+                partner_username: userProfile?.username,
+                partner_avatar: userProfile?.avatar,
+                partner_gender: userProfile?.gender,
+                partner_country_name: userProfile?.country_name,
+                partner_country: userProfile?.country,
+                friendship_status: reverseStatus,
+                your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
+            });
+        }
 
         logger.info({ socketId: socket.id, user_id: userId, partner_id: currentPartnerSocketId }, '[CALL] Call rejoined successfully');
 

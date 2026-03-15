@@ -45,7 +45,6 @@ app.get('/health', (_req, res) => {
 app.use('/internal', internalRouter);
 
 bootstrapSocket(io);
-presenceService.startPresenceHeartbeat(io);
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 

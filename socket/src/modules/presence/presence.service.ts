@@ -17,19 +17,6 @@ export const presenceService = {
         }
     },
 
-    /** Periodically refresh status for all currently connected users */
-    startPresenceHeartbeat(io: Server): void {
-        setInterval(async () => {
-            const activeUserIds = userService.getActiveUserIds();
-            if (activeUserIds.length === 0) return;
-
-            logger.debug({ count: activeUserIds.length }, '[PRESENCE] Refreshing status heartbeat');
-            for (const userId of activeUserIds) {
-                // This keeps the Redis key alive (TTL 2m, heartbeat 1m)
-                await userService.updateUserStatus(userId, true);
-            }
-        }, 60000); // Every 60 seconds
-    },
 
     handleConnection(io: Server, socket: Socket): void {
         presenceStore.add(socket.id);
@@ -78,5 +65,13 @@ export const register = (io: Server, socket: Socket): void => {
         const { user_ids } = data;
         if (!user_ids || !Array.isArray(user_ids)) return;
         user_ids.forEach(uid => { if (uid) socket.leave(`status:${uid}`); });
+    });
+
+    // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
+    socket.conn.on('heartbeat', async () => {
+        const userId = userService.getUserId(socket.id);
+        if (userId) {
+            await userService.updateUserStatus(userId, true);
+        }
     });
 };
