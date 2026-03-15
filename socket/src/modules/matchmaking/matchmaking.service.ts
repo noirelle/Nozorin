@@ -17,10 +17,40 @@ let heartbeatSetup = false;
 // ── Matching logic ────────────────────────────────────────────────────────────
 
 const tryMatch = async (io: Server, queued: User): Promise<void> => {
-    const idx = voiceQueue.findIndex(u => u.id !== queued.id);
-    if (idx === -1) return;
+    let partner: User | undefined;
+    
+    // Preference: Country Filter
+    const preferredCountry = queued.preferred_country;
+    if (preferredCountry && preferredCountry !== 'GLOBAL') {
+        const bucket = voiceBuckets.get(preferredCountry);
+        if (bucket) {
+            const partnerIdx = bucket.findIndex(u => u.id !== queued.id);
+            if (partnerIdx !== -1) {
+                partner = bucket.splice(partnerIdx, 1)[0];
+                // Sync with main queue
+                const mainIdx = voiceQueue.findIndex(u => u.id === partner!.id);
+                if (mainIdx !== -1) voiceQueue.splice(mainIdx, 1);
+            }
+        }
+    }
 
-    const partner = voiceQueue.splice(idx, 1)[0];
+    // Fallback: Global Queue
+    if (!partner) {
+        const idx = voiceQueue.findIndex(u => u.id !== queued.id);
+        if (idx === -1) return;
+        partner = voiceQueue.splice(idx, 1)[0];
+        // Sync with buckets
+        if (partner.country) {
+            const bucket = voiceBuckets.get(partner.country);
+            if (bucket) {
+                const bIdx = bucket.findIndex(u => u.id === partner!.id);
+                if (bIdx !== -1) bucket.splice(bIdx, 1);
+            }
+        }
+    }
+
+    if (!partner) return;
+
     removeUserFromQueues(queued.id);
 
     // Fetch friendship status if both have user_id
@@ -81,7 +111,7 @@ const tryMatch = async (io: Server, queued: User): Promise<void> => {
     });
 
     statsService.incrementMatchesToday();
-    logger.info({ room_id, userA: queued.id, userB: partner.id, friendship_status: friendshipStatus }, '[MATCHMAKING] Match found');
+    logger.info({ room_id, userA: queued.id, userB: partner.id, friendship_status: friendshipStatus }, '[MATCHMAKING] Match found (filtered)');
 };
 
 

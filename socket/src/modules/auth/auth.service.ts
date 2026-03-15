@@ -19,6 +19,7 @@ export const authService = {
         await authService.cleanupOtherSessions(io, userId, socket.id);
 
         userService.setUserForSocket(socket.id, userId);
+        userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
 
         // SYNC: if user is already in queue, update their profile there
@@ -29,7 +30,22 @@ export const authService = {
 
         logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
         await presenceService.broadcastUserStatus(io, userId);
-        socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
+
+        // Proactive Session Push
+        const { callService } = require('../call/call.service'); // circular dep avoidance
+        const activeCall = await callService.getActiveCall(userId);
+        if (activeCall) {
+            const partnerProfile = await userService.getUserProfile(activeCall.partner_user_id);
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { 
+                user_id: userId,
+                active_session: {
+                    ...activeCall,
+                    partner_profile: partnerProfile
+                }
+            });
+        } else {
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
+        }
         return userId;
     },
 
