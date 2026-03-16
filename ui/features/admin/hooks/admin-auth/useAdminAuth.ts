@@ -6,7 +6,8 @@ import { useAdminAuthActions } from './useAdminAuthActions';
 import { useAdminAuthEffects } from './useAdminAuthEffects';
 
 export const useAdminAuth = () => {
-    const { isAdminAuthenticated, isAdminChecked } = useAdminStore();
+    const isAdminAuthenticated = useAdminStore(state => state.isAdminAuthenticated);
+    const isAdminChecked = useAdminStore(state => state.isAdminChecked);
 
     // 1. State
     const state = useAdminAuthState();
@@ -17,10 +18,7 @@ export const useAdminAuth = () => {
         setError: state.setError,
     });
 
-    // 3. Effects
-    useAdminAuthEffects({
-        refresh: actions.refresh,
-    });
+    // 3. Effects (Moved to AdminGuard)
 
     return {
         // Methods

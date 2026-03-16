@@ -11,7 +11,8 @@ interface UseAdminAuthActionsProps {
 }
 
 export const useAdminAuthActions = ({ setIsLoading, setError }: UseAdminAuthActionsProps) => {
-    const { setAdminToken, adminLogout } = useAdminStore();
+    const setAdminToken = useAdminStore(state => state.setAdminToken);
+    const adminLogout = useAdminStore(state => state.adminLogout);
 
     const login = useCallback(async (password: string) => {
         setIsLoading(true);

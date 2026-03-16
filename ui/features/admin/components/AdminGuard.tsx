@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAdminAuth } from '../hooks/admin-auth/useAdminAuth';
+import { useAdminAuthEffects } from '../hooks/admin-auth/useAdminAuthEffects';
 import { GlobalLoader } from '@/components/GlobalLoader';
 import { AdminDesktopLayout } from './AdminDesktopLayout';
 import { AdminMobileLayout } from './AdminMobileLayout';
@@ -13,8 +14,11 @@ interface AdminGuardProps {
 
 export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
     const [password, setPassword] = useState('');
-    const { login, logout, isAdminAuthenticated, isAdminChecked, isLoading, error } = useAdminAuth();
+    const { login, logout, refresh, isAdminAuthenticated, isAdminChecked, isLoading, error } = useAdminAuth();
     const isMobile = useIsMobile();
+
+    // Singleton effects for admin lifecycle
+    useAdminAuthEffects();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

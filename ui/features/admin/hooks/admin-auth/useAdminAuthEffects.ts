@@ -1,53 +1,18 @@
-'use client';
-
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAdminStore } from '@/stores/useAdminStore';
 
-interface UseAdminAuthEffectsProps {
-    refresh: () => Promise<boolean>;
-}
+export const useAdminAuthEffects = () => {
+    const adminToken = useAdminStore(state => state.adminToken);
+    const isAdminAuthenticated = useAdminStore(state => state.isAdminAuthenticated);
+    const isAdminChecked = useAdminStore(state => state.isAdminChecked);
+    const setAdminChecked = useAdminStore(state => state.setAdminChecked);
 
-export const useAdminAuthEffects = ({ refresh }: UseAdminAuthEffectsProps) => {
-    const {
-        adminToken,
-        isAdminAuthenticated,
-        isAdminChecked,
-        setAdminChecked
-    } = useAdminStore();
-
-    const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const initialCheckRef = useRef(false);
-
-    // 1. Initial session restoration
+    // 1. Initial mounting check
     useEffect(() => {
-        if (!isAdminChecked && !initialCheckRef.current) {
-            initialCheckRef.current = true;
-            refresh().finally(() => {
-                setAdminChecked(true);
-            });
+        if (!isAdminChecked) {
+            setAdminChecked(true);
         }
-    }, [isAdminChecked, refresh, setAdminChecked]);
+    }, [isAdminChecked, setAdminChecked]);
 
-    // 2. Automatic token refresh logic
-    useEffect(() => {
-        if (isAdminAuthenticated && adminToken) {
-            // Refresh every 14 minutes (token expires in 15m)
-            const REFRESH_INTERVAL = 14 * 60 * 1000;
-
-            if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-
-            refreshTimerRef.current = setInterval(() => {
-                refresh();
-            }, REFRESH_INTERVAL);
-        } else {
-            if (refreshTimerRef.current) {
-                clearInterval(refreshTimerRef.current);
-                refreshTimerRef.current = null;
-            }
-        }
-
-        return () => {
-            if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-        };
-    }, [isAdminAuthenticated, adminToken, refresh]);
+    // 2. Automatic token refresh logic is now handled reactively in apiRequest interceptors
 };

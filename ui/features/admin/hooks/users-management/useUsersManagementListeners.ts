@@ -10,7 +10,7 @@ interface UseUsersManagementListenersProps {
 }
 
 export const useUsersManagementListeners = ({ setUsers }: UseUsersManagementListenersProps) => {
-    const { adminToken } = useAdminStore();
+    const adminToken = useAdminStore(state => state.adminToken);
 
     // 1. Join Admin Room on connection
     useEffect(() => {

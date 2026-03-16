@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { admin } from '@/lib/api';
 import { UseUsersManagementStateReturn } from '../types';
 
@@ -52,8 +52,16 @@ export const useUsersManagementActions = (state: UseUsersManagementStateReturn) 
         }
     }, [page, limit, debouncedSearch, genderFilter, statusFilter, activeSinceFilter, setIsLoading, setUsers, setTotal]);
 
+    const hasFetched = useRef(false);
+
     // 3. Trigger fetch on dependency changes
     useEffect(() => {
+        if (!hasFetched.current) {
+            hasFetched.current = true;
+            fetchUsers();
+            return;
+        }
+
         fetchUsers();
     }, [fetchUsers]);
 

@@ -16,10 +16,12 @@ import {
 
 export const AdminPanel: React.FC = () => {
     const [stats, setStats] = useState<AdminStats | null>(null);
-    const { isAdminAuthenticated } = useAdminAuth();
+    const isAdminAuthenticated = useAdminAuth().isAdminAuthenticated;
+    const hasFetched = React.useRef(false);
 
     useEffect(() => {
-        if (isAdminAuthenticated) {
+        if (isAdminAuthenticated && !hasFetched.current) {
+            hasFetched.current = true;
             fetchStats();
         }
     }, [isAdminAuthenticated]);
