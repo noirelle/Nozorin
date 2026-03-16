@@ -192,7 +192,12 @@ export const adminController = {
                 historyCount: Number(rawResults.raw[index].historyCount) || 0,
                 last_active_at: Number(user.last_active_at),
                 is_online: onlineStatuses[user.id] ?? false
-            }));
+            })).sort((a, b) => {
+                if (a.is_online === b.is_online) {
+                    return b.last_active_at - a.last_active_at;
+                }
+                return a.is_online ? -1 : 1;
+            });
 
             return res.status(200).json(successResponse({
                 users: usersWithStats,
