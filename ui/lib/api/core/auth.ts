@@ -76,6 +76,11 @@ export const handleAuthError = (status?: number, isAdmin: boolean = false) => {
         console.warn(`[API] ${isAdmin ? 'Admin ' : ''}Auth error (${status}), redirecting to login`);
         if (isAdmin) {
             useAdminStore.getState().adminLogout();
+            
+            // For admin, ensure hard redirect to clear state and URL
+            if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin-panel')) {
+                window.location.href = '/admin-panel';
+            }
         } else {
             useAuthStore.getState().logout();
         }

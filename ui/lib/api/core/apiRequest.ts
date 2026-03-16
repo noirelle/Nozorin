@@ -81,8 +81,11 @@ export async function apiRequest<T>(
             throw lastError || new Error('Fetch failed completely.');
         }
 
-        // Interceptor for 401 Unauthorized - Attempt Refresh
-        if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
+        // Interceptor for 401/403 - Attempt Refresh
+        const isAdminRequest = endpoint.includes('/admin/');
+        const isAuthError = response.status === 401 || (isAdminRequest && response.status === 403);
+
+        if (isAuthError && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
             try {
                 const isAdminRequest = endpoint.includes('/admin/');
                 const refreshResult = await (isAdminRequest ? handleAdminTokenRefresh() : handleTokenRefresh());

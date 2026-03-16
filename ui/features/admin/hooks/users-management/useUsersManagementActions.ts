@@ -22,12 +22,15 @@ export const useUsersManagementActions = (state: UseUsersManagementStateReturn) 
 
     // 1. Debounce Search logic
     useEffect(() => {
+        // Skip if searchTerm hasn't changed from debouncedSearch (prevents double fetch on mount)
+        if (searchTerm === debouncedSearch) return;
+
         const timer = setTimeout(() => {
             setDebouncedSearch(searchTerm);
             setPage(1);
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchTerm, setDebouncedSearch, setPage]);
+    }, [searchTerm, debouncedSearch, setDebouncedSearch, setPage]);
 
     // 2. Fetch Users logic
     const fetchUsers = useCallback(async () => {
@@ -52,16 +55,8 @@ export const useUsersManagementActions = (state: UseUsersManagementStateReturn) 
         }
     }, [page, limit, debouncedSearch, genderFilter, statusFilter, activeSinceFilter, setIsLoading, setUsers, setTotal]);
 
-    const hasFetched = useRef(false);
-
     // 3. Trigger fetch on dependency changes
     useEffect(() => {
-        if (!hasFetched.current) {
-            hasFetched.current = true;
-            fetchUsers();
-            return;
-        }
-
         fetchUsers();
     }, [fetchUsers]);
 
