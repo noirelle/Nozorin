@@ -69,8 +69,13 @@ export const useUsersManagementListeners = ({ setUsers }: UseUsersManagementList
                 is_online: data.is_online
             };
 
-            // Re-sort: Online users first (by last_active_at DESC)
-            return updatedUsers.sort((a, b) => b.last_active_at - a.last_active_at);
+            // Re-sort: Online users first, then by last_active_at DESC
+            return updatedUsers.sort((a, b) => {
+                if (a.is_online === b.is_online) {
+                    return b.last_active_at - a.last_active_at;
+                }
+                return a.is_online ? -1 : 1;
+            });
         });
     }, [setUsers]);
 
