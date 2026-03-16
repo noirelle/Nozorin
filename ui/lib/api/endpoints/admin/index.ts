@@ -24,5 +24,8 @@ export const admin = {
             }
         });
         return api.get<UsersListResponse>(`/api/admin/users?${query.toString()}`, { headers });
-    }
+    },
+
+    getUserDetails: (userId: string, headers?: HeadersInit) =>
+        api.get<any>(`/api/admin/users/${userId}`, { headers })
 };

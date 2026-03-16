@@ -3,6 +3,8 @@ import { generateUserToken, generateRefreshToken, verifyRefreshToken } from '../
 import { successResponse, errorResponse } from '../../core/utils/response.util';
 import { AppDataSource } from '../../core/config/database.config';
 import { User } from '../user/user.entity';
+import { CallHistory } from '../session/history.entity';
+import { Friend } from '../friend/friend.entity';
 import { getRedisClient } from '../../core/config/redis.config';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD;
@@ -208,6 +210,61 @@ export const adminController = {
 
         } catch (error) {
             console.error('[ADMIN] List users error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
+    },
+
+    async getUserDetails(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+
+            const user = await AppDataSource.getRepository(User).findOneBy({ id: userId });
+            if (!user) {
+                return res.status(404).json(errorResponse('User not found'));
+            }
+
+            // Fetch recent match history (limit 10)
+            const [history, historyCount] = await AppDataSource.getRepository(CallHistory).findAndCount({
+                where: { user_id: userId },
+                order: { created_at: 'DESC' },
+                take: 10
+            });
+
+            // Fetch friends (limit 10)
+            const [friends, friendCount] = await AppDataSource.getRepository(Friend).findAndCount({
+                where: { user_id: userId },
+                order: { created_at: 'DESC' },
+                take: 10
+            });
+
+            // Get real-time status
+            const redis = getRedisClient();
+            let isOnline = false;
+            if (redis) {
+                const statusJson = await redis.get(`user:status:${userId}`);
+                if (statusJson) {
+                    try {
+                        const status = JSON.parse(statusJson);
+                        isOnline = !!status.is_online;
+                    } catch (e) {}
+                }
+            }
+
+            const userDetails = {
+                ...user,
+                last_active_at: Number(user.last_active_at),
+                created_at: Number(user.created_at),
+                is_online: isOnline,
+                history: history.map(h => ({ ...h, created_at: Number(h.created_at) })),
+                friends: friends.map(f => ({ ...f, created_at: Number(f.created_at) })),
+                historyCount,
+                friendCount
+            };
+
+            return res.status(200).json(successResponse(userDetails, 'User details fetched successfully'));
+
+        } catch (error) {
+            console.error('[ADMIN] Get user details error:', error);
             return res.status(500).json(errorResponse('Internal server error', error));
         }
     }

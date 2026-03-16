@@ -27,6 +27,8 @@ export interface UsersManagementState {
     activeSinceFilter: string;
     isFilterModalOpen: boolean;
     debouncedSearch: string;
+    selectedUserId: string | null;
+    isDetailModalOpen: boolean;
 }
 
 export interface UseUsersManagementStateReturn extends UsersManagementState {
@@ -40,4 +42,6 @@ export interface UseUsersManagementStateReturn extends UsersManagementState {
     setActiveSinceFilter: Dispatch<SetStateAction<string>>;
     setIsFilterModalOpen: Dispatch<SetStateAction<boolean>>;
     setDebouncedSearch: Dispatch<SetStateAction<string>>;
+    setSelectedUserId: Dispatch<SetStateAction<string | null>>;
+    setIsDetailModalOpen: Dispatch<SetStateAction<boolean>>;
 }

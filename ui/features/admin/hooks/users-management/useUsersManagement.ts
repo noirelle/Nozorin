@@ -30,6 +30,8 @@ export const useUsersManagement = () => {
         statusFilter: state.statusFilter,
         activeSinceFilter: state.activeSinceFilter,
         isFilterModalOpen: state.isFilterModalOpen,
+        selectedUserId: state.selectedUserId,
+        isDetailModalOpen: state.isDetailModalOpen,
 
         // Setter Actions
         setPage: state.setPage,
@@ -38,6 +40,8 @@ export const useUsersManagement = () => {
         setStatusFilter: state.setStatusFilter,
         setActiveSinceFilter: state.setActiveSinceFilter,
         setIsFilterModalOpen: state.setIsFilterModalOpen,
+        setSelectedUserId: state.setSelectedUserId,
+        setIsDetailModalOpen: state.setIsDetailModalOpen,
 
         // Business Actions
         fetchUsers: actions.fetchUsers,

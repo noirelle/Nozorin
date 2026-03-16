@@ -25,6 +25,7 @@ import ReactCountryFlag from 'react-country-flag';
 import { FilterModal } from './FilterModal';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useUsersManagement } from '../hooks/users-management/useUsersManagement';
+import { UserDetailModal } from './UserDetailModal';
 
 const formatRelativeTime = (timestamp: number) => {
     const diff = Date.now() - timestamp;
@@ -57,8 +58,17 @@ export const UsersManagement: React.FC = () => {
         setStatusFilter,
         setActiveSinceFilter,
         setIsFilterModalOpen,
-        totalPages
+        totalPages,
+        selectedUserId,
+        setSelectedUserId,
+        isDetailModalOpen,
+        setIsDetailModalOpen,
     } = useUsersManagement();
+
+    const handleUserClick = (userId: string) => {
+        setSelectedUserId(userId);
+        setIsDetailModalOpen(true);
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -149,7 +159,11 @@ export const UsersManagement: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : users.map((user) => (
-                                <tr key={user.id} className="hover:bg-zinc-50/50 transition-colors group">
+                                <tr 
+                                    key={user.id} 
+                                    onClick={() => handleUserClick(user.id)}
+                                    className="hover:bg-zinc-50/50 transition-colors group cursor-pointer"
+                                >
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -321,6 +335,12 @@ export const UsersManagement: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <UserDetailModal 
+                userId={selectedUserId}
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+            />
         </div>
     );
 };

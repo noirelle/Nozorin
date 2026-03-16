@@ -12,5 +12,6 @@ router.post('/logout', adminController.logout);
 // Protected Admin Routes
 router.get('/get-status', authenticateToken, isAdmin, adminController.getStats);
 router.get('/users', authenticateToken, isAdmin, adminController.listUsers);
+router.get('/users/:userId', authenticateToken, isAdmin, adminController.getUserDetails);
 
 export default router;
