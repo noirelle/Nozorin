@@ -164,7 +164,7 @@ export const UsersManagement: React.FC = () => {
                                             <div>
                                                 <div className="text-sm font-bold text-zinc-900">{user.username}</div>
                                                 <div className="text-[10px] text-zinc-400 font-medium">
-                                                    {user.id.slice(0, 8)} • Last seen {formatRelativeTime(user.last_active_at)}
+                                                    {user.id.slice(0, 8)} {!user.is_online && `• Last seen ${formatRelativeTime(user.last_active_at)}`}
                                                 </div>
                                             </div>
                                         </div>
