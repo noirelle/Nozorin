@@ -20,6 +20,7 @@ interface UseRoomActionsCallbacksProps {
         friendship_status?: 'none' | 'friends' | 'pending_sent' | 'pending_received',
         role?: 'offerer' | 'answerer' | null
     ) => void;
+    setPartnerReady: (v: boolean) => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     createOffer: (partnerId: string) => Promise<void>;
@@ -42,6 +43,7 @@ export const useRoomActionsCallbacks = ({
     setSearching,
     setConnected,
     setPartner,
+    setPartnerReady,
     setHasPromptedForPermission,
     resetState,
     createOffer,
@@ -104,6 +106,7 @@ export const useRoomActionsCallbacks = ({
         clearMessages();
         setPartnerIsMuted(false);
         closePeerConnection();
+        setPartnerReady(false);
         setSearching(true);
         startSearchRef.current({ preferred_country: selectedCountry === 'GLOBAL' ? undefined : selectedCountry });
     }, [callRoomState.partner_id, callRoomState.permission_denied, resetState, clearMessages, closePeerConnection, setSearching, selectedCountry, setPartnerIsMuted, manualStopRef, startSearchRef]);
@@ -159,6 +162,7 @@ export const useRoomActionsCallbacks = ({
             closePeerConnection();
             setConnected(false);
         }
+        setPartnerReady(false);
 
         setPartner(
             data.partner_id,
@@ -246,6 +250,7 @@ export const useRoomActionsCallbacks = ({
         // We only prepare the peer connection and media. 
         // setConnected(true) will be called by useVoiceRoom when WebRTC is 'connected'.
         closePeerConnection();
+        setPartnerReady(false);
 
         setPartner(
             data.new_socket_id,
@@ -272,6 +277,7 @@ export const useRoomActionsCallbacks = ({
     const onRejoinSuccess = useCallback(async (data: any) => {
         // Defer UI transition until WebRTC is connected
         closePeerConnection();
+        setPartnerReady(false);
         setPartner(
             data.partner_id,
             data.partner_country_name || callRoomState.partner_country_name,

@@ -10,6 +10,7 @@ interface UseRoomActionsProps {
     setSearching: (v: boolean) => void;
     setConnected: (v: boolean) => void;
     setPartner: (id: string | null, country_name?: string, country?: string, username?: string, avatar?: string, gender?: string, user_id?: string | null) => void;
+    setPartnerReady: (v: boolean) => void;
     setHasPromptedForPermission: (prompted: boolean) => void;
     resetState: () => void;
     initMediaManager: () => Promise<boolean>;
@@ -58,6 +59,7 @@ export const useRoomActions = (props: UseRoomActionsProps) => {
         handleToggleMute: callbacks.handleToggleMute,
         partnerIsMuted: roomActionsState.partnerIsMuted,
         setPartnerIsMuted: roomActionsState.setPartnerIsMuted,
+        setPartnerReady: props.setPartnerReady,
         isDirectCall: roomActionsState.isDirectCall,
         matching,
         onMatchFound: callbacks.onMatchFound,
