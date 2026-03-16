@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/hooks';
 import { UserProfile } from '@/types/user';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface MobileTabbarProps {
     user?: UserProfile | null;
@@ -64,7 +65,7 @@ export const MobileTabbar = ({ user: propUser, onLogout }: MobileTabbarProps) =>
                         <LogOut className="w-4 h-4 text-zinc-900" />
                     ) : user?.avatar ? (
                         <img
-                            src={user.avatar}
+                            src={getAvatarUrl(user.avatar)}
                             alt="profile"
                             className="w-full h-full object-cover"
                         />

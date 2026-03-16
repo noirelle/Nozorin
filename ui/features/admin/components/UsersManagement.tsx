@@ -19,8 +19,12 @@ import {
     Mars,
     Activity,
     Users as UsersIcon,
-    History
+    History,
+    SlidersHorizontal
 } from 'lucide-react';
+import { FilterModal } from './FilterModal';
+
+import { getAvatarUrl } from '@/utils/avatar';
 
 const formatRelativeTime = (timestamp: number) => {
     const diff = Date.now() - timestamp;
@@ -44,6 +48,8 @@ export const UsersManagement: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [genderFilter, setGenderFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [activeSinceFilter, setActiveSinceFilter] = useState('all');
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
     // Debounce search
@@ -63,7 +69,8 @@ export const UsersManagement: React.FC = () => {
                 limit,
                 search: debouncedSearch,
                 gender: genderFilter,
-                is_claimed: statusFilter
+                is_claimed: statusFilter,
+                active_since: activeSinceFilter === 'all' ? undefined : activeSinceFilter
             });
             if (result.data) {
                 setUsers(result.data.users);
@@ -74,7 +81,7 @@ export const UsersManagement: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [page, limit, debouncedSearch, genderFilter, statusFilter]);
+    }, [page, limit, debouncedSearch, genderFilter, statusFilter, activeSinceFilter]);
 
     useEffect(() => {
         fetchUsers();
@@ -85,57 +92,58 @@ export const UsersManagement: React.FC = () => {
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-            {/* Filters Bar */}
-            <div className="bg-white p-4 rounded-3xl border border-zinc-100 shadow-sm mb-6 flex flex-col lg:flex-row gap-4">
+            {/* Top Bar with Search and Filter Button */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input 
                         type="text"
-                        placeholder="Search by username..."
-                        className="w-full pl-12 pr-4 py-3 bg-zinc-50 border border-zinc-100 rounded-2xl focus:ring-2 focus:ring-pink-500 outline-none transition-all"
+                        placeholder="Search users by name or ID..."
+                        className="w-full pl-14 pr-6 py-4 bg-white border border-zinc-100 rounded-3xl focus:ring-2 focus:ring-pink-500 shadow-sm outline-none transition-all text-zinc-900 font-medium placeholder:text-zinc-400"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-2xl border border-zinc-100">
-                        {['all', 'male', 'female'].map((g) => (
-                            <button
-                                key={g}
-                                onClick={() => setGenderFilter(g)}
-                                className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all ${
-                                    genderFilter === g 
-                                    ? 'bg-white text-zinc-900 shadow-sm' 
-                                    : 'text-zinc-500 hover:text-zinc-900'
-                                }`}
-                            >
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-2xl border border-zinc-100">
-                        {[
-                            { label: 'All', value: 'all' },
-                            { label: 'Claimed', value: 'true' },
-                            { label: 'Guests', value: 'false' },
-                        ].map((s) => (
-                            <button
-                                key={s.value}
-                                onClick={() => setStatusFilter(s.value)}
-                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                                    statusFilter === s.value 
-                                    ? 'bg-white text-zinc-900 shadow-sm' 
-                                    : 'text-zinc-500 hover:text-zinc-900'
-                                }`}
-                            >
-                                {s.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+                <button 
+                    onClick={() => setIsFilterModalOpen(true)}
+                    className={`flex items-center gap-3 px-8 py-4 rounded-3xl font-bold transition-all shadow-sm border ${
+                        genderFilter !== 'all' || statusFilter !== 'all' || activeSinceFilter !== 'all'
+                        ? 'bg-zinc-900 border-zinc-900 text-white hover:bg-zinc-800 shadow-zinc-200'
+                        : 'bg-white border-zinc-100 text-zinc-900 hover:bg-zinc-50'
+                    }`}
+                >
+                    <SlidersHorizontal className="w-5 h-5" />
+                    Filters
+                    {(genderFilter !== 'all' || statusFilter !== 'all' || activeSinceFilter !== 'all') && (
+                        <span className="flex items-center justify-center w-5 h-5 bg-pink-500 text-[10px] text-white rounded-full">
+                            {[genderFilter, statusFilter, activeSinceFilter].filter(f => f !== 'all').length}
+                        </span>
+                    )}
+                </button>
             </div>
+
+            <FilterModal 
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                filters={{
+                    gender: genderFilter,
+                    status: statusFilter,
+                    active_since: activeSinceFilter
+                }}
+                onApply={(newFilters) => {
+                    setGenderFilter(newFilters.gender);
+                    setStatusFilter(newFilters.status);
+                    setActiveSinceFilter(newFilters.active_since);
+                    setPage(1);
+                }}
+                onReset={() => {
+                    setGenderFilter('all');
+                    setStatusFilter('all');
+                    setActiveSinceFilter('all');
+                    setPage(1);
+                }}
+            />
 
             {/* Table */}
             <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden">
@@ -175,7 +183,7 @@ export const UsersManagement: React.FC = () => {
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
                                                 <img 
-                                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.avatar}`} 
+                                                    src={getAvatarUrl(user.avatar)} 
                                                     alt={user.username}
                                                     className="w-11 h-11 rounded-2xl bg-zinc-100 group-hover:scale-110 transition-transform duration-300"
                                                 />

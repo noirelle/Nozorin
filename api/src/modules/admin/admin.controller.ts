@@ -110,7 +110,7 @@ export const adminController = {
 
     async listUsers(req: Request, res: Response) {
         try {
-            const { page = 1, limit = 10, gender, is_claimed, search } = req.query;
+            const { page = 1, limit = 10, gender, is_claimed, search, active_since } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
             const take = Number(limit);
 
@@ -126,6 +126,14 @@ export const adminController = {
 
             if (search) {
                 queryBuilder.andWhere('user.username LIKE :search', { search: `%${search}%` });
+            }
+            
+            if (active_since) {
+                const hours = Number(active_since);
+                if (!isNaN(hours)) {
+                    const cutoffTime = Date.now() - (hours * 3600000);
+                    queryBuilder.andWhere('user.last_active_at > :cutoffTime', { cutoffTime });
+                }
             }
 
             // Efficiently get counts via subqueries

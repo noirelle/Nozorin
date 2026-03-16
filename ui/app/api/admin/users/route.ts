@@ -8,7 +8,8 @@ export async function GET(req: Request) {
         limit: Number(searchParams.get('limit') || 10),
         gender: searchParams.get('gender') || undefined,
         is_claimed: searchParams.get('is_claimed') || undefined,
-        search: searchParams.get('search') || undefined
+        search: searchParams.get('search') || undefined,
+        active_since: searchParams.get('active_since') || undefined
     };
 
     const headers = getProxyHeaders(req);

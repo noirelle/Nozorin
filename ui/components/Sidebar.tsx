@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useUser } from '@/hooks';
 import { UserProfile } from '@/types/user';
 import { UpcomingBadge } from './UpcomingBadge';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface SidebarProps {
     user?: UserProfile | null;
@@ -77,7 +78,7 @@ export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
                 <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
                     {item.avatar ? (
                         <div className={`w-6 h-6 rounded-full overflow-hidden ${isCurrent ? 'border-2 border-pink-600' : 'border border-zinc-300'}`}>
-                            <img src={item.avatar} alt="profile" className="w-full h-full object-cover" />
+                            <img src={getAvatarUrl(item.avatar)} alt="profile" className="w-full h-full object-cover" />
                         </div>
                     ) : (
                         <Icon

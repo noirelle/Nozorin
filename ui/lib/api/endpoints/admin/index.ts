@@ -16,7 +16,7 @@ export const admin = {
     getStats: (headers?: HeadersInit) =>
         api.get<AdminStats>('/api/admin/get-status', { headers }),
 
-    listUsers: (params: { page: number; limit: number; gender?: string; is_claimed?: string; search?: string }, headers?: HeadersInit) => {
+    listUsers: (params: { page: number; limit: number; gender?: string; is_claimed?: string; search?: string; active_since?: string }, headers?: HeadersInit) => {
         const query = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== '') {
