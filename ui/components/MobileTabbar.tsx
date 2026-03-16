@@ -16,7 +16,7 @@ interface MobileTabbarProps {
 
 export const MobileTabbar = ({ user: propUser, onLogout }: MobileTabbarProps) => {
     const pathname = usePathname();
-    const { user: hookUser } = useUser();
+    const { user: hookUser } = useUser({ skipCheck: !!onLogout });
     const user = propUser || hookUser;
 
     return (

@@ -48,7 +48,7 @@ export const handleSocketConnection = async (io: Server, socket: Socket): Promis
         userMediaState.delete(socket.id);
         // Socket cleanup MUST happen after handleDisconnect so reconnect entries
         // can still resolve socket→user mappings for the partner.
-        presenceService.handleDisconnection(io, socket);
+        await presenceService.handleDisconnection(io, socket);
 
         // Global Cleanup
         logger.info({ activeCalls: activeCalls.size }, '[DISCONNECT] Cleanup complete');

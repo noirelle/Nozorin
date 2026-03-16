@@ -6,9 +6,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/hooks';
 
-export const MobileNavbar = () => {
+interface MobileNavbarProps {
+    skipCheck?: boolean;
+}
+
+export const MobileNavbar = ({ skipCheck }: MobileNavbarProps) => {
     const pathname = usePathname();
-    const { user } = useUser();
+    const { user } = useUser({ skipCheck });
     const isProfile = pathname === '/app/profile';
     const isHome = pathname === '/app';
 

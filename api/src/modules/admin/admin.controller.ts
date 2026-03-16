@@ -3,6 +3,7 @@ import { generateUserToken, generateRefreshToken, verifyRefreshToken } from '../
 import { successResponse, errorResponse } from '../../core/utils/response.util';
 import { AppDataSource } from '../../core/config/database.config';
 import { User } from '../user/user.entity';
+import { getRedisClient } from '../../core/config/redis.config';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD;
 
@@ -158,11 +159,39 @@ export const adminController = {
                 .take(take)
                 .getRawAndEntities();
 
+            // Fetch real-time status from Redis if available
+            const userIds = rawResults.entities.map(u => u.id);
+            const redis = getRedisClient();
+            let onlineStatuses: Record<string, boolean> = {};
+
+            if (redis && userIds.length > 0) {
+                try {
+                    const keys = userIds.map(id => `user:status:${id}`);
+                    const statuses = await redis.mget(...keys);
+                    userIds.forEach((id, index) => {
+                        const statusJson = statuses[index];
+                        if (statusJson) {
+                            try {
+                                const status = JSON.parse(statusJson);
+                                onlineStatuses[id] = !!status.is_online;
+                            } catch (e) {
+                                onlineStatuses[id] = false;
+                            }
+                        } else {
+                            onlineStatuses[id] = false;
+                        }
+                    });
+                } catch (error) {
+                    console.error('[ADMIN] Redis error fetching statuses:', error);
+                }
+            }
+
             const usersWithStats = rawResults.entities.map((user, index) => ({
                 ...user,
                 friendCount: Number(rawResults.raw[index].friendCount) || 0,
                 historyCount: Number(rawResults.raw[index].historyCount) || 0,
-                last_active_at: Number(user.last_active_at)
+                last_active_at: Number(user.last_active_at),
+                is_online: onlineStatuses[user.id] ?? false
             }));
 
             return res.status(200).json(successResponse({
