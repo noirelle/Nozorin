@@ -1,4 +1,5 @@
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { useAdminStore } from '../../../stores/useAdminStore';
 import { ApiResponse, StandardApiResponse } from './types';
 import { getBaseApiUrl } from './config';
 import { handleTokenRefresh, handleAuthError } from './auth';
@@ -35,7 +36,13 @@ export async function apiRequest<T>(
 
     // Automatically attach Authorization header if on client and token exists
     if (typeof window !== 'undefined') {
-        const token = useAuthStore.getState().token || localStorage.getItem('nz_token');
+        const authStoreToken = useAuthStore.getState().token || localStorage.getItem('nz_token');
+        const adminStoreToken = useAdminStore.getState().adminToken;
+
+        // Prioritize admin token for admin-related endpoints
+        const isAdminRequest = endpoint.includes('/admin/');
+        const token = isAdminRequest ? (adminStoreToken || authStoreToken) : (authStoreToken || adminStoreToken);
+
         // Only attach if not already present (case-insensitive check)
         const hasAuth = Object.keys(headers).some(k => k.toLowerCase() === 'authorization');
         if (token && !hasAuth) {

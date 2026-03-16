@@ -12,6 +12,7 @@ export * from './endpoints/friends';
 export * from './endpoints/matchmaking';
 export * from './endpoints/session';
 export * from './endpoints/call';
+export * from './endpoints/admin';
 
 export const api = {
     get: <T>(endpoint: string, options: RequestInit = {}) =>

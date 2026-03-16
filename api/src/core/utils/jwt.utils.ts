@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY!;
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY!;
 
-export type UserType = 'guest' | 'authenticated';
+export type UserType = 'guest' | 'authenticated' | 'admin';
 
 export interface VisitorPayload {
     userId: string;
@@ -34,10 +34,10 @@ export const generateVisitorToken = (userType: UserType = 'guest'): string => {
 /**
  * Generate a JWT Access Token for an existing user
  */
-export const generateUserToken = (userId: string, expiresIn: string = JWT_ACCESS_EXPIRY): string => {
+export const generateUserToken = (userId: string, userType: UserType = 'guest', expiresIn: string = JWT_ACCESS_EXPIRY): string => {
     const payload: VisitorPayload = {
         userId,
-        userType: 'guest', // or 'authenticated' if we want to distinguish
+        userType,
         createdAt: Date.now(),
     };
     return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn as any });

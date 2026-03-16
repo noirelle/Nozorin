@@ -11,7 +11,9 @@ import {
     PlusSquare,
     Plus,
     User,
+    Users,
     Menu,
+    LogOut,
 } from 'lucide-react';
 
 import { usePathname } from 'next/navigation';
@@ -19,31 +21,88 @@ import Link from 'next/link';
 import { useUser } from '@/hooks';
 import { UserProfile } from '@/types/user';
 import { UpcomingBadge } from './UpcomingBadge';
+import { getAvatarUrl } from '@/utils/avatar';
 
 interface SidebarProps {
     user?: UserProfile | null;
+    onLogout?: () => void;
 }
 
-export const Sidebar = ({ user: propUser }: SidebarProps) => {
+export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
     const pathname = usePathname();
     const { user: hookUser } = useUser();
     const user = propUser || hookUser;
 
     const navItems = [
-        { icon: Home, label: 'Home', href: '/app', isActive: true },
-        { icon: Search, label: 'Search', href: '#', isActive: false },
-        { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
-        { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
-        { icon: Heart, label: 'Notifications', href: '#', isActive: false },
-        { icon: Plus, label: 'Create', href: '#', isActive: false },
-        {
-            icon: User,
-            label: 'Profile',
-            href: '/app/profile',
-            isActive: true,
-            avatar: user?.avatar
-        },
+        { icon: Home, label: 'Home', href: onLogout ? '/admin-panel' : '/app', isActive: true },
+        ...(onLogout ? [
+            { icon: Users, label: 'Users', href: '/admin-panel/users-management', isActive: true },
+        ] : [
+            { icon: Search, label: 'Search', href: '#', isActive: false },
+            { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
+            { icon: MessageCircle, label: 'Messages', href: '#', badge: 1, isActive: false },
+            { icon: Heart, label: 'Notifications', href: '#', isActive: false },
+            { icon: Plus, label: 'Create', href: '#', isActive: false },
+        ]),
     ];
+
+    const bottomItem = {
+        icon: onLogout ? LogOut : User,
+        label: onLogout ? 'Logout' : 'Profile',
+        href: onLogout ? '#' : '/app/profile',
+        isActive: true,
+        avatar: onLogout ? undefined : user?.avatar,
+        onClick: onLogout
+    };
+
+    const renderNavItem = (item: any) => {
+        const isProfile = item.label === 'Profile' || item.label === 'Logout';
+        const isCurrent = pathname === item.href || (item.href !== '/app' && item.href !== '/admin-panel' && pathname.startsWith(item.href));
+        const Icon = item.icon;
+
+        return (
+            <Link
+                key={item.label}
+                href={item.isActive || isProfile ? item.href : '#'}
+                onClick={(e) => {
+                    if (item.onClick) {
+                        e.preventDefault();
+                        item.onClick();
+                    }
+                }}
+                className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive || isProfile
+                    ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
+                    : 'text-zinc-300 cursor-not-allowed'
+                    } ${isCurrent ? 'font-semibold bg-pink-50 text-pink-600' : ''}`}
+            >
+                <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
+                    {item.avatar ? (
+                        <div className={`w-6 h-6 rounded-full overflow-hidden ${isCurrent ? 'border-2 border-pink-600' : 'border border-zinc-300'}`}>
+                            <img src={getAvatarUrl(item.avatar)} alt="profile" className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <Icon
+                            className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
+                            strokeWidth={isCurrent ? 2.5 : 2}
+                        />
+                    )}
+                    {item.badge && item.isActive && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-[10px] text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                            {item.badge}
+                        </span>
+                    )}
+                </div>
+                <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    <span className={`text-[16px] ${isCurrent ? 'font-semibold' : 'font-normal'}`}>{item.label}</span>
+                    {!item.isActive && (
+                        <div className="scale-75 origin-left -mt-1 -ml-1">
+                            <UpcomingBadge />
+                        </div>
+                    )}
+                </div>
+            </Link>
+        );
+    };
 
     return (
         <aside className="fixed left-0 top-0 h-screen w-[72px] hover:w-[245px] bg-transparent flex flex-col px-3 py-5 z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden">
@@ -54,57 +113,17 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
             </div>
 
             <nav className="flex-1 space-y-2">
-                {navItems.map((item) => {
-                    const isProfile = item.label === 'Profile';
-                    const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
-                    const Icon = (item as any).icon;
-
-                    return (
-                        <Link
-                            key={item.label}
-                            href={item.isActive || isProfile ? item.href : '#'}
-                            className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive || isProfile
-                                ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
-                                : 'text-zinc-300 cursor-not-allowed'
-                                } ${isCurrent ? 'font-semibold bg-pink-50 text-pink-600' : ''}`}
-                        >
-                            <div className={`relative transition-transform duration-200 ${item.isActive ? 'group-hover:scale-110' : ''} shrink-0`}>
-                                {(item as any).avatar ? (
-                                    <div className={`w-6 h-6 rounded-full overflow-hidden ${isCurrent ? 'border-2 border-pink-600' : 'border border-zinc-300'}`}>
-                                        <img src={(item as any).avatar} alt="profile" className="w-full h-full object-cover" />
-                                    </div>
-                                ) : (
-                                    <Icon
-                                        className={`w-6 h-6 ${isCurrent ? 'text-pink-600' : ''}`}
-                                        strokeWidth={isCurrent ? 2.5 : 2}
-                                    />
-                                )}
-                                {(item as any).badge && item.isActive && (
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-[10px] text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                        {(item as any).badge}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-                                <span className={`text-[16px] ${isCurrent ? 'font-semibold' : 'font-normal'}`}>{item.label}</span>
-                                {!item.isActive && (
-                                    <div className="scale-75 origin-left -mt-1 -ml-1">
-                                        <UpcomingBadge />
-                                    </div>
-                                )}
-                            </div>
-                        </Link>
-                    );
-                })}
+                {navItems.map(renderNavItem)}
             </nav>
 
             <div className="mt-auto space-y-2">
+                {renderNavItem(bottomItem)}
                 <div className="flex items-center gap-4 p-3 text-zinc-900 rounded-lg cursor-pointer transition-all duration-200 hover:bg-pink-50 hover:text-pink-600 group">
                     <Menu className="w-6 h-6 transition-transform duration-200 group-hover:scale-110 shrink-0" />
                     <span className="text-[16px] opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">More</span>
                 </div>
-                <div className="flex items-center gap-4 p-3 text-zinc-900 rounded-lg cursor-pointer transition-all duration-200 hover:bg-pink-50 group">
-                    <Menu className="w-6 h-6 opacity-0 transition-transform duration-200 group-hover:scale-110 shrink-0" />
+                <div className="flex items-center gap-4 p-3 text-zinc-900 rounded-lg cursor-not-allowed transition-all duration-200 hover:bg-pink-50 group">
+                    <Menu className="w-6 h-6 opacity-0 transition-transform duration-200 shrink-0" />
                     <span className="text-[16px] text-xs text-zinc-400 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Also from Meta</span>
                 </div>
             </div>
