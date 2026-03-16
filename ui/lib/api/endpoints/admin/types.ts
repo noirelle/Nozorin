@@ -19,6 +19,7 @@ export interface UserListItem {
     country?: string;
     country_name?: string;
     last_active_at: number;
+    is_online: boolean;
     friendCount: number;
     historyCount: number;
 }

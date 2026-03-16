@@ -158,13 +158,13 @@ export const UsersManagement: React.FC = () => {
                                                     className="w-11 h-11 rounded-2xl bg-zinc-100 group-hover:scale-110 transition-transform duration-300"
                                                 />
                                                 <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                                                    Date.now() - user.last_active_at < 300000 ? 'bg-emerald-500' : 'bg-zinc-300'
+                                                    user.is_online ? 'bg-emerald-500' : 'bg-zinc-300'
                                                 }`} />
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-zinc-900">{user.username}</div>
                                                 <div className="text-[10px] text-zinc-400 font-medium">
-                                                    {user.id.slice(0, 8)} • Last seen {formatRelativeTime(user.last_active_at)}
+                                                    {user.id.slice(0, 8)} {!user.is_online && `• Last seen ${formatRelativeTime(user.last_active_at)}`}
                                                 </div>
                                             </div>
                                         </div>

@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export type UserType = 'guest' | 'authenticated';
+export type UserType = 'guest' | 'authenticated' | 'admin';
 
 export interface VisitorPayload {
     userId: string;
