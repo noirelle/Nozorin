@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
-import { getUserIdFromToken } from '../../core/utils/jwt.utils';
+import { getUserIdFromToken, verifyVisitorToken } from '../../core/utils/jwt.utils';
 import { userService } from '../../shared/services/user.service';
 import * as matchmakingService from '../matchmaking/matchmaking.service';
 import { presenceService } from '../presence/presence.service';
@@ -9,11 +9,19 @@ import { logger } from '../../core/logger';
 export const authService = {
     identify: async (io: Server, socket: Socket, token: string) => {
         if (!token) return null;
-        const userId = getUserIdFromToken(token);
+        const payload = verifyVisitorToken(token);
+        const userId = payload?.userId;
+        
         if (!userId) {
             socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid or expired token' });
             return null;
         }
+
+        // Update socket data so subsequent checks (like JOIN_ADMIN_ROOM) work
+        (socket as any).data.user = { 
+            user_id: userId, 
+            user_type: payload.userType 
+        };
 
         // Cleanup other sessions BEFORE setting this one
         await authService.cleanupOtherSessions(io, userId, socket.id);
@@ -51,11 +59,19 @@ export const authService = {
 
     updateToken: async (io: Server, socket: Socket, token: string) => {
         if (!token) return;
-        const userId = getUserIdFromToken(token);
+        const payload = verifyVisitorToken(token);
+        const userId = payload?.userId;
+        
         if (!userId) {
             socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid token during update' });
             return;
         }
+
+        // Update socket data
+        (socket as any).data.user = { 
+            user_id: userId, 
+            user_type: payload.userType 
+        };
 
         // Cleanup other sessions if user changed or to enforce single session
         await authService.cleanupOtherSessions(io, userId, socket.id);
@@ -73,8 +89,15 @@ export const authService = {
 
     forceReconnect: async (io: Server, socket: Socket, token: string) => {
         if (!token) return;
-        const userId = getUserIdFromToken(token);
+        const payload = verifyVisitorToken(token);
+        const userId = payload?.userId;
         if (!userId) return;
+
+        // Update socket data
+        (socket as any).data.user = { 
+            user_id: userId, 
+            user_type: payload.userType 
+        };
 
         await authService.cleanupOtherSessions(io, userId, socket.id);
 

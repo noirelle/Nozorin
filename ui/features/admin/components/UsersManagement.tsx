@@ -158,7 +158,7 @@ export const UsersManagement: React.FC = () => {
                                                     className="w-11 h-11 rounded-2xl bg-zinc-100 group-hover:scale-110 transition-transform duration-300"
                                                 />
                                                 <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                                                    Date.now() - user.last_active_at < 300000 ? 'bg-emerald-500' : 'bg-zinc-300'
+                                                    user.is_online ? 'bg-emerald-500' : 'bg-zinc-300'
                                                 }`} />
                                             </div>
                                             <div>
