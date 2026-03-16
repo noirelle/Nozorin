@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, MessageCircle, Compass, Search, User, LogOut } from 'lucide-react';
+import { Home, MessageCircle, Compass, Search, User, LogOut, Users as UsersIcon } from 'lucide-react';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -18,28 +18,38 @@ export const MobileTabbar = ({ user: propUser, onLogout }: MobileTabbarProps) =>
     const { user: hookUser } = useUser();
     const user = propUser || hookUser;
 
-    const isHome = pathname === '/app' || pathname === '/';
-
     return (
         <nav className="h-[52px] border-t border-zinc-100 bg-white flex items-center justify-around fixed bottom-0 left-0 right-0 z-50">
-            <Link href="/app">
+            <Link href={onLogout ? '/admin-panel' : '/app'}>
                 <Home
-                    className={`w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity ${isHome ? 'text-pink-600' : 'text-zinc-900'}`}
-                    strokeWidth={isHome ? 2.5 : 2}
+                    className={`w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity ${pathname === (onLogout ? '/admin-panel' : '/app') || pathname === '/' ? 'text-pink-600' : 'text-zinc-900'}`}
+                    strokeWidth={pathname === (onLogout ? '/admin-panel' : '/app') || pathname === '/' ? 2.5 : 2}
                 />
             </Link>
-            <div className="relative">
-                <MessageCircle className="w-6 h-6 text-zinc-200 cursor-not-allowed" />
-            </div>
-            <Link href="/app/explore">
-                <Compass
-                    className={`w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity ${pathname === '/app/explore' ? 'text-pink-600' : 'text-zinc-900'}`}
-                    strokeWidth={pathname === '/app/explore' ? 2.5 : 2}
-                />
-            </Link>
-            <div className="relative">
-                <Search className="text-zinc-200 w-6 h-6 cursor-not-allowed" />
-            </div>
+            
+            {onLogout ? (
+                <Link href="/admin-panel/users-management">
+                    <UsersIcon
+                        className={`w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity ${pathname === '/admin-panel/users-management' ? 'text-pink-600' : 'text-zinc-900'}`}
+                        strokeWidth={pathname === '/admin-panel/users-management' ? 2.5 : 2}
+                    />
+                </Link>
+            ) : (
+                <>
+                    <div className="relative">
+                        <MessageCircle className="w-6 h-6 text-zinc-200 cursor-not-allowed" />
+                    </div>
+                    <Link href="/app/explore">
+                        <Compass
+                            className={`w-6 h-6 cursor-pointer hover:opacity-70 transition-opacity ${pathname === '/app/explore' ? 'text-pink-600' : 'text-zinc-900'}`}
+                            strokeWidth={pathname === '/app/explore' ? 2.5 : 2}
+                        />
+                    </Link>
+                    <div className="relative">
+                        <Search className="text-zinc-200 w-6 h-6 cursor-not-allowed" />
+                    </div>
+                </>
+            )}
             <Link 
                 href={onLogout ? '#' : "/app/profile"}
                 onClick={(e) => {

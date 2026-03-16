@@ -106,5 +106,67 @@ export const adminController = {
             console.error('[ADMIN] Get stats error:', error);
             return res.status(500).json(errorResponse('Internal server error', error));
         }
+    },
+
+    async listUsers(req: Request, res: Response) {
+        try {
+            const { page = 1, limit = 10, gender, is_claimed, search } = req.query;
+            const skip = (Number(page) - 1) * Number(limit);
+            const take = Number(limit);
+
+            const queryBuilder = AppDataSource.getRepository(User).createQueryBuilder('user');
+
+            if (gender && gender !== 'all') {
+                queryBuilder.andWhere('user.gender = :gender', { gender });
+            }
+
+            if (is_claimed !== undefined && is_claimed !== 'all') {
+                queryBuilder.andWhere('user.is_claimed = :isClaimed', { isClaimed: is_claimed === 'true' });
+            }
+
+            if (search) {
+                queryBuilder.andWhere('user.username LIKE :search', { search: `%${search}%` });
+            }
+
+            // Efficiently get counts via subqueries
+            queryBuilder
+                .addSelect(subQuery => {
+                    return subQuery
+                        .select('COUNT(f.id)', 'friendCount')
+                        .from('friends', 'f')
+                        .where('f.user_id = user.id');
+                }, 'friendCount')
+                .addSelect(subQuery => {
+                    return subQuery
+                        .select('COUNT(h.id)', 'historyCount')
+                        .from('call_history', 'h')
+                        .where('h.user_id = user.id');
+                }, 'historyCount');
+
+            const total = await queryBuilder.getCount();
+            const rawResults = await queryBuilder
+                .orderBy('user.last_active_at', 'DESC')
+                .skip(skip)
+                .take(take)
+                .getRawAndEntities();
+
+            const usersWithStats = rawResults.entities.map((user, index) => ({
+                ...user,
+                friendCount: Number(rawResults.raw[index].friendCount) || 0,
+                historyCount: Number(rawResults.raw[index].historyCount) || 0,
+                last_active_at: Number(user.last_active_at)
+            }));
+
+            return res.status(200).json(successResponse({
+                users: usersWithStats,
+                total,
+                page: Number(page),
+                limit: Number(limit)
+            }, 'Users fetched successfully'));
+
+        } catch (error) {
+            console.error('[ADMIN] List users error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
     }
 };

@@ -35,7 +35,7 @@ export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
     const navItems = [
         { icon: Home, label: 'Home', href: onLogout ? '/admin-panel' : '/app', isActive: true },
         ...(onLogout ? [
-            { icon: Users, label: 'Users', href: '/admin-panel/users', isActive: true },
+            { icon: Users, label: 'Users', href: '/admin-panel/users-management', isActive: true },
         ] : [
             { icon: Search, label: 'Search', href: '#', isActive: false },
             { icon: Compass, label: 'Explore', href: '/app/explore', isActive: true },
@@ -56,7 +56,7 @@ export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
 
     const renderNavItem = (item: any) => {
         const isProfile = item.label === 'Profile' || item.label === 'Logout';
-        const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
+        const isCurrent = pathname === item.href || (item.href !== '/app' && item.href !== '/admin-panel' && pathname.startsWith(item.href));
         const Icon = item.icon;
 
         return (
