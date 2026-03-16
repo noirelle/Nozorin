@@ -22,7 +22,7 @@ export const AdminMobileLayout: React.FC<AdminMobileLayoutProps> = ({ children, 
 
     return (
         <div className="flex flex-col h-screen bg-zinc-50 font-sans">
-            <MobileNavbar />
+            <MobileNavbar skipCheck={true} />
 
             <main className="flex-1 p-6 pb-28 overflow-auto mt-4">
                 <header className="mb-8">

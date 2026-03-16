@@ -30,7 +30,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
     const pathname = usePathname();
-    const { user: hookUser } = useUser();
+    const { user: hookUser } = useUser({ skipCheck: !!onLogout });
     const user = propUser || hookUser;
 
     const navItems = [
