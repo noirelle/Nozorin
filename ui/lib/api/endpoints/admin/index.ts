@@ -14,5 +14,5 @@ export const admin = {
         api.post('/api/admin/logout', {}, { headers }),
 
     getStats: (headers?: HeadersInit) =>
-        api.get<AdminStats>('/api/admin/stats', { headers })
+        api.get<AdminStats>('/api/admin/get-status', { headers })
 };

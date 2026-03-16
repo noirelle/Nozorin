@@ -12,6 +12,7 @@ import {
     Plus,
     User,
     Menu,
+    LogOut,
 } from 'lucide-react';
 
 import { usePathname } from 'next/navigation';
@@ -22,9 +23,10 @@ import { UpcomingBadge } from './UpcomingBadge';
 
 interface SidebarProps {
     user?: UserProfile | null;
+    onLogout?: () => void;
 }
 
-export const Sidebar = ({ user: propUser }: SidebarProps) => {
+export const Sidebar = ({ user: propUser, onLogout }: SidebarProps) => {
     const pathname = usePathname();
     const { user: hookUser } = useUser();
     const user = propUser || hookUser;
@@ -37,11 +39,12 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
         { icon: Heart, label: 'Notifications', href: '#', isActive: false },
         { icon: Plus, label: 'Create', href: '#', isActive: false },
         {
-            icon: User,
-            label: 'Profile',
-            href: '/app/profile',
+            icon: onLogout ? LogOut : User,
+            label: onLogout ? 'Logout' : 'Profile',
+            href: onLogout ? '#' : '/app/profile',
             isActive: true,
-            avatar: user?.avatar
+            avatar: onLogout ? undefined : user?.avatar,
+            onClick: onLogout
         },
     ];
 
@@ -55,7 +58,7 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
 
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => {
-                    const isProfile = item.label === 'Profile';
+                    const isProfile = item.label === 'Profile' || item.label === 'Logout';
                     const isCurrent = pathname === item.href || (item.href !== '/app' && pathname.startsWith(item.href));
                     const Icon = (item as any).icon;
 
@@ -63,6 +66,12 @@ export const Sidebar = ({ user: propUser }: SidebarProps) => {
                         <Link
                             key={item.label}
                             href={item.isActive || isProfile ? item.href : '#'}
+                            onClick={(e) => {
+                                if ((item as any).onClick) {
+                                    e.preventDefault();
+                                    (item as any).onClick();
+                                }
+                            }}
                             className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group ${item.isActive || isProfile
                                 ? 'text-zinc-900 cursor-pointer hover:bg-pink-50 hover:text-pink-600 group/active'
                                 : 'text-zinc-300 cursor-not-allowed'

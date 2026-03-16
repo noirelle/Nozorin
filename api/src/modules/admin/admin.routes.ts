@@ -10,6 +10,6 @@ router.post('/refresh', adminController.refresh);
 router.post('/logout', adminController.logout);
 
 // Protected Admin Routes
-router.get('/stats', authenticateToken, isAdmin, adminController.getStats);
+router.get('/get-status', authenticateToken, isAdmin, adminController.getStats);
 
 export default router;
