@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import matchmakingRoutes from './modules/matchmaking/matchmaking.routes';
 import sessionRoutes from './modules/session/session.routes';
 import callRoutes from './modules/call/call.routes';
+import adminRoutes from './modules/admin/admin.routes';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/matchmaking', matchmakingRoutes);
 app.use('/api/session', sessionRoutes);
 app.use('/api/call', callRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Basic health check
 app.get('/', (req, res) => {
