@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { UserListItem } from '@/lib/api/endpoints/admin/types';
+import { UseUsersManagementStateReturn } from '../types';
 
 export const useUsersManagementState = () => {
     const [users, setUsers] = useState<UserListItem[]>([]);
@@ -40,5 +41,3 @@ export const useUsersManagementState = () => {
         setDebouncedSearch,
     };
 };
-
-export type UseUsersManagementStateReturn = ReturnType<typeof useUsersManagementState>;

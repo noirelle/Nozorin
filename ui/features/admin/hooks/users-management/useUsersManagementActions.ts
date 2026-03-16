@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { admin } from '@/lib/api';
-import { UseUsersManagementStateReturn } from './useUsersManagementState';
+import { UseUsersManagementStateReturn } from '../types';
 
 export const useUsersManagementActions = (state: UseUsersManagementStateReturn) => {
     const {

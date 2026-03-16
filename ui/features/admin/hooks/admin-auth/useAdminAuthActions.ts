@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { admin } from '@/lib/api';
-import { UseAdminAuthStateReturn } from './useAdminAuthState';
+import { UseAdminAuthStateReturn } from '../types';
 import { useAdminStore } from '@/stores/useAdminStore';
 
 interface UseAdminAuthActionsProps {

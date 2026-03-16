@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useSocketEvent, SocketEvents, getSocketClient } from '@/lib/socket';
-import { UseUsersManagementStateReturn } from './useUsersManagementState';
+import { UseUsersManagementStateReturn } from '../types';
 import { useAdminStore } from '@/stores/useAdminStore';
 
 interface UseUsersManagementListenersProps {

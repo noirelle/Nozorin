@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { UseAdminAuthStateReturn } from '../types';
 
 export const useAdminAuthState = () => {
     const [isLoading, setIsLoading] = useState(false);
@@ -13,5 +14,3 @@ export const useAdminAuthState = () => {
         setError,
     };
 };
-
-export type UseAdminAuthStateReturn = ReturnType<typeof useAdminAuthState>;
