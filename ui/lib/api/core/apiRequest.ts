@@ -2,7 +2,7 @@ import { useAuthStore } from '../../../stores/useAuthStore';
 import { useAdminStore } from '../../../stores/useAdminStore';
 import { ApiResponse, StandardApiResponse } from './types';
 import { getBaseApiUrl } from './config';
-import { handleTokenRefresh, handleAuthError } from './auth';
+import { handleTokenRefresh, handleAdminTokenRefresh, handleAuthError } from './auth';
 
 export async function apiRequest<T>(
     endpoint: string,
@@ -81,10 +81,14 @@ export async function apiRequest<T>(
             throw lastError || new Error('Fetch failed completely.');
         }
 
-        // Interceptor for 401 Unauthorized - Attempt Refresh
-        if (response.status === 401 && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
+        // Interceptor for 401/403 - Attempt Refresh
+        const isAdminRequest = endpoint.includes('/admin/');
+        const isAuthError = response.status === 401 || (isAdminRequest && response.status === 403);
+
+        if (isAuthError && !endpoint.includes('/refresh') && !endpoint.includes('/login') && typeof window !== 'undefined') {
             try {
-                const refreshResult = await handleTokenRefresh();
+                const isAdminRequest = endpoint.includes('/admin/');
+                const refreshResult = await (isAdminRequest ? handleAdminTokenRefresh() : handleTokenRefresh());
 
                 if (refreshResult?.token) {
                     // Retry original request with new token
@@ -103,7 +107,7 @@ export async function apiRequest<T>(
                     response = retryResponse;
                 } else if (!endpoint.includes('/matchmaking/leave')) {
                     // Pass the refresh status to handleAuthError to decide if logout is needed
-                    handleAuthError(refreshResult?.status);
+                    handleAuthError(refreshResult?.status, isAdminRequest);
                 }
             } catch (refreshErr) {
                 console.error('[API] Error during refresh:', refreshErr);

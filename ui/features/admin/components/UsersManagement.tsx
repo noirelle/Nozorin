@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { admin } from '@/lib/api';
+import React from 'react';
 import { UserListItem } from '@/lib/api/endpoints/admin/types';
 import { 
     Search, 
@@ -23,8 +22,8 @@ import {
     SlidersHorizontal
 } from 'lucide-react';
 import { FilterModal } from './FilterModal';
-
 import { getAvatarUrl } from '@/utils/avatar';
+import { useUsersManagement } from '../hooks/users-management/useUsersManagement';
 
 const formatRelativeTime = (timestamp: number) => {
     const diff = Date.now() - timestamp;
@@ -40,54 +39,25 @@ const formatRelativeTime = (timestamp: number) => {
 };
 
 export const UsersManagement: React.FC = () => {
-    const [users, setUsers] = useState<UserListItem[]>([]);
-    const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(1);
-    const [limit] = useState(10);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [genderFilter, setGenderFilter] = useState('all');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [activeSinceFilter, setActiveSinceFilter] = useState('all');
-    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-    const [debouncedSearch, setDebouncedSearch] = useState('');
-
-    // Debounce search
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(searchTerm);
-            setPage(1);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
-
-    const fetchUsers = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const result = await admin.listUsers({
-                page,
-                limit,
-                search: debouncedSearch,
-                gender: genderFilter,
-                is_claimed: statusFilter,
-                active_since: activeSinceFilter === 'all' ? undefined : activeSinceFilter
-            });
-            if (result.data) {
-                setUsers(result.data.users);
-                setTotal(result.data.total);
-            }
-        } catch (err) {
-            console.error('[ADMIN] Error fetching users:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [page, limit, debouncedSearch, genderFilter, statusFilter, activeSinceFilter]);
-
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
-
-    const totalPages = Math.ceil(total / limit);
+    const {
+        users,
+        total,
+        page,
+        limit,
+        isLoading,
+        searchTerm,
+        genderFilter,
+        statusFilter,
+        activeSinceFilter,
+        isFilterModalOpen,
+        setPage,
+        setSearchTerm,
+        setGenderFilter,
+        setStatusFilter,
+        setActiveSinceFilter,
+        setIsFilterModalOpen,
+        totalPages
+    } = useUsersManagement();
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">

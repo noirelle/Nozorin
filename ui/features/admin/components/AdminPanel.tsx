@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { admin } from '@/lib/api';
 import { AdminStats } from '@/lib/api/endpoints/admin/types';
-import { useAdminAuth } from '../hooks/useAdminAuth';
-import { 
-    Users, 
-    UserCheck, 
-    Venus, 
-    Mars, 
+import { useAdminAuth } from '../hooks/admin-auth/useAdminAuth';
+import {
+    Users,
+    UserCheck,
+    Venus,
+    Mars,
     Activity,
     ShieldCheck,
     ArrowUpRight
@@ -16,10 +16,12 @@ import {
 
 export const AdminPanel: React.FC = () => {
     const [stats, setStats] = useState<AdminStats | null>(null);
-    const { isAdminAuthenticated } = useAdminAuth();
+    const isAdminAuthenticated = useAdminAuth().isAdminAuthenticated;
+    const hasFetched = React.useRef(false);
 
     useEffect(() => {
-        if (isAdminAuthenticated) {
+        if (isAdminAuthenticated && !hasFetched.current) {
+            hasFetched.current = true;
             fetchStats();
         }
     }, [isAdminAuthenticated]);
@@ -49,7 +51,7 @@ export const AdminPanel: React.FC = () => {
                     <h2 className="text-3xl font-bold mb-2">Welcome back, Admin</h2>
                     <p className="text-zinc-400 max-w-lg">Everything looks great today. You have {stats?.totalUsers || 0} active users distributed across your platform. Check the latest insights below.</p>
                 </div>
-                
+
                 {/* Decorative background element */}
                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-pink-600/20 rounded-full blur-[100px]" />
                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-blue-600/10 rounded-full blur-[80px]" />
@@ -58,32 +60,32 @@ export const AdminPanel: React.FC = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {[
-                    { 
-                        label: 'Total Users', 
-                        value: stats?.totalUsers.toLocaleString() || '...', 
+                    {
+                        label: 'Total Users',
+                        value: stats?.totalUsers.toLocaleString() || '...',
                         icon: Users,
                         bg: 'bg-blue-50',
                         textColor: 'text-blue-600'
                     },
-                    { 
-                        label: 'Females', 
-                        value: stats?.totalFemales.toLocaleString() || '...', 
+                    {
+                        label: 'Females',
+                        value: stats?.totalFemales.toLocaleString() || '...',
                         icon: Venus,
                         bg: 'bg-pink-50',
                         textColor: 'text-pink-600',
                         sub: stats ? `${((stats.totalFemales / stats.totalUsers) * 100).toFixed(1)}%` : ''
                     },
-                    { 
-                        label: 'Males', 
-                        value: stats?.totalMales.toLocaleString() || '...', 
+                    {
+                        label: 'Males',
+                        value: stats?.totalMales.toLocaleString() || '...',
                         icon: Mars,
                         bg: 'bg-cyan-50',
                         textColor: 'text-cyan-600',
                         sub: stats ? `${((stats.totalMales / stats.totalUsers) * 100).toFixed(1)}%` : ''
                     },
-                    { 
-                        label: 'Claimed', 
-                        value: stats?.totalClaimed.toLocaleString() || '...', 
+                    {
+                        label: 'Claimed',
+                        value: stats?.totalClaimed.toLocaleString() || '...',
                         icon: UserCheck,
                         bg: 'bg-emerald-50',
                         textColor: 'text-emerald-600',
@@ -120,13 +122,13 @@ export const AdminPanel: React.FC = () => {
                     <h4 className="text-zinc-900 font-bold text-lg">Detailed Analytics</h4>
                     <p className="text-zinc-500 text-center max-w-sm mt-1">Real-time user engagement and traffic patterns will be visualized here.</p>
                 </div>
-                
+
                 <div className="bg-zinc-900 rounded-3xl p-8 text-white relative overflow-hidden flex flex-col justify-between">
                     <div>
                         <h4 className="font-bold text-xl mb-2">System Health</h4>
                         <p className="text-zinc-400 text-sm">All services are currently operational.</p>
                     </div>
-                    
+
                     <div className="space-y-4 relative z-10">
                         {['Database', 'Socket Server', 'API Gateway'].map((service) => (
                             <div key={service} className="flex items-center justify-between">
@@ -138,7 +140,7 @@ export const AdminPanel: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                    
+
                     {/* Decorative */}
                     <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-pink-600/30 rounded-full blur-3xl" />
                 </div>
