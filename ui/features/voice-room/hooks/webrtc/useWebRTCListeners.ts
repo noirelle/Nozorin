@@ -9,7 +9,7 @@ import {
 interface UseWebRTCListenersProps {
     handleOffer: (sdp: RTCSessionDescriptionInit, callerId: string) => void;
     handleAnswer: (sdp: RTCSessionDescriptionInit) => void;
-    handleIceCandidate: (candidate: RTCIceCandidateInit) => void;
+    handleIceCandidate: (data: { candidate: RTCIceCandidateInit, sender_id: string }) => void;
     onSignalQuality?: (quality: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
     peerConnectionRef: React.MutableRefObject<RTCPeerConnection | null>;
 }
@@ -30,7 +30,7 @@ export const useWebRTCListeners = ({
     }, [handleAnswer]);
 
     const onIceCandidateReceived = useCallback((data: IceCandidateReceivedPayload) => {
-        handleIceCandidate(data.candidate);
+        handleIceCandidate({ candidate: data.candidate, sender_id: data.sender_id });
     }, [handleIceCandidate]);
 
     useSocketEvent<OfferReceivedPayload>(SocketEvents.OFFER, onOfferReceived);

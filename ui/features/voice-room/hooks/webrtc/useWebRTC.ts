@@ -28,6 +28,9 @@ export const useWebRTC = ({
         pendingCreateOfferRef,
         pendingAnswerRef, 
         pendingIceCandidatesRef,
+        makingOfferRef,
+        ignoringOfferRef,
+        isSettingRemoteAnswerPendingRef,
         iceDebugData,
         setIceDebugData
     } = useWebRTCState();
@@ -41,6 +44,9 @@ export const useWebRTC = ({
         pendingCreateOfferRef,
         pendingAnswerRef,
         pendingIceCandidatesRef,
+        makingOfferRef,
+        ignoringOfferRef,
+        isSettingRemoteAnswerPendingRef,
         mediaManager,
         remoteAudioRef,
         onConnectionStateChange,

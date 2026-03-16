@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
-import { emitSignalStrength } from '@/lib/socket/matching/matching.actions';
+import { useRef, useCallback, useEffect, useState } from 'react';
+import { emitSignalStrength, emitRejoinReady } from '@/lib/socket/matching/matching.actions';
 import { useRoomActions, useWebRTC, useCallRoom, useChat } from '@/hooks';
 import { useRoomEffects } from '@/features/voice-room/hooks/room-effects/useRoomEffects';
 import { useReconnect } from '@/features/voice-room/hooks/reconnect/useReconnect';
@@ -28,6 +28,7 @@ export const useVoiceRoom = ({
 }: UseVoiceRoomProps = {}) => {
     // 1. Hook State
     const { selectedCountry, setSelectedCountry, remoteAudioRef } = useVoiceRoomState();
+    const [localWebRTCConnected, setLocalWebRTCConnected] = useState(false);
 
     // 2. Core Service State
     const {
@@ -40,6 +41,7 @@ export const useVoiceRoom = ({
         setConnected,
         setPartner,
         setPartnerSignalStrength,
+        setPartnerReady,
         setPermissionDenied,
         setHasPromptedForPermission,
         resetState,
@@ -63,9 +65,14 @@ export const useVoiceRoom = ({
             const isCallActive = currentStatus === 'MATCHED' || currentStatus === 'RECONNECTING';
 
             if (state === 'connected') {
-                setConnected(true);
-                setSearching(false);
+                setLocalWebRTCConnected(true);
                 setPartnerSignalStrength('good');
+                
+                // Tell the partner we are ready on our end
+                const latestPartnerId = actionsRef.current?.callRoomState.partner_id;
+                if (latestPartnerId) {
+                    emitRejoinReady(latestPartnerId);
+                }
             }
             else if (state === 'disconnected') {
                 if (isCallActive) setPartnerSignalStrength('reconnecting');
@@ -112,6 +119,7 @@ export const useVoiceRoom = ({
         initMediaManager,
         cleanupMedia,
         setHasPromptedForPermission,
+        setPartnerReady,
         isDirectCall: !!initialMatchData,
     });
     actionsRef.current = baseActions;
@@ -132,6 +140,7 @@ export const useVoiceRoom = ({
         findMatch: baseActions.findMatch,
         handleUserStop: baseActions.handleUserStop,
         onMatchFound: baseActions.onMatchFound,
+        setPartnerReady,
     });
 
     // 9. Reconnection Logic
@@ -155,6 +164,26 @@ export const useVoiceRoom = ({
         initialReconnecting,
         initialCallData,
     });
+
+    // 10. Dual-Ack Synchronization Gate (MOVED AFTER isReconnecting)
+    // This effect ensures that the "Reconnecting" UI only clears when BOTH 
+    // the local WebRTC is connected AND the partner has signaled they are ready.
+    useEffect(() => {
+        const isRejoining = isReconnecting || actionsRef.current?.matching.status === 'RECONNECTING';
+        
+        if (localWebRTCConnected) {
+            // For normal matches, we don't need to wait for partner_ready (signaling is already robust)
+            // But for RECONNECTIONS, we wait to ensure a perfectly synchronized UI bridge.
+            if (!isRejoining || callRoomState.partner_ready) {
+                setConnected(true);
+                setSearching(false);
+                clearReconnectState?.();
+                // Reset sync flags for next session
+                setLocalWebRTCConnected(false);
+                setPartnerReady(false);
+            }
+        }
+    }, [localWebRTCConnected, callRoomState.partner_ready, isReconnecting, setConnected, setSearching, clearReconnectState, setPartnerReady]);
 
     // 10. Call Statistics/Duration
     const callDuration = useCallDuration(callRoomState.is_connected);

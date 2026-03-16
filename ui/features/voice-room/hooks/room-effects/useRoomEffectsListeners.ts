@@ -5,18 +5,22 @@ import { PartnerMuteStatePayload, PartnerSignalStrengthPayload } from '../../../
 interface UseRoomEffectsListenersProps {
     setPartnerIsMuted: (muted: boolean) => void;
     setPartnerSignalStrength: (strength: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
+    setPartnerReady: (ready: boolean) => void;
 }
 
 export const useRoomEffectsListeners = ({
     setPartnerIsMuted,
     setPartnerSignalStrength,
+    setPartnerReady,
 }: UseRoomEffectsListenersProps) => {
     // Partner media state listeners
     const handlePartnerMute = useRef((data: PartnerMuteStatePayload) => setPartnerIsMuted(data.is_muted));
     const handlePartnerSignal = useRef((data: PartnerSignalStrengthPayload) => setPartnerSignalStrength(data.strength));
+    const handlePartnerReady = useRef(() => setPartnerReady(true));
 
     useEffect(() => { handlePartnerMute.current = (data) => setPartnerIsMuted(data.is_muted); }, [setPartnerIsMuted]);
     useEffect(() => { handlePartnerSignal.current = (data) => setPartnerSignalStrength(data.strength); }, [setPartnerSignalStrength]);
+    useEffect(() => { handlePartnerReady.current = () => setPartnerReady(true); }, [setPartnerReady]);
 
     useSocketEvent<PartnerMuteStatePayload>(
         SocketEvents.PARTNER_MUTE_STATE,
@@ -25,5 +29,9 @@ export const useRoomEffectsListeners = ({
     useSocketEvent<PartnerSignalStrengthPayload>(
         SocketEvents.PARTNER_SIGNAL_STRENGTH,
         useRef((data: PartnerSignalStrengthPayload) => handlePartnerSignal.current(data)).current
+    );
+    useSocketEvent(
+        SocketEvents.PARTNER_REJOIN_READY,
+        useRef(() => handlePartnerReady.current()).current
     );
 };

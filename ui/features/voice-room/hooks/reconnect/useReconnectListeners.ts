@@ -14,7 +14,8 @@ export const useReconnectListeners = ({
     handlePartnerReconnected,
 }: UseReconnectListenersProps) => {
     useSocketEvent(SocketEvents.IDENTIFY_SUCCESS, handleIdentified);
-    useSocketEvent(SocketEvents.REJOIN_SUCCESS, clearImmediately);
+    // REMOVED: useSocketEvent(SocketEvents.REJOIN_SUCCESS, clearImmediately); 
+    // This previously caused the UI to flicker before WebRTC was ready.
     useSocketEvent(SocketEvents.REJOIN_FAILED, handleRejoinFailed);
     useSocketEvent(SocketEvents.CALL_ENDED, clearImmediately);
     useSocketEvent(SocketEvents.PARTNER_RECONNECTED, handlePartnerReconnected);

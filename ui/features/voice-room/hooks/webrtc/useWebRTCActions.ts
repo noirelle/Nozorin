@@ -5,6 +5,7 @@ import {
     emitAnswer,
     emitIceCandidate,
 } from '../../../../lib/socket/matching/matching.actions';
+import { getSocketClient } from '../../../../lib/socket/core/socketClient';
 import { UseWebRTCStateReturn, IceDebugData } from './useWebRTCState';
 
 interface UseWebRTCActionsProps extends UseWebRTCStateReturn {
@@ -26,6 +27,9 @@ export const useWebRTCActions = ({
     pendingCreateOfferRef,
     pendingAnswerRef,
     pendingIceCandidatesRef,
+    makingOfferRef,
+    ignoringOfferRef,
+    isSettingRemoteAnswerPendingRef,
     mediaManager,
     remoteAudioRef,
     onConnectionStateChange,
@@ -144,29 +148,26 @@ export const useWebRTCActions = ({
 
 
     const processQueuedIceCandidates = useCallback(async (pc: RTCPeerConnection) => {
-        const queued = pendingIceCandidatesRef.current.length;
-        if (!pc.remoteDescription || queued === 0) {
-            return;
-        }
         const candidates = [...pendingIceCandidatesRef.current];
         pendingIceCandidatesRef.current = [];
         for (const candidate of candidates) {
-            try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); }
+            try { 
+                await pc.addIceCandidate(new RTCIceCandidate(candidate)); 
+            }
             catch (_e) { }
         }
     }, [pendingIceCandidatesRef]);
 
     const closePeerConnection = useCallback(() => {
         if (peerConnectionRef.current) {
-            // CRITICAL: We DO NOT stop sender tracks here. 
-            // sender.track.stop() kills the microphone hardware, meaning the user 
-            // loses audio for ALL subsequent sessions until a page refresh.
-            // cleanupMedia() should be used when the hardware needs to be released.
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }
         if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
-    }, [peerConnectionRef, remoteAudioRef]);
+        makingOfferRef.current = false;
+        ignoringOfferRef.current = false;
+        isSettingRemoteAnswerPendingRef.current = false;
+    }, [peerConnectionRef, remoteAudioRef, makingOfferRef, ignoringOfferRef, isSettingRemoteAnswerPendingRef]);
 
     const createOffer = useCallback(async (partnerId: string, options?: RTCOfferOptions) => {
         if (!is_media_ready) {
@@ -175,41 +176,68 @@ export const useWebRTCActions = ({
         }
 
         const pc = peerConnectionRef.current || createPeerConnection(partnerId);
-        if (!pc) {
-            return;
+        if (!pc) return;
+
+        try {
+            makingOfferRef.current = true;
+            const offer = await pc.createOffer(options);
+            // Glare Check: if someone else's offer arrived while we were creating ours, 
+            // signalllingState might no longer be stable.
+            if (pc.signalingState !== 'stable') return;
+
+            await pc.setLocalDescription(offer);
+            emitOffer(partnerId, offer);
+        } catch (err) {
+            console.error('[WebRTC] Error creating offer:', err);
+        } finally {
+            makingOfferRef.current = false;
         }
-        const offer = await pc.createOffer(options);
-        await pc.setLocalDescription(offer);
-        emitOffer(partnerId, offer);
-    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingCreateOfferRef]);
+    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingCreateOfferRef, makingOfferRef]);
 
     useEffect(() => {
         createOfferRef.current = createOffer;
     }, [createOffer]);
 
     const handleOffer = useCallback(async (sdp: RTCSessionDescriptionInit, callerId: string) => {
+        // Echo Check: ignore if we receive our own offer (possible in User-Rooms)
+        const s = getSocketClient();
+        if (s && s.id === callerId) return;
+
         if (!is_media_ready) {
             pendingOfferRef.current = { sdp, callerId };
             return;
         }
 
-        if (!peerConnectionRef.current) {
-            createPeerConnection(callerId);
-        }
-        const pc = peerConnectionRef.current;
-        if (!pc) {
-            return;
-        }
+        const pc = peerConnectionRef.current || createPeerConnection(callerId);
+        if (!pc) return;
 
         try {
-            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            const isPolite = (role === 'answerer');
+            const offerCollision = (makingOfferRef.current || pc.signalingState !== 'stable');
+
+            ignoringOfferRef.current = !isPolite && offerCollision;
+            if (ignoringOfferRef.current) {
+                return;
+            }
+
+            if (offerCollision) {
+                // Perfect Negotiation: Polite peer rolls back
+                await Promise.all([
+                    pc.setLocalDescription({ type: 'rollback' } as any).catch(() => {}),
+                    pc.setRemoteDescription(new RTCSessionDescription(sdp))
+                ]);
+            } else {
+                await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            }
+
             await processQueuedIceCandidates(pc);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             emitAnswer(callerId, answer);
-        } catch (_e) {
+        } catch (err: any) {
+            console.error('[WebRTC] Error handling offer:', err);
         }
-    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingOfferRef, processQueuedIceCandidates]);
+    }, [createPeerConnection, peerConnectionRef, is_media_ready, pendingOfferRef, processQueuedIceCandidates, role, makingOfferRef, ignoringOfferRef]);
 
     const handleAnswer = useCallback(async (sdp: RTCSessionDescriptionInit) => {
         if (!is_media_ready) {
@@ -218,35 +246,46 @@ export const useWebRTCActions = ({
         }
 
         const pc = peerConnectionRef.current;
-        if (!pc) {
-            return;
-        }
+        if (!pc) return;
+
         try {
+            isSettingRemoteAnswerPendingRef.current = true;
             await pc.setRemoteDescription(new RTCSessionDescription(sdp));
             await processQueuedIceCandidates(pc);
-        } catch (_e) {
+        } catch (err) {
+            console.error('[WebRTC] Error handling answer:', err);
+        } finally {
+            isSettingRemoteAnswerPendingRef.current = false;
         }
-    }, [peerConnectionRef, is_media_ready, pendingAnswerRef, processQueuedIceCandidates]);
+    }, [peerConnectionRef, is_media_ready, pendingAnswerRef, processQueuedIceCandidates, isSettingRemoteAnswerPendingRef]);
 
-    const handleIceCandidate = useCallback(async (candidate: RTCIceCandidateInit) => {
+    const handleIceCandidate = useCallback(async (data: { candidate: RTCIceCandidateInit, sender_id: string }) => {
+        // Echo Check
+        const s = getSocketClient();
+        if (s && s.id === data.sender_id) return;
+
         const pc = peerConnectionRef.current;
-
-        // Candidates MUST NOT be added before remote description is set
-        if (!pc || !pc.remoteDescription || pc.signalingState === 'closed') {
-            pendingIceCandidatesRef.current.push(candidate);
-            return;
-        }
+        const candidate = data.candidate;
 
         try {
+            if (!pc || !pc.remoteDescription) {
+                pendingIceCandidatesRef.current.push(candidate);
+                return;
+            }
+
+            // Candidates MUST NOT be added during certain signaling states in some browsers
+            if (pc.signalingState === 'closed' || ignoringOfferRef.current) return;
+
             const iceCandidate = new RTCIceCandidate(candidate);
             setIceDebugData(prev => ({
                 ...prev,
                 remoteCandidates: [...prev.remoteCandidates, iceCandidate]
             }));
             await pc.addIceCandidate(iceCandidate);
-        } catch (_e) {
+        } catch (err) {
+            // Ignore small timing errors for ICE
         }
-    }, [peerConnectionRef, pendingIceCandidatesRef, setIceDebugData]);
+    }, [peerConnectionRef, pendingIceCandidatesRef, setIceDebugData, ignoringOfferRef]);
 
 
     useEffect(() => {

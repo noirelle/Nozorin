@@ -120,8 +120,9 @@ export const useReconnect = ({
     const handlePartnerReconnected = useCallback((_data: { new_socket_id: string; new_user_id: string }) => {
         if (rejoinRetryTimerRef.current) { clearTimeout(rejoinRetryTimerRef.current); rejoinRetryTimerRef.current = null; }
         rejoinRetryRef.current = 0;
-        setIsReconnecting(false);
-    }, [setIsReconnecting]);
+        // setIsReconnecting(false) is DEFERRED until WebRTC is actually 'connected' 
+        // to ensure synchronized UI transitions.
+    }, []);
 
     useEffect(() => {
         if (isReconnecting) reconnectStartRef.current = Date.now();

@@ -73,3 +73,8 @@ export function emitPing(): void {
     if (!socket) return;
     socket.emit(SocketEvents.PING);
 }
+export function emitRejoinReady(target: string): void {
+    const socket = getSocketClient();
+    if (!socket) return void console.warn('[Socket] Client not ready, cannot emit rejoin-ready');
+    socket.emit(SocketEvents.REJOIN_READY, { target });
+}

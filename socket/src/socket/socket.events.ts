@@ -27,6 +27,8 @@ export const SocketEvents = {
     CANCEL_RECONNECT: 'cancel-reconnect',
     PARTNER_RECONNECTING: 'partner-reconnecting',
     PARTNER_RECONNECTED: 'partner-reconnected',
+    REJOIN_READY: 'rejoin-ready',
+    PARTNER_REJOIN_READY: 'partner-rejoin-ready',
 
     // ── WebRTC Signaling ─────────────────────────────────────────────────────
     OFFER: 'offer',
