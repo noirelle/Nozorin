@@ -19,10 +19,14 @@ export const presenceService = {
             });
             
             // Broadcast to admin room for real-time sorting and status display
+            // We include the full profile so the admin panel can append "new" users in real-time
+            const profile = isOnline ? await userService.getUserProfile(userId) : null;
+
             io.to('admin:users').emit(SocketEvents.ADMIN_USER_ACTIVE, { 
                 user_id: userId, 
                 last_active_at: Date.now(),
-                is_online: isOnline
+                is_online: isOnline,
+                profile: profile // Include profile for real-time appending
             });
         } catch (err) {
             logger.error({ err, userId }, '[PRESENCE] Failed to broadcast status');
