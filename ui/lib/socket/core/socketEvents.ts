@@ -63,6 +63,8 @@ export const SocketEvents = {
     WATCH_USER_STATUS: 'watch-user-status',
     UNWATCH_USER_STATUS: 'unwatch-user-status',
     PARTNER_STATUS_CHANGE: 'partner-status-change',
+    ADMIN_USER_ACTIVE: 'admin-user-active',
+    JOIN_ADMIN_ROOM: 'join-admin-room',
 
     // ── Stats ─────────────────────────────────────────────────────────────────
     STATS_UPDATE: 'stats-update',

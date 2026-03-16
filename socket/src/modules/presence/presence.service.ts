@@ -12,6 +12,12 @@ export const presenceService = {
         try {
             const status = await userService.getUserStatus(userId);
             io.to(`status:${userId}`).emit(SocketEvents.PARTNER_STATUS_CHANGE, { user_id: userId, status });
+            
+            // Broadcast to admin room for real-time sorting
+            io.to('admin:users').emit(SocketEvents.ADMIN_USER_ACTIVE, { 
+                user_id: userId, 
+                last_active_at: Date.now() 
+            });
         } catch (err) {
             logger.error({ err, userId }, '[PRESENCE] Failed to broadcast status');
         }
@@ -65,6 +71,16 @@ export const register = (io: Server, socket: Socket): void => {
         const { user_ids } = data;
         if (!user_ids || !Array.isArray(user_ids)) return;
         user_ids.forEach(uid => { if (uid) socket.leave(`status:${uid}`); });
+    });
+    
+    socket.on(SocketEvents.JOIN_ADMIN_ROOM, () => {
+        const userData = (socket as any).data?.user;
+        if (userData?.user_type === 'admin') {
+            socket.join('admin:users');
+            logger.info({ socketId: socket.id }, '[PRESENCE] Admin joined admin:users room');
+        } else {
+            logger.warn({ socketId: socket.id }, '[PRESENCE] Unauthorized JOIN_ADMIN_ROOM attempt');
+        }
     });
 
     // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
