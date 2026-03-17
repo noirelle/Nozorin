@@ -19,7 +19,9 @@ import {
     Activity,
     Users as UsersIcon,
     History,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Pencil,
+    Trash2
 } from 'lucide-react';
 import ReactCountryFlag from 'react-country-flag';
 import { FilterModal } from './FilterModal';
@@ -258,10 +260,31 @@ export const UsersManagement: React.FC = () => {
                                             </div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-5 text-right">
-                                        <button className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
-                                            <MoreHorizontal className="w-5 h-5 text-zinc-400" />
-                                        </button>
+                                    <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-xl p-0.5">
+                                                <button 
+                                                    onClick={() => handleUserClick(user.id)}
+                                                    className="p-1.5 hover:bg-white text-zinc-400 hover:text-indigo-600 rounded-lg transition-all shadow-sm hover:shadow-zinc-200/50"
+                                                    title="View/Edit Details"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedUserId(user.id);
+                                                        setIsDetailModalOpen(true);
+                                                    }}
+                                                    className="p-1.5 hover:bg-white text-zinc-400 hover:text-rose-600 rounded-lg transition-all shadow-sm hover:shadow-rose-100/50"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <button className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400">
+                                                <MoreHorizontal className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

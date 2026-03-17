@@ -5,9 +5,27 @@ import { AppDataSource } from '../../core/config/database.config';
 import { User } from '../user/user.entity';
 import { CallHistory } from '../session/history.entity';
 import { Friend } from '../friend/friend.entity';
+import { FriendRequest } from '../friend/friend-request.entity';
 import { getRedisClient } from '../../core/config/redis.config';
+import { adminClient } from '../../integrations/socket/admin/admin.client';
 
-const ADMIN_PASSWORD = process.env.ADMIN_PANEL_PASSWORD;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.ADMIN_PANEL_PASSWORD;
+
+/** Helper to clear all Redis keys related to a user */
+async function clearUserFullCache(userId: string): Promise<void> {
+    const redis = getRedisClient();
+    if (!redis) return;
+    try {
+        await redis.del(
+            `user:${userId}`,
+            `user:status:${userId}`,
+            `user:exists:${userId}`,
+            `temp_user:${userId}`
+        );
+    } catch (error) {
+        console.error(`[ADMIN] Redis cleanup error for user ${userId}:`, error);
+    }
+}
 
 export const adminController = {
     async login(req: Request, res: Response) {
@@ -265,6 +283,150 @@ export const adminController = {
 
         } catch (error) {
             console.error('[ADMIN] Get user details error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
+    },
+
+    async updateUser(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const { username, gender } = req.body;
+
+            const userRepository = AppDataSource.getRepository(User);
+            const user = await userRepository.findOneBy({ id: userId });
+
+            if (!user) {
+                return res.status(404).json(errorResponse('User not found'));
+            }
+
+            // Update allowed fields
+            if (username) user.username = username;
+            if (gender) user.gender = gender;
+
+            await userRepository.save(user);
+
+            // Clear ALL Redis status caches & profile cache
+            await clearUserFullCache(userId);
+
+            // Notify user and friends about the profile change
+            try {
+                await adminClient.updateUserProfile(userId, user);
+            } catch (err) {
+                console.error('[ADMIN] Failed to notify socket service of profile update:', err);
+            }
+
+            return res.status(200).json(successResponse(user, 'User updated successfully'));
+        } catch (error) {
+            console.error('[ADMIN] Update user error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
+    },
+
+    async deleteUser(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+
+            const userRepository = AppDataSource.getRepository(User);
+            const user = await userRepository.findOneBy({ id: userId });
+
+            if (!user) {
+                return res.status(404).json(errorResponse('User not found'));
+            }
+
+            // 1. Notify friends before deleting from DB
+            try {
+                await adminClient.notifyUserDeleted(userId);
+            } catch (err) {
+                console.error('[ADMIN] Failed to notify friends of user deletion:', err);
+            }
+
+            // 2. Manual Cleanup of related records to avoid constraint errors
+            try {
+                // Delete Call History
+                await AppDataSource.getRepository(CallHistory).delete({ user_id: userId });
+                
+                // Delete Friendships (both sides)
+                await AppDataSource.getRepository(Friend).delete([
+                    { user_id: userId },
+                    { friend_id: userId }
+                ]);
+
+                // Delete Friend Requests (both sides)
+                await AppDataSource.getRepository(FriendRequest).delete([
+                    { sender_id: userId },
+                    { receiver_id: userId }
+                ]);
+
+            } catch (err) {
+                console.error('[ADMIN] Manual cleanup failed during user deletion:', err);
+                // We continue anyway, as userRepository.remove(user) might still work or give more specific error
+            }
+
+            // 3. Delete from DB
+            await userRepository.remove(user);
+
+            // 4. Thorough Redis cleanup
+            await clearUserFullCache(userId);
+
+            // 5. Force disconnect from Socket Service
+            try {
+                await adminClient.disconnectUser(userId);
+            } catch (err) {
+                console.error('[ADMIN] Failed to notify socket service of user deletion:', err);
+            }
+
+            return res.status(200).json(successResponse(null, 'User deleted successfully'));
+        } catch (error) {
+            console.error('[ADMIN] Delete user error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
+    },
+
+    async deleteCallHistory(req: Request, res: Response) {
+        try {
+            const { historyId } = req.params;
+            const historyRepo = AppDataSource.getRepository(CallHistory);
+            
+            const history = await historyRepo.findOneBy({ id: historyId });
+            if (!history) {
+                return res.status(404).json(errorResponse('History record not found'));
+            }
+
+            await historyRepo.remove(history);
+            return res.status(200).json(successResponse(null, 'History record deleted successfully'));
+        } catch (error) {
+            console.error('[ADMIN] Delete history error:', error);
+            return res.status(500).json(errorResponse('Internal server error', error));
+        }
+    },
+
+    async deleteFriend(req: Request, res: Response) {
+        try {
+            const { friendId } = req.params;
+            const friendRepo = AppDataSource.getRepository(Friend);
+
+            const friend = await friendRepo.findOneBy({ id: friendId });
+            if (!friend) {
+                return res.status(404).json(errorResponse('Friend record not found'));
+            }
+
+            const { user_id, friend_id } = friend;
+
+            await friendRepo.remove(friend);
+
+            // Notify both users via socket
+            try {
+                await Promise.all([
+                    adminClient.notifyFriendRemoved(user_id, friend_id),
+                    adminClient.notifyFriendRemoved(friend_id, user_id)
+                ]);
+            } catch (err) {
+                console.error('[ADMIN] Failed to notify users of friend removal:', err);
+            }
+
+            return res.status(200).json(successResponse(null, 'Friendship removed successfully'));
+        } catch (error) {
+            console.error('[ADMIN] Delete friend error:', error);
             return res.status(500).json(errorResponse('Internal server error', error));
         }
     }

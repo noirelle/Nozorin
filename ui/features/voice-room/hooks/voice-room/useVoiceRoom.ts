@@ -42,6 +42,7 @@ export const useVoiceRoom = ({
         setPartner,
         setPartnerSignalStrength,
         setPartnerReady,
+        updatePartnerProfile,
         setPermissionDenied,
         setHasPromptedForPermission,
         resetState,
@@ -141,6 +142,7 @@ export const useVoiceRoom = ({
         handleUserStop: baseActions.handleUserStop,
         onMatchFound: baseActions.onMatchFound,
         setPartnerReady,
+        updatePartnerProfile,
     });
 
     // 9. Reconnection Logic

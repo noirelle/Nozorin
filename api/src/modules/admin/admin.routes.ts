@@ -13,5 +13,9 @@ router.post('/logout', adminController.logout);
 router.get('/get-status', authenticateToken, isAdmin, adminController.getStats);
 router.get('/users', authenticateToken, isAdmin, adminController.listUsers);
 router.get('/users/:userId', authenticateToken, isAdmin, adminController.getUserDetails);
+router.patch('/users/:userId', authenticateToken, isAdmin, adminController.updateUser);
+router.delete('/users/:userId', authenticateToken, isAdmin, adminController.deleteUser);
+router.delete('/history/:historyId', authenticateToken, isAdmin, adminController.deleteCallHistory);
+router.delete('/friends/:friendId', authenticateToken, isAdmin, adminController.deleteFriend);
 
 export default router;

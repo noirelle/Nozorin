@@ -36,7 +36,7 @@ export const useUsersManagementActions = (state: UseUsersManagementStateReturn) 
     }, [searchTerm, debouncedSearch, setDebouncedSearch, setPage]);
 
     // 2. Fetch Users logic
-    const fetchUsers = useCallback(async () => {
+    const fetchUsers = useCallback(async (force = false) => {
         const currentHash = JSON.stringify({
             page,
             limit,
@@ -47,7 +47,8 @@ export const useUsersManagementActions = (state: UseUsersManagementStateReturn) 
         });
 
         // Skip if we already started/finished a fetch with these exact parameters
-        if (globalLastFetchHash === currentHash) return;
+        // unless we are forced to refresh
+        if (!force && globalLastFetchHash === currentHash) return;
         
         globalLastFetchHash = currentHash;
         setIsLoading(true);
