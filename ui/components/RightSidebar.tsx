@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon, Loader2, X } from 'lucide-react';
 import { useUser } from '@/hooks';
-import { usePresenceTick } from '@/hooks/usePresenceTick';
 import { getAvatarUrl } from '@/utils/avatar';
-import { formatTimeAgo, formatDuration, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
+import { formatDuration, formatDisconnectReason } from '@/utils/time';
+import { TimeAgo } from '@/components/common/TimeAgo';
 
 const mockUsernames = [
     'nova_storm',
@@ -104,7 +104,6 @@ export const RightSidebar = React.memo(({
     isBusy = false
 }: RightSidebarProps = {}) => {
     const { user } = useUser();
-    usePresenceTick(); // Re-render every minute to update relative time labels
     const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'activity'>('friends');
     const isVoiceGame = variant === 'voice';
 
@@ -176,7 +175,7 @@ export const RightSidebar = React.memo(({
                 username: profile.username || 'Unknown',
                 avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
                 country: profile.country || 'US',
-                time: formatFullTimeAgo(req.created_at)
+                createdAt: req.created_at
             };
         });
     }, [pendingRequests]);
@@ -196,7 +195,7 @@ export const RightSidebar = React.memo(({
                 username: profile.username || 'Unknown',
                 avatar: profile.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=Str",
                 country: profile.country || 'US',
-                status: formatFullTimeAgo(req.created_at)
+                createdAt: req.created_at
             };
         });
     }, [sentRequests]);
@@ -281,7 +280,7 @@ export const RightSidebar = React.memo(({
                                                         {user.isDeleted ? (
                                                             <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
                                                         ) : (
-                                                            user.isActive ? 'Active Now' : formatFullTimeAgo(user.lastSeen)
+                                                            user.isActive ? 'Active Now' : <TimeAgo timestamp={user.lastSeen} full />
                                                         )}
                                                     </p>
                                                 </div>
@@ -330,7 +329,9 @@ export const RightSidebar = React.memo(({
                                                                     <p className="text-[12px] font-bold text-zinc-900">{req.username}</p>
                                                                     {req.country && <ReactCountryFlag countryCode={req.country} svg className="w-3 h-3 rounded-sm shadow-sm" />}
                                                                 </div>
-                                                                <p className="text-[9px] font-medium text-zinc-400">{req.time}</p>
+                                                                <p className="text-[9px] font-medium text-zinc-400">
+                                                                    <TimeAgo timestamp={req.createdAt} full />
+                                                                </p>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1.5">
@@ -365,12 +366,9 @@ export const RightSidebar = React.memo(({
                                                                 {p.country && <ReactCountryFlag countryCode={p.country} svg className="w-3 h-3 rounded-sm grayscale" />}
                                                             </div>
                                                         </div>
-                                                        <ActionButton
-                                                            onClick={onCancelRequest ? () => onCancelRequest(p.id) : undefined}
-                                                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-600 transition-colors bg-transparent border-none p-0 outline-none flex items-center opacity-100 disabled:opacity-50 gap-1"
-                                                            icon={X}
-                                                            title="Cancel Request"
-                                                        />
+                                                        <p className="text-[11px] font-bold text-zinc-600">
+                                                            <TimeAgo timestamp={p.createdAt} full />
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -407,7 +405,7 @@ export const RightSidebar = React.memo(({
                                                             <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-700 font-bold">{user.duration}</span>
                                                         </p>
                                                         <p className="text-[9px] font-medium text-zinc-500">
-                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold">{formatFullTimeAgo(user.createdAt)}</span>
+                                                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-700 font-bold"><TimeAgo timestamp={user.createdAt} full /></span>
                                                         </p>
                                                         {user.disconnectReason && (
                                                             <p className="text-[9px] font-medium text-zinc-500">
@@ -418,7 +416,7 @@ export const RightSidebar = React.memo(({
                                                             {user.isDeleted ? (
                                                                 <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
                                                             ) : (
-                                                                user.isActive ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`
+                                                                user.isActive ? 'Active Now' : <TimeAgo timestamp={user.lastSeen} full prefix="Active " />
                                                             )}
                                                         </p>
                                                     </div>

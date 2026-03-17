@@ -24,10 +24,10 @@ import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
-import { usePresenceTick } from '@/hooks/usePresenceTick';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
-import { formatTimeAgo, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
+import { formatDisconnectReason } from '@/utils/time';
+import { TimeAgo } from '@/components/common/TimeAgo';
 import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
@@ -62,7 +62,6 @@ export const MobileVoiceLayout = ({
     searchTimer
 }: MobileVoiceLayoutProps) => {
     const { stats, isConnected: isSocketConnected } = useStatsContext();
-    usePresenceTick(); // Re-render every minute to update relative time labels
     const {
         callRoomState,
         messages,
@@ -606,7 +605,7 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                             <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-800 font-bold">{Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s</span>
                         </p>
                         <p className="text-[10px] font-medium text-zinc-500">
-                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
+                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold"><TimeAgo timestamp={item.created_at} full /></span>
                         </p>
                         {item.disconnect_reason && (
                             <p className="text-[10px] font-medium text-zinc-500">
@@ -617,7 +616,7 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                                     {item.partner_status?.is_deleted ? (
                                         <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
                                     ) : (
-                                        item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)
+                                        item.partner_status?.is_online ? 'Active Now' : <TimeAgo timestamp={item.partner_status?.last_seen || item.partner_status?.last_active_at} full />
                                     )}
                                 </p>
                     </div>
@@ -692,7 +691,7 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
                                         {f.is_deleted ? (
                                             <span className="text-rose-500 font-bold">Account Deleted</span>
                                         ) : (
-                                            f.is_online ? 'Active now' : formatFullTimeAgo(f.last_seen || f.last_active_at)
+                                            f.is_online ? 'Active now' : <TimeAgo timestamp={f.last_seen || f.last_active_at} full />
                                         )}
                                     </span>
                                 </div>
@@ -814,7 +813,6 @@ const EmptyState = React.memo(({ icon: Icon, title, subtitle }: any) => (
     </div>
 ));
 
-const formatDate = (ts: any) => formatFullTimeAgo(ts);
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
     const countries = [
@@ -909,7 +907,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         </div>
                         <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${user.isOnline ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {user.isOnline ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`} • {user.status}
+                            {user.isOnline ? 'Active Now' : <TimeAgo timestamp={user.lastSeen} full prefix="Active " />} • {user.status}
                         </p>
                     </div>
 
