@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useUsersManagementState } from './useUsersManagementState';
 import { useUsersManagementActions } from './useUsersManagementActions';
 import { useUsersManagementListeners } from './useUsersManagementListeners';
@@ -13,6 +13,13 @@ export const useUsersManagement = () => {
     useUsersManagementListeners({
         setUsers: state.setUsers
     });
+
+    // Refresh listener for manual actions (Edit/Delete)
+    useEffect(() => {
+        const handleRefresh = () => actions.fetchUsers(true);
+        window.addEventListener('admin:refresh-users', handleRefresh);
+        return () => window.removeEventListener('admin:refresh-users', handleRefresh);
+    }, [actions]);
 
     const totalPages = useMemo(() =>
         Math.ceil(state.total / state.limit),
@@ -30,6 +37,8 @@ export const useUsersManagement = () => {
         statusFilter: state.statusFilter,
         activeSinceFilter: state.activeSinceFilter,
         isFilterModalOpen: state.isFilterModalOpen,
+        selectedUserId: state.selectedUserId,
+        isDetailModalOpen: state.isDetailModalOpen,
 
         // Setter Actions
         setPage: state.setPage,
@@ -38,6 +47,8 @@ export const useUsersManagement = () => {
         setStatusFilter: state.setStatusFilter,
         setActiveSinceFilter: state.setActiveSinceFilter,
         setIsFilterModalOpen: state.setIsFilterModalOpen,
+        setSelectedUserId: state.setSelectedUserId,
+        setIsDetailModalOpen: state.setIsDetailModalOpen,
 
         // Business Actions
         fetchUsers: actions.fetchUsers,

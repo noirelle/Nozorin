@@ -43,5 +43,29 @@ router.post('/emit', (req: Request, res: Response) => {
     res.json({ emitted: true });
 });
 
+/**
+ * POST /internal/disconnect
+ * Body: { userId: string }
+ * Forces a disconnection for a specific userId.
+ */
+router.post('/disconnect', (req: Request, res: Response) => {
+    const { userId } = req.body as { userId: string };
+
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    if (!_ioInstance) return res.status(503).json({ error: 'Socket server not ready' });
+
+    const socketId = userService.getSocketId(userId);
+
+    if (socketId) {
+        const socket = _ioInstance.sockets.sockets.get(socketId);
+        if (socket) {
+            socket.disconnect(true);
+            return res.json({ disconnected: true, socketId });
+        }
+    }
+
+    res.json({ disconnected: false, message: 'No active socket found' });
+});
+
 export default router;
 

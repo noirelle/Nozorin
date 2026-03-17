@@ -65,4 +65,28 @@ router.post('/status', async (req: Request, res: Response) => {
     res.json({ onlineUsers });
 });
 
+/**
+ * POST /internal/friends/profile-update
+ * Broadcast profile changes to the user and their friends
+ */
+router.post('/profile-update', async (req: Request, res: Response) => {
+    const { userId, profile } = req.body;
+    if (!userId || !profile) return res.status(400).json({ error: 'userId and profile required' });
+
+    await friendsService.notifyProfileUpdated(userId, profile);
+    res.json({ notified: true });
+});
+
+/**
+ * POST /internal/friends/user-deleted
+ * Notify friends that a user has been deleted
+ */
+router.post('/user-deleted', async (req: Request, res: Response) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    await friendsService.notifyUserDeleted(userId);
+    res.json({ notified: true });
+});
+
 export default router;

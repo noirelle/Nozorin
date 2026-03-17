@@ -16,6 +16,8 @@ export const useUsersManagementState = () => {
     const [activeSinceFilter, setActiveSinceFilter] = useState('all');
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     return {
         users,
@@ -39,5 +41,9 @@ export const useUsersManagementState = () => {
         setIsFilterModalOpen,
         debouncedSearch,
         setDebouncedSearch,
+        selectedUserId,
+        setSelectedUserId,
+        isDetailModalOpen,
+        setIsDetailModalOpen,
     };
 };

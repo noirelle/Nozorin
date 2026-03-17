@@ -19,11 +19,15 @@ import {
     Activity,
     Users as UsersIcon,
     History,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Pencil,
+    Trash2
 } from 'lucide-react';
+import ReactCountryFlag from 'react-country-flag';
 import { FilterModal } from './FilterModal';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useUsersManagement } from '../hooks/users-management/useUsersManagement';
+import { UserDetailModal } from './UserDetailModal';
 
 const formatRelativeTime = (timestamp: number) => {
     const diff = Date.now() - timestamp;
@@ -56,8 +60,17 @@ export const UsersManagement: React.FC = () => {
         setStatusFilter,
         setActiveSinceFilter,
         setIsFilterModalOpen,
-        totalPages
+        totalPages,
+        selectedUserId,
+        setSelectedUserId,
+        isDetailModalOpen,
+        setIsDetailModalOpen,
     } = useUsersManagement();
+
+    const handleUserClick = (userId: string) => {
+        setSelectedUserId(userId);
+        setIsDetailModalOpen(true);
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -148,7 +161,11 @@ export const UsersManagement: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : users.map((user) => (
-                                <tr key={user.id} className="hover:bg-zinc-50/50 transition-colors group">
+                                <tr 
+                                    key={user.id} 
+                                    onClick={() => handleUserClick(user.id)}
+                                    className="hover:bg-zinc-50/50 transition-colors group cursor-pointer"
+                                >
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -185,12 +202,26 @@ export const UsersManagement: React.FC = () => {
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-2">
                                             {user.country ? (
-                                                <>
-                                                    <span className={`fi fi-${user.country.toLowerCase()} rounded-sm w-5 h-3.5 shadow-sm`} />
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-lg overflow-hidden flex items-center justify-center border border-zinc-100 shadow-sm bg-zinc-50">
+                                                        <ReactCountryFlag 
+                                                            countryCode={user.country} 
+                                                            svg 
+                                                            style={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                objectFit: 'cover'
+                                                            }}
+                                                            title={user.country_name}
+                                                        />
+                                                    </div>
                                                     <span className="text-sm font-semibold text-zinc-700">{user.country_name}</span>
-                                                </>
+                                                </div>
                                             ) : (
-                                                <Globe className="w-4 h-4 text-zinc-300" />
+                                                <div className="flex items-center gap-2 text-zinc-400">
+                                                    <Globe className="w-4 h-4" />
+                                                    <span className="text-sm font-medium italic">Unknown</span>
+                                                </div>
                                             )}
                                         </div>
                                     </td>
@@ -229,10 +260,31 @@ export const UsersManagement: React.FC = () => {
                                             </div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-5 text-right">
-                                        <button className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
-                                            <MoreHorizontal className="w-5 h-5 text-zinc-400" />
-                                        </button>
+                                    <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <div className="flex items-center bg-zinc-50 border border-zinc-100 rounded-xl p-0.5">
+                                                <button 
+                                                    onClick={() => handleUserClick(user.id)}
+                                                    className="p-1.5 hover:bg-white text-zinc-400 hover:text-indigo-600 rounded-lg transition-all shadow-sm hover:shadow-zinc-200/50"
+                                                    title="View/Edit Details"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedUserId(user.id);
+                                                        setIsDetailModalOpen(true);
+                                                    }}
+                                                    className="p-1.5 hover:bg-white text-zinc-400 hover:text-rose-600 rounded-lg transition-all shadow-sm hover:shadow-rose-100/50"
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                            <button className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400">
+                                                <MoreHorizontal className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -256,22 +308,44 @@ export const UsersManagement: React.FC = () => {
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <div className="flex items-center gap-1">
-                                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                                    const pageNum = i + 1; // Simplified for now
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => setPage(pageNum)}
-                                            className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${
-                                                page === pageNum 
-                                                ? 'bg-zinc-900 text-white shadow-lg' 
-                                                : 'bg-white border border-zinc-200 text-zinc-500 hover:border-zinc-900'
-                                            }`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
+                                {(() => {
+                                    const pages: (number | string)[] = [];
+                                    const window = 2; // Pages to show on each side of current page
+                                    
+                                    if (totalPages <= 7) {
+                                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                    } else {
+                                        pages.push(1);
+                                        if (page > window + 2) pages.push('...');
+                                        
+                                        const start = Math.max(2, page - window);
+                                        const end = Math.min(totalPages - 1, page + window);
+                                        
+                                        for (let i = start; i <= end; i++) pages.push(i);
+                                        
+                                        if (page < totalPages - (window + 1)) pages.push('...');
+                                        pages.push(totalPages);
+                                    }
+
+                                    return pages.map((p, i) => {
+                                        if (p === '...') {
+                                            return <span key={`dots-${i}`} className="w-9 h-9 flex items-center justify-center text-zinc-400">...</span>;
+                                        }
+                                        return (
+                                            <button
+                                                key={p}
+                                                onClick={() => setPage(Number(p))}
+                                                className={`w-9 h-9 rounded-xl text-sm font-bold transition-all ${
+                                                    page === p 
+                                                    ? 'bg-zinc-900 text-white shadow-lg' 
+                                                    : 'bg-white border border-zinc-200 text-zinc-500 hover:border-zinc-900'
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        );
+                                    });
+                                })()}
                             </div>
                             <button 
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -284,6 +358,12 @@ export const UsersManagement: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <UserDetailModal 
+                userId={selectedUserId}
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+            />
         </div>
     );
 };

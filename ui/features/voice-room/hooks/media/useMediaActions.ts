@@ -48,6 +48,17 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
         setState(prev => ({ ...prev, partner_ready: ready }));
     }, [setState]);
 
+    const updatePartnerProfile = useCallback((profile: any) => {
+        setState(prev => ({
+            ...prev,
+            partner_country_name: profile.country_name || prev.partner_country_name,
+            partner_country: profile.country || prev.partner_country,
+            partner_username: profile.username || prev.partner_username,
+            partner_avatar: profile.avatar ? getAvatarUrl(profile.avatar) : prev.partner_avatar,
+            partner_gender: profile.gender || prev.partner_gender,
+        }));
+    }, [setState]);
+
     const resetState = useCallback(() => {
         setState(prev => ({
             is_searching: false,
@@ -77,6 +88,7 @@ export const useMediaActions = ({ setState }: UseMediaActionsProps) => {
         setPartner,
         setPartnerSignalStrength,
         setPartnerReady,
+        updatePartnerProfile,
         resetState,
     };
 };

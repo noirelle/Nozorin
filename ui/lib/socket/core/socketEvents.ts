@@ -36,6 +36,8 @@ export const SocketEvents = {
     ICE_CANDIDATE: 'ice-candidate',
     SIGNAL_STRENGTH: 'signal-strength',
     PARTNER_SIGNAL_STRENGTH: 'partner-signal-strength',
+    PARTNER_PROFILE_UPDATED: 'partner-profile-updated',
+    PROFILE_UPDATED: 'profile-updated',
 
     // ── Chat ─────────────────────────────────────────────────────────────────
     SEND_MESSAGE: 'send-message',
