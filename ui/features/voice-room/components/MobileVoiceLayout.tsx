@@ -770,25 +770,22 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
 });
 
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
-    // Ensure we scroll to bottom when the drawer is opened (mounted)
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-        }, 100);
-        return () => clearTimeout(timer);
-    }, [messagesEndRef]);
-
     return (
         <div className="flex flex-col h-full min-h-[50vh]">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide touch-auto">
-                {messages.length > 0 ? messages.map((m: any, i: number) => (
-                    <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
-                            {m.message}
+            <div className="flex-1 overflow-y-auto flex flex-col-reverse gap-4 mb-4 scrollbar-hide touch-auto">
+                {messages.length > 0 ? (
+                    [...messages].reverse().map((m: any, i: number) => (
+                        <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
+                                {m.message}
+                            </div>
                         </div>
+                    ))
+                ) : (
+                     <div className="h-full flex flex-col items-center justify-center opacity-40">
+                        <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />
                     </div>
-                )) : <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />}
-                <div ref={messagesEndRef} />
+                )}
             </div>
             <div className="mt-auto bg-white rounded-full px-4 py-1.5 flex items-center gap-3 border border-zinc-200 focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50 transition-all shadow-sm shrink-0">
                 <input

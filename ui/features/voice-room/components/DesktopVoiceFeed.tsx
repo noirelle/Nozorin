@@ -86,7 +86,6 @@ export const DesktopVoiceFeed = ({
     const isPendingReceived = callRoomState.friendship_status === 'pending_received' || !!pendingReceivedReq;
     const requestId = pendingReceivedReq?.id;
 
-
     return (
         <div className="flex flex-col h-full bg-transparent min-h-0">
             {/* Audio Component */}
@@ -300,10 +299,10 @@ export const DesktopVoiceFeed = ({
             </div>
 
             {/* Discussion Layer */}
-            <div className={`flex-1 flex flex-col justify-end max-h-[450px] min-h-0 pt-4 transition-opacity duration-500 ${!isConnected ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`flex-1 flex flex-col justify-end max-h-[450px] min-h-0 pt-4 ${!isConnected ? 'opacity-20 pointer-events-none' : 'opacity-100 animate-in fade-in duration-500'}`}>
                 {/* Messages List */}
-                <div className="flex-1 overflow-y-auto space-y-4 px-4 scrollbar-hide mt-auto">
-                    {messages.map((msg: any, index: number) => (
+                <div className="flex-1 overflow-y-auto flex flex-col-reverse gap-4 px-4 scrollbar-hide">
+                    {[...messages].reverse().map((msg: any, index: number) => (
                         <div key={index} className={`flex ${msg.isSelf ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${msg.isSelf
                                 ? 'bg-pink-500 text-white shadow-sm'
@@ -313,7 +312,6 @@ export const DesktopVoiceFeed = ({
                             </div>
                         </div>
                     ))}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Bottom Entry Area */}
