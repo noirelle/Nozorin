@@ -770,6 +770,14 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
 });
 
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
+    // Ensure we scroll to bottom when the drawer is opened (mounted)
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [messagesEndRef]);
+
     return (
         <div className="flex flex-col h-full min-h-[50vh]">
             <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide touch-auto">
