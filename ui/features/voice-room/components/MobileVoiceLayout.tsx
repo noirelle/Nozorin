@@ -24,6 +24,7 @@ import ReactCountryFlag from "react-country-flag";
 import { useUser } from '@/hooks';
 import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
+import { usePresenceTick } from '@/hooks/usePresenceTick';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
 import { formatTimeAgo, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
@@ -61,6 +62,7 @@ export const MobileVoiceLayout = ({
     searchTimer
 }: MobileVoiceLayoutProps) => {
     const { stats, isConnected: isSocketConnected } = useStatsContext();
+    usePresenceTick(); // Re-render every minute to update relative time labels
     const {
         callRoomState,
         messages,
@@ -611,9 +613,13 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                                 <span className="text-zinc-400">Reason:</span> <span className="text-pink-500 font-bold uppercase tracking-tight">{formatDisconnectReason(item.disconnect_reason)}</span>
                             </p>
                         )}
-                        <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)}
-                        </p>
+                                <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                                    {item.partner_status?.is_deleted ? (
+                                        <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
+                                    ) : (
+                                        item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)
+                                    )}
+                                </p>
                     </div>
                 </div>
             </div>
@@ -682,7 +688,13 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-zinc-900">{f.username}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : formatFullTimeAgo(f.last_seen || f.last_active_at)}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                                        {f.is_deleted ? (
+                                            <span className="text-rose-500 font-bold">Account Deleted</span>
+                                        ) : (
+                                            f.is_online ? 'Active now' : formatFullTimeAgo(f.last_seen || f.last_active_at)
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">

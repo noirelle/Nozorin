@@ -13,18 +13,23 @@ export const presenceService = {
             const status = await userService.getUserStatus(userId);
             const isOnline = isOnlineOverride !== undefined ? isOnlineOverride : !!status?.is_online;
             
+            const broadcastStatus = {
+                ...status,
+                is_online: isOnline,
+                last_seen: status.last_seen || Date.now()
+            };
+
             io.to(`status:${userId}`).emit(SocketEvents.PARTNER_STATUS_CHANGE, { 
                 user_id: userId, 
-                status: { ...status, is_online: isOnline } 
+                status: broadcastStatus
             });
             
             // Broadcast to admin room for real-time sorting and status display
-            // We include the full profile so the admin panel can append "new" users in real-time
             const profile = isOnline ? await userService.getUserProfile(userId) : null;
 
             io.to('admin:users').emit(SocketEvents.ADMIN_USER_ACTIVE, { 
                 user_id: userId, 
-                last_active_at: Date.now(),
+                last_active_at: broadcastStatus.last_seen,
                 is_online: isOnline,
                 profile: profile // Include profile for real-time appending
             });

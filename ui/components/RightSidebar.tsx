@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import ReactCountryFlag from "react-country-flag";
 import { UserPlus, UserCheck, UserMinus, Phone, Clock, Trash2, Users, Activity, History as HistoryIcon, Loader2, X } from 'lucide-react';
 import { useUser } from '@/hooks';
+import { usePresenceTick } from '@/hooks/usePresenceTick';
 import { getAvatarUrl } from '@/utils/avatar';
 import { formatTimeAgo, formatDuration, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
 
@@ -103,6 +104,7 @@ export const RightSidebar = React.memo(({
     isBusy = false
 }: RightSidebarProps = {}) => {
     const { user } = useUser();
+    usePresenceTick(); // Re-render every minute to update relative time labels
     const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'activity'>('friends');
     const isVoiceGame = variant === 'voice';
 
@@ -127,6 +129,7 @@ export const RightSidebar = React.memo(({
                 duration: formatDuration(callDurationSec),
                 country: item.partner_country || profile.country || 'US',
                 isActive: item.partner_status?.is_online || false,
+                isDeleted: item.partner_status?.is_deleted || false,
                 lastSeen: item.partner_status?.last_seen || item.partner_status?.last_active_at || 0,
                 isFriend: (friends && friends.some(f => f.id === targetUserId)) || item.friendship_status === 'friends',
                 isPendingSent: (sentRequests && sentRequests.some(r => (r.user?.id || r.target_user_id) === targetUserId)) || item.friendship_status === 'pending_sent',
@@ -153,6 +156,7 @@ export const RightSidebar = React.memo(({
             avatar: getAvatarUrl(friend.avatar || friend.username || 'Str'),
             country: friend.country || 'US',
             isActive: friend.is_online || false,
+            isDeleted: friend.is_deleted || false,
             lastSeen: friend.last_seen || friend.last_active_at || 0,
         }));
     }, [friends]);
@@ -274,7 +278,11 @@ export const RightSidebar = React.memo(({
                                                         {user.country && <ReactCountryFlag countryCode={user.country} svg className="w-3.5 h-3.5 rounded-sm shadow-sm" />}
                                                     </div>
                                                     <p className={`text-[10px] font-medium ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                                                        {user.isActive ? 'Active Now' : formatFullTimeAgo(user.lastSeen)}
+                                                        {user.isDeleted ? (
+                                                            <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
+                                                        ) : (
+                                                            user.isActive ? 'Active Now' : formatFullTimeAgo(user.lastSeen)
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
@@ -407,7 +415,11 @@ export const RightSidebar = React.memo(({
                                                             </p>
                                                         )}
                                                         <p className={`text-[9px] font-bold mt-0.5 ${user.isActive ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                                                            {user.isActive ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`}
+                                                            {user.isDeleted ? (
+                                                                <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
+                                                            ) : (
+                                                                user.isActive ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`
+                                                            )}
                                                         </p>
                                                     </div>
                                                 </div>
