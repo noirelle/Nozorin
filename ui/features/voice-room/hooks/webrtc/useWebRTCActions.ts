@@ -42,6 +42,12 @@ export const useWebRTCActions = ({
     const createOfferRef = useRef<((partnerId: string, options?: RTCOfferOptions) => Promise<void>) | null>(null);
     const lastIceRestartRef = useRef<number>(0);
 
+    // Ensure we always use the latest callbacks in long-lived peer connection listeners
+    const onConnectionStateChangeRef = useRef(onConnectionStateChange);
+    const onSignalQualityRef = useRef(onSignalQuality);
+    useEffect(() => { onConnectionStateChangeRef.current = onConnectionStateChange; }, [onConnectionStateChange]);
+    useEffect(() => { onSignalQualityRef.current = onSignalQuality; }, [onSignalQuality]);
+
     const createPeerConnection = useCallback((targetId: string) => {
         const stream = mediaManager.current?.getStream();
         if (!stream) {
@@ -77,7 +83,7 @@ export const useWebRTCActions = ({
             const state = pc.connectionState;
 
             if (state === 'disconnected') {
-                onSignalQuality?.('reconnecting');
+                onSignalQualityRef.current?.('reconnecting');
                 if (role === 'offerer') {
                     const now = Date.now();
                     if ((now - lastIceRestartRef.current) > 5000) {
@@ -87,13 +93,13 @@ export const useWebRTCActions = ({
                 }
             }
             else if (state === 'connected') {
-                onSignalQuality?.('good');
+                onSignalQualityRef.current?.('good');
             }
             else if (state === 'failed') {
             }
 
             // Always notify about state changes so the UI can coordinate transitions
-            onConnectionStateChange?.(state);
+            onConnectionStateChangeRef.current?.(state);
         };
         pc.onsignalingstatechange = updateDebugState;
 
@@ -117,12 +123,17 @@ export const useWebRTCActions = ({
                 }
 
                 // Attempt to play. 
-                // We DON'T catch and mute here for audio-only, because a muted stream 
-                // is useless for a voice chat and just confuses the user.
                 remoteAudioRef.current.play().catch(_e => {
                 });
             } else {
+                // Failsafe for if the ref isn't attached yet (e.g. during fast transitions)
                 const checkRef = setInterval(() => {
+                    // Check if pc is still around and ref exists
+                    if (!peerConnectionRef.current) {
+                        clearInterval(checkRef);
+                        return;
+                    }
+
                     if (remoteAudioRef.current) {
                         remoteAudioRef.current.srcObject = remoteStream;
                         remoteAudioRef.current.play().catch(() => { });
@@ -137,7 +148,7 @@ export const useWebRTCActions = ({
             if (event.candidate) {
                 setIceDebugData(prev => ({
                     ...prev,
-                    localCandidates: [...prev.localCandidates, event.candidate!]
+                    localCandidates: [...prev.localCandidates, event.candidate!].slice(-50)
                 }));
                 emitIceCandidate(targetId, event.candidate);
             }
@@ -279,7 +290,7 @@ export const useWebRTCActions = ({
             const iceCandidate = new RTCIceCandidate(candidate);
             setIceDebugData(prev => ({
                 ...prev,
-                remoteCandidates: [...prev.remoteCandidates, iceCandidate]
+                remoteCandidates: [...prev.remoteCandidates, iceCandidate].slice(-50)
             }));
             await pc.addIceCandidate(iceCandidate);
         } catch (err) {

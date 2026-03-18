@@ -10,7 +10,8 @@ import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
 
-const STATUS_TTL = 60; // 1 minute for status if not updated (real-time approach)
+const ONLINE_TTL = 60; // 1 minute
+const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
@@ -32,6 +33,13 @@ export const userService = {
         if (!existingSockets) {
             userToSockets.set(user_id, new Set([socketId]));
         } else {
+            // Memory guard: cap sockets per user to prevent unbounded Set growth
+            if (existingSockets.size >= 5) {
+                const oldestSocketId = Array.from(existingSockets)[0];
+                existingSockets.delete(oldestSocketId);
+                socketToUser.delete(oldestSocketId);
+                logger.warn({ user_id, removedSocketId: oldestSocketId }, '[USER-SERVICE] Capped sockets per user, removing oldest');
+            }
             existingSockets.add(socketId);
         }
 
@@ -102,17 +110,30 @@ export const userService = {
 
     /** Update user online status and last seen in Redis */
     async updateUserStatus(userId: string, isOnline: boolean) {
+        const lastSeen = Date.now();
         const status = {
             is_online: isOnline,
-            last_seen: Date.now()
+            last_seen: lastSeen
         };
 
         const redis = getRedisClient();
         if (redis) {
             try {
-                await redis.setex(`user:status:${userId}`, STATUS_TTL, JSON.stringify(status));
+                const ttl = isOnline ? ONLINE_TTL : OFFLINE_TTL;
+                await redis.setex(`user:status:${userId}`, ttl, JSON.stringify(status));
             } catch (error) {
                 logger.warn({ error, userId }, '[USER-SERVICE] Redis error updating status');
+            }
+        }
+
+        // If going offline, sync to DB as well
+        if (!isOnline) {
+            try {
+                await userRepository.update(userId, {
+                    last_active_at: lastSeen
+                });
+            } catch (error) {
+                logger.warn({ error, userId }, '[USER-SERVICE] DB error updating last_active_at');
             }
         }
     },
@@ -144,7 +165,21 @@ export const userService = {
                 logger.warn({ error, userId }, '[USER-SERVICE] Redis error getting status');
             }
         }
-        return { is_online: false, last_seen: 0 };
+
+        // Fallback to DB if Redis is empty (helps for users who were offline for > 7 days)
+        try {
+            const user = await userRepository.findOne({ 
+                where: { id: userId },
+                select: ['last_active_at']
+            });
+            if (user) {
+                return { is_online: false, last_seen: Number(user.last_active_at) || 0 };
+            }
+        } catch (error) {
+            logger.warn({ error, userId }, '[USER-SERVICE] DB fallback error getting status');
+        }
+
+        return { is_online: false, last_seen: 0, is_deleted: true };
     },
 
     /** Fetch statuses for multiple users from Redis in a single batch (MGET) */
@@ -171,10 +206,10 @@ export const userService = {
                     try {
                         results[userId] = JSON.parse(statusJson);
                     } catch (e) {
-                        results[userId] = { is_online: false, last_seen: 0 };
+                        results[userId] = { is_online: false, last_seen: 0, is_deleted: true };
                     }
                 } else {
-                    results[userId] = { is_online: false, last_seen: 0 };
+                    results[userId] = { is_online: false, last_seen: 0, is_deleted: true };
                 }
             });
         } catch (error) {

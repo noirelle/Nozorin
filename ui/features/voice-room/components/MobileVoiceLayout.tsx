@@ -26,7 +26,8 @@ import { getAvatarUrl } from '@/utils/avatar';
 import { useVoiceRoom } from '../hooks/voice-room/useVoiceRoom';
 import { useStatsContext } from '@/contexts/StatsContext';
 import { UpcomingBadge } from '@/components/UpcomingBadge';
-import { formatTimeAgo, formatFullTimeAgo, formatDisconnectReason } from '@/utils/time';
+import { formatDisconnectReason } from '@/utils/time';
+import { TimeAgo } from '@/components/common/TimeAgo';
 import { isInAppBrowser, getInAppBrowserName } from '@/utils/browser';
 
 interface MobileVoiceLayoutProps {
@@ -604,16 +605,20 @@ const HistoryItem = React.memo(({ item, friends, sentRequests, pendingRequests, 
                             <span className="text-zinc-400">Talked for:</span> <span className="text-zinc-800 font-bold">{Math.floor((item.duration || 0) / 60)}m {(item.duration || 0) % 60}s</span>
                         </p>
                         <p className="text-[10px] font-medium text-zinc-500">
-                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold">{formatDate(item.created_at)}</span>
+                            <span className="text-zinc-400">Matched:</span> <span className="text-zinc-800 font-bold"><TimeAgo timestamp={item.created_at} full /></span>
                         </p>
                         {item.disconnect_reason && (
                             <p className="text-[10px] font-medium text-zinc-500">
                                 <span className="text-zinc-400">Reason:</span> <span className="text-pink-500 font-bold uppercase tracking-tight">{formatDisconnectReason(item.disconnect_reason)}</span>
                             </p>
                         )}
-                        <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {item.partner_status?.is_online ? 'Active Now' : formatFullTimeAgo(item.partner_status?.last_seen || item.partner_status?.last_active_at)}
-                        </p>
+                                <p className={`text-[10px] font-bold mt-0.5 ${item.partner_status?.is_online ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                                    {item.partner_status?.is_deleted ? (
+                                        <span className="text-rose-500 font-bold uppercase tracking-tight">Account Deleted</span>
+                                    ) : (
+                                        item.partner_status?.is_online ? 'Active Now' : <TimeAgo timestamp={item.partner_status?.last_seen || item.partner_status?.last_active_at} full />
+                                    )}
+                                </p>
                     </div>
                 </div>
             </div>
@@ -682,7 +687,13 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-zinc-900">{f.username}</span>
-                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">{f.is_online ? 'Active now' : formatFullTimeAgo(f.last_seen || f.last_active_at)}</span>
+                                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                                        {f.is_deleted ? (
+                                            <span className="text-rose-500 font-bold">Account Deleted</span>
+                                        ) : (
+                                            f.is_online ? 'Active now' : <TimeAgo timestamp={f.last_seen || f.last_active_at} full />
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400">
@@ -761,15 +772,20 @@ const CommunityView = React.memo(({ friends, pendingRequests, sentRequests, onSe
 const ChatView = ({ messages, onSend, inputText, setInputText, messagesEndRef }: any) => {
     return (
         <div className="flex flex-col h-full min-h-[50vh]">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 scrollbar-hide touch-auto">
-                {messages.length > 0 ? messages.map((m: any, i: number) => (
-                    <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
-                            {m.message}
+            <div className="flex-1 overflow-y-auto flex flex-col-reverse gap-4 mb-4 scrollbar-hide touch-auto">
+                {messages.length > 0 ? (
+                    [...messages].reverse().map((m: any, i: number) => (
+                        <div key={i} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm font-medium ${m.isSelf ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-900 border border-zinc-100 shadow-sm'}`}>
+                                {m.message}
+                            </div>
                         </div>
+                    ))
+                ) : (
+                     <div className="h-full flex flex-col items-center justify-center opacity-40">
+                        <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />
                     </div>
-                )) : <EmptyState icon={MessageCircle} title="Safe space" subtitle="Chat messages in this call will appear here." />}
-                <div ref={messagesEndRef} />
+                )}
             </div>
             <div className="mt-auto bg-white rounded-full px-4 py-1.5 flex items-center gap-3 border border-zinc-200 focus-within:border-pink-300 focus-within:ring-4 focus-within:ring-pink-50 transition-all shadow-sm shrink-0">
                 <input
@@ -802,7 +818,6 @@ const EmptyState = React.memo(({ icon: Icon, title, subtitle }: any) => (
     </div>
 ));
 
-const formatDate = (ts: any) => formatFullTimeAgo(ts);
 
 const CountrySelectView = ({ currentCountry, onSelect, onBack }: { currentCountry: string, onSelect: (code: string) => void, onBack: () => void }) => {
     const countries = [
@@ -897,7 +912,7 @@ const UserOptionsDrawer = ({ user, onClose, onAccept, onDecline, onCancel, onRem
                         </div>
                         <h3 className="text-xl font-black text-zinc-900">{user.username}</h3>
                         <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${user.isOnline ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                            {user.isOnline ? 'Active Now' : `Active ${formatFullTimeAgo(user.lastSeen)}`} • {user.status}
+                            {user.isOnline ? 'Active Now' : <TimeAgo timestamp={user.lastSeen} full prefix="Active " />} • {user.status}
                         </p>
                     </div>
 

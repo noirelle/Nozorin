@@ -3,6 +3,7 @@ import { SocketEvents } from '../../socket/socket.events';
 import { userService } from '../../shared/services/user.service';
 import { logger } from '../../core/logger';
 import { activeCalls, reconnectingUsers, waitingForPartner } from './call.store';
+import { userMediaState } from '../media/media.store';
 import { callService } from './call.service';
 import { CallDisconnectReason } from '../../shared/types/socket.types';
 import { getRedisClient } from '../../core/config/redis.config';
@@ -38,6 +39,7 @@ export const register = (io: Server, socket: Socket): void => {
                     partner_gender: partnerProfile?.gender,
                     partner_country_name: partnerProfile?.country_name,
                     partner_country: partnerProfile?.country,
+                    partner_is_muted: userMediaState.get(activeCall.partner_id)?.is_muted ?? false,
                     friendship_status: friendshipStatus,
                     room_id: activeCall.room_id,
                     role: activeCall.is_offerer ? 'offerer' : 'answerer'
@@ -142,7 +144,19 @@ export const register = (io: Server, socket: Socket): void => {
             reconnectingUsers.delete(rejoinInfo.partner_user_id);
             waitingForPartner.delete(rejoinInfo.partner_user_id);
             const redis = getRedisClient();
-            if (redis) await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+            if (redis) {
+                await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+                await redis.del(`call:room:${rejoinInfo.partner_user_id}`);
+            }
+        }
+
+        // Clean up our own reconnect/room keys since we're now fully rejoined
+        reconnectingUsers.delete(userId);
+        waitingForPartner.delete(userId);
+        const ownRedis = getRedisClient();
+        if (ownRedis) {
+            await ownRedis.del(`call:reconnect:${userId}`);
+            await ownRedis.del(`call:room:${userId}`);
         }
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
@@ -160,6 +174,7 @@ export const register = (io: Server, socket: Socket): void => {
             partner_gender: partnerProfile?.gender,
             partner_country_name: partnerProfile?.country_name,
             partner_country: partnerProfile?.country,
+            partner_is_muted: userMediaState.get(currentPartnerSocketId!)?.is_muted ?? false,
             friendship_status: friendshipStatus,
             room_id: rejoinInfo.room_id,
             role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -183,6 +198,7 @@ export const register = (io: Server, socket: Socket): void => {
                 partner_gender: userProfile?.gender,
                 partner_country_name: userProfile?.country_name,
                 partner_country: userProfile?.country,
+                partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                 friendship_status: reverseStatus,
                 your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
             });
@@ -245,6 +261,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingPartnerProfile?.gender,
                         partner_country_name: waitingPartnerProfile?.country_name,
                         partner_country: waitingPartnerProfile?.country,
+                        partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                         friendship_status: waitingFriendshipStatus,
                         room_id: waitingRejoinInfo.room_id,
                         role: !rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -266,6 +283,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingUserProfile?.gender,
                         partner_country_name: waitingUserProfile?.country_name,
                         partner_country: waitingUserProfile?.country,
+                        partner_is_muted: userMediaState.get(waitingSocketId)?.is_muted ?? false,
                         friendship_status: waitingReverseStatus,
                         your_role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
@@ -289,13 +307,19 @@ export const register = (io: Server, socket: Socket): void => {
                 reconnectingUsers.delete(userId);
                 waitingForPartner.delete(userId);
                 const redis = getRedisClient();
-                if (redis) await redis.del(`call:reconnect:${userId}`);
+                if (redis) {
+                    await redis.del(`call:reconnect:${userId}`);
+                    await redis.del(`call:room:${userId}`);
+                }
 
                 // Also clean up the partner's reconnecting entry by user ID
                 if (info.partner_user_id && info.partner_user_id !== 'unknown') {
                     reconnectingUsers.delete(info.partner_user_id);
                     waitingForPartner.delete(info.partner_user_id);
-                    if (redis) await redis.del(`call:reconnect:${info.partner_user_id}`);
+                    if (redis) {
+                        await redis.del(`call:reconnect:${info.partner_user_id}`);
+                        await redis.del(`call:room:${info.partner_user_id}`);
+                    }
                 }
             }
             logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Reconnection cancelled');

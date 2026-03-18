@@ -9,11 +9,13 @@ import { User } from './user.entity';
 import { Friend } from '../friend/friend.entity';
 import { FriendRequest } from '../friend/friend-request.entity';
 
-const STATUS_TTL = 3600; // 1 hour for status if not updated
+const ONLINE_TTL = 60; // 1 minute
+const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 
 export interface UserStatus {
     is_online: boolean;
     last_seen: number;
+    is_deleted?: boolean;
 }
 
 class UserService {
@@ -73,17 +75,30 @@ class UserService {
      * Update user online status and last seen
      */
     async updateUserStatus(userId: string, isOnline: boolean) {
+        const lastSeen = Date.now();
         const status: UserStatus = {
             is_online: isOnline,
-            last_seen: Date.now()
+            last_seen: lastSeen
         };
 
         const redis = getRedisClient();
         if (redis) {
             try {
-                await redis.setex(`user:status:${userId}`, STATUS_TTL, JSON.stringify(status));
+                const ttl = isOnline ? ONLINE_TTL : OFFLINE_TTL;
+                await redis.setex(`user:status:${userId}`, ttl, JSON.stringify(status));
             } catch (error) {
                 console.error('[USER] Redis error updating status:', error);
+            }
+        }
+
+        // If going offline, sync to DB as well
+        if (!isOnline) {
+            try {
+                await this.userRepository.update(userId, {
+                    last_active_at: lastSeen
+                });
+            } catch (error) {
+                console.error('[USER] DB error updating last_active_at:', error);
             }
         }
     }
@@ -140,7 +155,11 @@ class UserService {
 
                 // Fill in results
                 missingUserIds.forEach(id => {
-                    results[id] = dbResults[id] || { is_online: false, last_seen: 0 };
+                    if (dbResults[id]) {
+                        results[id] = dbResults[id];
+                    } else {
+                        results[id] = { is_online: false, last_seen: 0, is_deleted: true };
+                    }
                 });
             } catch (error) {
                 console.error('[USER] DB error in status fallback batch:', error);
@@ -185,7 +204,7 @@ class UserService {
             console.error('[USER] DB error getting status fallback:', error);
         }
 
-        return { is_online: false, last_seen: 0 };
+        return { is_online: false, last_seen: 0, is_deleted: true };
     }
 
     /**
@@ -197,8 +216,7 @@ class UserService {
             try {
                 // Set a key to indicate user existence, matching JWT expiry (30 days)
                 await redis.set(`user:exists:${userId}`, '1', 'EX', 30 * 24 * 60 * 60);
-                // Also mark as online
-                await this.updateUserStatus(userId, true);
+                // DO NOT mark as online here. That should only happen when a socket connects.
             } catch (error) {
                 console.error('[USER] Redis error registering user:', error);
             }

@@ -61,7 +61,7 @@ export const useVoiceRoom = ({
         role: callRoomState.role,
         mediaManager,
         remoteAudioRef,
-        onConnectionStateChange: (state) => {
+        onConnectionStateChange: useCallback((state: RTCPeerConnectionState) => {
             const currentStatus = actionsRef.current?.matching.status;
             const isCallActive = currentStatus === 'MATCHED' || currentStatus === 'RECONNECTING';
 
@@ -90,12 +90,12 @@ export const useVoiceRoom = ({
                     }, 5000);
                 }
             }
-        },
-        onSignalQuality: (quality) => {
+        }, [setLocalWebRTCConnected, setPartnerSignalStrength]), // actionsRef is stable
+        onSignalQuality: useCallback((quality: 'good' | 'fair' | 'poor' | 'reconnecting') => {
             setPartnerSignalStrength(quality);
-            const partner_id = callRoomState.partner_id;
+            const partner_id = actionsRef.current?.callRoomState.partner_id;
             if (partner_id) emitSignalStrength(partner_id, quality);
-        },
+        }, [setPartnerSignalStrength]),
     });
 
     // 6. Chat Services
@@ -167,25 +167,39 @@ export const useVoiceRoom = ({
         initialCallData,
     });
 
-    // 10. Dual-Ack Synchronization Gate (MOVED AFTER isReconnecting)
+    // 10. Synchronization Gate (Finalize Connection)
     // This effect ensures that the "Reconnecting" UI only clears when BOTH 
     // the local WebRTC is connected AND the partner has signaled they are ready.
+    // This prevents the "silent gap" where one side clears the loading state
+    // before the other side's media is flowing.
     useEffect(() => {
-        const isRejoining = isReconnecting || actionsRef.current?.matching.status === 'RECONNECTING';
+        if (!localWebRTCConnected || !callRoomState.partner_ready) return;
+
+        setConnected(true);
+        setSearching(false);
+        setPartnerSignalStrength('good');
         
-        if (localWebRTCConnected) {
-            // For normal matches, we don't need to wait for partner_ready (signaling is already robust)
-            // But for RECONNECTIONS, we wait to ensure a perfectly synchronized UI bridge.
-            if (!isRejoining || callRoomState.partner_ready) {
-                setConnected(true);
-                setSearching(false);
-                clearReconnectState?.();
-                // Reset sync flags for next session
-                setLocalWebRTCConnected(false);
-                setPartnerReady(false);
-            }
+        // Force status to MATCHED to ensure UI clears even if socket events were missed
+        actionsRef.current?.matching.setStatus('MATCHED');
+        
+        clearReconnectState?.();
+
+        // Reset sync flags for future status changes or new matches
+        setLocalWebRTCConnected(false);
+        setPartnerReady(false);
+    }, [localWebRTCConnected, callRoomState.partner_ready, setConnected, setSearching, clearReconnectState, setPartnerReady, setPartnerSignalStrength]);
+
+    // 11. Dual-Ack Failsafe
+    // If we are connected locally but the partner ready signal is lost or delayed,
+    // we proceed anyway after 5 seconds to avoid a permanent hang.
+    useEffect(() => {
+        if (localWebRTCConnected && !callRoomState.partner_ready) {
+            const timer = setTimeout(() => {
+                setPartnerReady(true);
+            }, 5000);
+            return () => clearTimeout(timer);
         }
-    }, [localWebRTCConnected, callRoomState.partner_ready, isReconnecting, setConnected, setSearching, clearReconnectState, setPartnerReady]);
+    }, [localWebRTCConnected, callRoomState.partner_ready, setPartnerReady]);
 
     // 10. Call Statistics/Duration
     const callDuration = useCallDuration(callRoomState.is_connected);

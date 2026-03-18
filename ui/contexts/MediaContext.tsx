@@ -18,8 +18,13 @@ interface MediaContextType {
 
 const MediaContext = createContext<MediaContextType | undefined>(undefined);
 
+const MUTE_STORAGE_KEY = 'nz_muted';
+
 export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return localStorage.getItem(MUTE_STORAGE_KEY) === 'true';
+    });
     const isMutedRef = useRef(isMuted);
     const [isMediaReady, setIsMediaReady] = useState(false);
     const [permissionDenied, setPermissionDenied] = useState(false);
@@ -40,6 +45,9 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
         mediaManagerRef.current?.cleanup();
         mediaManagerRef.current = null;
         setIsMediaReady(false);
+        // NOTE: Do NOT reset isMuted or clear localStorage here.
+        // cleanupMedia is called during page refresh/reconnect, and we
+        // need the mute state to survive for the reconnected session.
     }, []);
 
     const initMediaManager = useCallback(async (): Promise<boolean> => {
@@ -103,7 +111,11 @@ export const MediaProvider = ({ children }: { children: React.ReactNode }) => {
     }, [cleanupMedia]);
 
     const toggleMute = useCallback(() => {
-        setIsMuted(prev => !prev);
+        setIsMuted(prev => {
+            const next = !prev;
+            try { localStorage.setItem(MUTE_STORAGE_KEY, String(next)); } catch {}
+            return next;
+        });
     }, []);
 
     const getMediaManager = useCallback(() => mediaManagerRef.current, []);

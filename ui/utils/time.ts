@@ -6,12 +6,10 @@
  * @returns A formatted string like "5s ago", "2m ago", "3h ago", "1d ago", or "Mar 13"
  */
 export const formatTimeAgo = (timestamp: number | string | null | undefined): string => {
-    // Default to a very recent timestamp if missing to satisfy "always show a timestamp" requirement
-    const fallback = Date.now();
     let ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
     
-    if (!ts || isNaN(ts)) {
-        ts = fallback;
+    if (!ts || isNaN(ts) || ts <= 0) {
+        return 'Offline';
     }
 
     // Ensure timestamp is in milliseconds
@@ -95,10 +93,8 @@ export const formatDuration = (seconds?: number): string => {
  * Example outputs: "10 minutes ago", "1 hour ago", "2 days ago"
  */
 export const formatFullTimeAgo = (timestamp: number | string | null | undefined): string => {
-    if (!timestamp) return 'Just now';
-    
-    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
-    if (isNaN(ts) || ts === 0) return 'Just now';
+    let ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+    if (!ts || isNaN(ts) || ts <= 0) return 'Long ago';
 
     const timeMs = ts < 1e12 ? ts * 1000 : ts;
     const now = Date.now();

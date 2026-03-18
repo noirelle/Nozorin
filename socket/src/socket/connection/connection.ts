@@ -43,11 +43,11 @@ export const handleSocketConnection = async (io: Server, socket: Socket): Promis
 
         // Lifecycle Hooks
         await disconnectTracking(socket.id);
+        removeConnectedUser(socket.id);
         await callService.handleDisconnect(io, socket.id);
         await disconnectMatchmaking(null as any, socket.id);
         userMediaState.delete(socket.id);
-        // Socket cleanup MUST happen after handleDisconnect so reconnect entries
-        // can still resolve socket→user mappings for the partner.
+        
         await presenceService.handleDisconnection(io, socket);
 
         // Global Cleanup

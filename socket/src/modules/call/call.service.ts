@@ -88,7 +88,24 @@ export const callService = {
             return true;
         }
 
-        logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found');
+        // Failsafe: even if no partner context was found, we MUST ensure this socketId
+        // is removed from any waiting/active registry to prevent memory drift.
+        activeCalls.delete(socketId);
+        waitingForPartner.delete(socketId);
+
+        // Also clean Redis keys if we can resolve the userId
+        const failsafeUserId = userService.getUserId(socketId);
+        if (failsafeUserId) {
+            reconnectingUsers.delete(failsafeUserId);
+            waitingForPartner.delete(failsafeUserId);
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.del(`call:reconnect:${failsafeUserId}`);
+                await redis.del(`call:room:${failsafeUserId}`);
+            }
+        }
+
+        logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found — forced local cleanup complete');
         return true;
     },
 
