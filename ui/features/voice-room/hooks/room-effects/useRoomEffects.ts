@@ -11,6 +11,7 @@ interface UseRoomEffectsProps {
     setPartnerIsMuted: (muted: boolean) => void;
     setPartnerSignalStrength: (strength: 'good' | 'fair' | 'poor' | 'reconnecting') => void;
     setPartnerReady: (ready: boolean) => void;
+    updatePartnerProfile: (profile: any) => void;
     initMediaManager: () => Promise<boolean>;
     cleanupMedia: () => void;
     onConnectionChange: (connected: boolean) => void;
@@ -29,6 +30,7 @@ export const useRoomEffects = ({
     setPartnerIsMuted,
     setPartnerSignalStrength,
     setPartnerReady,
+    updatePartnerProfile,
     cleanupMedia,
     onConnectionChange,
     initialMatchData,
@@ -64,6 +66,7 @@ export const useRoomEffects = ({
         setPartnerIsMuted,
         setPartnerSignalStrength,
         setPartnerReady,
+        updatePartnerProfile,
     });
 
     // Sync local media state with server

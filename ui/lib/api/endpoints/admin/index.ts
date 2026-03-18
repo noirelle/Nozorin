@@ -24,5 +24,20 @@ export const admin = {
             }
         });
         return api.get<UsersListResponse>(`/api/admin/users?${query.toString()}`, { headers });
-    }
+    },
+
+    getUserDetails: (userId: string, headers?: HeadersInit) =>
+        api.get<any>(`/api/admin/users/${userId}`, { headers }),
+
+    updateUser: (userId: string, data: { username?: string; gender?: string }, headers?: HeadersInit) =>
+        api.patch<any>(`/api/admin/users/${userId}`, data, { headers }),
+
+    deleteUser: (userId: string, headers?: HeadersInit) =>
+        api.delete<any>(`/api/admin/users/${userId}`, { headers }),
+
+    deleteHistory: (historyId: string, headers?: HeadersInit) =>
+        api.delete<any>(`/api/admin/history/${historyId}`, { headers }),
+
+    deleteFriend: (friendId: string, headers?: HeadersInit) =>
+        api.delete<any>(`/api/admin/friends/${friendId}`, { headers })
 };

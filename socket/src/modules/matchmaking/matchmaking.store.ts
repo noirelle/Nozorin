@@ -6,6 +6,7 @@ export const reconnectingUsers = realReconnectingUsers;
 
 /** Master FIFO list for voice matching */
 export const voiceQueue: User[] = [];
+export const MAX_QUEUE_SIZE = 10000;
 
 /** Bucketed queues by country */
 export const voiceBuckets = new Map<string, User[]>();

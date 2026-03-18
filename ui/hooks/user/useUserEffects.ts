@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { UseUserStateReturn } from './useUserState';
 import { useUserActions } from './useUserActions';
+import { useSocketEvent, SocketEvents } from '../../lib/socket';
+import { useRef } from 'react';
 
 interface UseUserEffectsProps {
     isChecked: UseUserStateReturn['isChecked'];
@@ -53,4 +55,14 @@ export const useUserEffects = ({
         check();
         return () => { mounted = false; };
     }, [isChecked, token, fetchMe, setIsChecking, setChecked]);
+
+    // Handle real-time profile updates from Admin or System
+    const updateUser = useAuthStore(s => s.updateUser);
+    const handleProfileUpdate = useRef((profile: any) => updateUser(profile));
+    useEffect(() => { handleProfileUpdate.current = (profile: any) => updateUser(profile); }, [updateUser]);
+
+    useSocketEvent<{ profile: any }>(
+        SocketEvents.PROFILE_UPDATED,
+        useRef((data: { profile: any }) => handleProfileUpdate.current(data.profile)).current
+    );
 };

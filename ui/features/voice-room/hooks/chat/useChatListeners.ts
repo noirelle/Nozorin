@@ -10,7 +10,7 @@ interface UseChatListenersProps {
 
 export const useChatListeners = ({ setMessages, setShowChat }: UseChatListenersProps) => {
     const handleReceiveMessage = useCallback((data: ReceiveMessagePayload) => {
-        setMessages(prev => [...prev, { ...data, isSelf: false }]);
+        setMessages(prev => [...prev, { ...data, isSelf: false }].slice(-200));
         setShowChat(true);
     }, [setMessages, setShowChat]);
 

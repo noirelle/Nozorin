@@ -4,6 +4,10 @@ import { SocketEvents } from './socketEvents';
 let _socket: Socket | null = null;
 let last_identified_socket_id: string | null = null;
 
+// Persistent listener references for cleanup
+let _visibilityListener: (() => void) | null = null;
+let _onlineListener: (() => void) | null = null;
+
 /**
  * Returns the shared Socket.io instance, creating it on first call.
  */
@@ -51,20 +55,22 @@ export function getSocketClient(token?: string | null): Socket | null {
         // ── Robustness Listeners ──────────────────────────────────────────────
         
         // Handle tab visibility changes (e.g., coming back from another tab or sleep)
-        document.addEventListener('visibilitychange', () => {
+        _visibilityListener = () => {
             if (document.visibilityState === 'visible' && _socket) {
                 if (!_socket.connected && _socket.active) {
                     _socket.connect();
                 }
             }
-        });
+        };
+        document.addEventListener('visibilitychange', _visibilityListener);
 
         // Handle network online event
-        window.addEventListener('online', () => {
+        _onlineListener = () => {
             if (_socket && !_socket.connected && _socket.active) {
                 _socket.connect();
             }
-        });
+        };
+        window.addEventListener('online', _onlineListener);
     }
 
     if (token !== undefined) {
@@ -94,6 +100,16 @@ export function disconnectSocket(): void {
     _socket?.disconnect();
     last_identified_socket_id = null;
     (window as any)._lastSocketToken = null;
+
+    // Cleanup global listeners to prevent memory leaks when socket is intentionally torn down
+    if (_visibilityListener) {
+        document.removeEventListener('visibilitychange', _visibilityListener);
+        _visibilityListener = null;
+    }
+    if (_onlineListener) {
+        window.removeEventListener('online', _onlineListener);
+        _onlineListener = null;
+    }
 }
 
 /** Check if the current socket is identified with the server. */
