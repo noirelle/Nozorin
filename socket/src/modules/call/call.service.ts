@@ -88,7 +88,11 @@ export const callService = {
             return true;
         }
 
-        logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found');
+        // Failsafe: even if no partner context was found, we MUST ensure this socketId
+        // is removed from any waiting/active registry to prevent memory drift.
+        activeCalls.delete(socketId);
+        waitingForPartner.delete(socketId);
+        logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found — forced local cleanup complete');
         return true;
     },
 

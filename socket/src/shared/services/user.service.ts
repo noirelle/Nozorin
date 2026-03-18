@@ -33,6 +33,13 @@ export const userService = {
         if (!existingSockets) {
             userToSockets.set(user_id, new Set([socketId]));
         } else {
+            // Memory guard: cap sockets per user to prevent unbounded Set growth
+            if (existingSockets.size >= 5) {
+                const oldestSocketId = Array.from(existingSockets)[0];
+                existingSockets.delete(oldestSocketId);
+                socketToUser.delete(oldestSocketId);
+                logger.warn({ user_id, removedSocketId: oldestSocketId }, '[USER-SERVICE] Capped sockets per user, removing oldest');
+            }
             existingSockets.add(socketId);
         }
 

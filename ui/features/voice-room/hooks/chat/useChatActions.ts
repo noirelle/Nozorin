@@ -19,7 +19,7 @@ export const useChatActions = ({ partnerId, setMessages, setShowChat }: UseChatA
             message: text,
             timestamp: new Date().toISOString(),
         };
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => [...prev, msg].slice(-200));
         emitSendMessage(partnerId, text);
     }, [partnerId, setMessages]);
 

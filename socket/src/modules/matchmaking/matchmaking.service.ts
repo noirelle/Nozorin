@@ -2,7 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '../../socket/socket.events';
 import { logger } from '../../core/logger';
 import { userService } from '../../shared/services/user.service';
-import { voiceQueue, voiceBuckets, removeUserFromQueues } from './matchmaking.store';
+import { voiceQueue, voiceBuckets, removeUserFromQueues, MAX_QUEUE_SIZE } from './matchmaking.store';
 import { User, UserProfile } from '../../shared/types/socket.types';
 import { activeCalls, reconnectingUsers } from '../call/call.store';
 import { userMediaState } from '../media/media.store';
@@ -205,6 +205,12 @@ export const joinQueue = async (
         peer_id: peerId,
         request_id: requestId,
     };
+
+    // Failsafe: drop oldest user if queue is somehow bloated (extremely rare)
+    if (voiceQueue.length >= MAX_QUEUE_SIZE) {
+        const oldest = voiceQueue.shift();
+        if (oldest) removeUserFromQueues(oldest.id);
+    }
 
     voiceQueue.push(user);
     if (user.country) {

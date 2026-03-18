@@ -123,12 +123,17 @@ export const useWebRTCActions = ({
                 }
 
                 // Attempt to play. 
-                // We DON'T catch and mute here for audio-only, because a muted stream 
-                // is useless for a voice chat and just confuses the user.
                 remoteAudioRef.current.play().catch(_e => {
                 });
             } else {
+                // Failsafe for if the ref isn't attached yet (e.g. during fast transitions)
                 const checkRef = setInterval(() => {
+                    // Check if pc is still around and ref exists
+                    if (!peerConnectionRef.current) {
+                        clearInterval(checkRef);
+                        return;
+                    }
+
                     if (remoteAudioRef.current) {
                         remoteAudioRef.current.srcObject = remoteStream;
                         remoteAudioRef.current.play().catch(() => { });
@@ -143,7 +148,7 @@ export const useWebRTCActions = ({
             if (event.candidate) {
                 setIceDebugData(prev => ({
                     ...prev,
-                    localCandidates: [...prev.localCandidates, event.candidate!]
+                    localCandidates: [...prev.localCandidates, event.candidate!].slice(-50)
                 }));
                 emitIceCandidate(targetId, event.candidate);
             }
@@ -285,7 +290,7 @@ export const useWebRTCActions = ({
             const iceCandidate = new RTCIceCandidate(candidate);
             setIceDebugData(prev => ({
                 ...prev,
-                remoteCandidates: [...prev.remoteCandidates, iceCandidate]
+                remoteCandidates: [...prev.remoteCandidates, iceCandidate].slice(-50)
             }));
             await pc.addIceCandidate(iceCandidate);
         } catch (err) {

@@ -218,6 +218,26 @@ export const VoiceGameRoom = () => {
             window.removeEventListener('storage', onStorageChange);
         };
     }, [token, refreshUser, identifySocket]);
+    
+    // Immediate disposal on tab close / reload
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            // We can't await here, but we can trigger the cleanup synchronously
+            const s = getSocketClient();
+            if (s) {
+                // If in a call, notify partner immediately
+                const currentPartnerId = voiceRoomData.callRoomState.partner_id;
+                if (currentPartnerId) {
+                    s.emit('end_call', { target: currentPartnerId, reason: 'partner-disconnect' });
+                }
+                s.disconnect();
+            }
+            // Cleanup media tracks synchronously
+            voiceRoomData.cleanupMedia();
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [voiceRoomData]);
 
 
     const handleLeave = () => {
