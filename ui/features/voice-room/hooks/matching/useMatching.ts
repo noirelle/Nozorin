@@ -47,6 +47,7 @@ export const useMatching = (props: UseMatchingProps) => {
         rejoinCall: actions.rejoinCall,
         cancelReconnect: actions.cancelReconnect,
         status: state.status,
+        setStatus: state.setStatus,
         position: state.position,
         isSkipping: state.isSkipping,
         reconnectCountdown: state.reconnectCountdown,
