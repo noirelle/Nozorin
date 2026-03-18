@@ -142,7 +142,19 @@ export const register = (io: Server, socket: Socket): void => {
             reconnectingUsers.delete(rejoinInfo.partner_user_id);
             waitingForPartner.delete(rejoinInfo.partner_user_id);
             const redis = getRedisClient();
-            if (redis) await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+            if (redis) {
+                await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+                await redis.del(`call:room:${rejoinInfo.partner_user_id}`);
+            }
+        }
+
+        // Clean up our own reconnect/room keys since we're now fully rejoined
+        reconnectingUsers.delete(userId);
+        waitingForPartner.delete(userId);
+        const ownRedis = getRedisClient();
+        if (ownRedis) {
+            await ownRedis.del(`call:reconnect:${userId}`);
+            await ownRedis.del(`call:room:${userId}`);
         }
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
@@ -289,13 +301,19 @@ export const register = (io: Server, socket: Socket): void => {
                 reconnectingUsers.delete(userId);
                 waitingForPartner.delete(userId);
                 const redis = getRedisClient();
-                if (redis) await redis.del(`call:reconnect:${userId}`);
+                if (redis) {
+                    await redis.del(`call:reconnect:${userId}`);
+                    await redis.del(`call:room:${userId}`);
+                }
 
                 // Also clean up the partner's reconnecting entry by user ID
                 if (info.partner_user_id && info.partner_user_id !== 'unknown') {
                     reconnectingUsers.delete(info.partner_user_id);
                     waitingForPartner.delete(info.partner_user_id);
-                    if (redis) await redis.del(`call:reconnect:${info.partner_user_id}`);
+                    if (redis) {
+                        await redis.del(`call:reconnect:${info.partner_user_id}`);
+                        await redis.del(`call:room:${info.partner_user_id}`);
+                    }
                 }
             }
             logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Reconnection cancelled');
