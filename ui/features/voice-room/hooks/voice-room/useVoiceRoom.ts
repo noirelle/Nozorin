@@ -179,6 +179,7 @@ export const useVoiceRoom = ({
             if (!isRejoining || callRoomState.partner_ready) {
                 setConnected(true);
                 setSearching(false);
+                setPartnerSignalStrength('good');
                 clearReconnectState?.();
                 // Reset sync flags for next session
                 setLocalWebRTCConnected(false);
