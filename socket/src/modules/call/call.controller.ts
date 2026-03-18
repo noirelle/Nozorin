@@ -3,6 +3,7 @@ import { SocketEvents } from '../../socket/socket.events';
 import { userService } from '../../shared/services/user.service';
 import { logger } from '../../core/logger';
 import { activeCalls, reconnectingUsers, waitingForPartner } from './call.store';
+import { userMediaState } from '../media/media.store';
 import { callService } from './call.service';
 import { CallDisconnectReason } from '../../shared/types/socket.types';
 import { getRedisClient } from '../../core/config/redis.config';
@@ -38,6 +39,7 @@ export const register = (io: Server, socket: Socket): void => {
                     partner_gender: partnerProfile?.gender,
                     partner_country_name: partnerProfile?.country_name,
                     partner_country: partnerProfile?.country,
+                    partner_is_muted: userMediaState.get(activeCall.partner_id)?.is_muted ?? false,
                     friendship_status: friendshipStatus,
                     room_id: activeCall.room_id,
                     role: activeCall.is_offerer ? 'offerer' : 'answerer'
@@ -172,6 +174,7 @@ export const register = (io: Server, socket: Socket): void => {
             partner_gender: partnerProfile?.gender,
             partner_country_name: partnerProfile?.country_name,
             partner_country: partnerProfile?.country,
+            partner_is_muted: userMediaState.get(currentPartnerSocketId!)?.is_muted ?? false,
             friendship_status: friendshipStatus,
             room_id: rejoinInfo.room_id,
             role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -195,6 +198,7 @@ export const register = (io: Server, socket: Socket): void => {
                 partner_gender: userProfile?.gender,
                 partner_country_name: userProfile?.country_name,
                 partner_country: userProfile?.country,
+                partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                 friendship_status: reverseStatus,
                 your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
             });
@@ -257,6 +261,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingPartnerProfile?.gender,
                         partner_country_name: waitingPartnerProfile?.country_name,
                         partner_country: waitingPartnerProfile?.country,
+                        partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                         friendship_status: waitingFriendshipStatus,
                         room_id: waitingRejoinInfo.room_id,
                         role: !rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -278,6 +283,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingUserProfile?.gender,
                         partner_country_name: waitingUserProfile?.country_name,
                         partner_country: waitingUserProfile?.country,
+                        partner_is_muted: userMediaState.get(waitingSocketId)?.is_muted ?? false,
                         friendship_status: waitingReverseStatus,
                         your_role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
