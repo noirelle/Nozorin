@@ -42,6 +42,12 @@ export const useWebRTCActions = ({
     const createOfferRef = useRef<((partnerId: string, options?: RTCOfferOptions) => Promise<void>) | null>(null);
     const lastIceRestartRef = useRef<number>(0);
 
+    // Ensure we always use the latest callbacks in long-lived peer connection listeners
+    const onConnectionStateChangeRef = useRef(onConnectionStateChange);
+    const onSignalQualityRef = useRef(onSignalQuality);
+    useEffect(() => { onConnectionStateChangeRef.current = onConnectionStateChange; }, [onConnectionStateChange]);
+    useEffect(() => { onSignalQualityRef.current = onSignalQuality; }, [onSignalQuality]);
+
     const createPeerConnection = useCallback((targetId: string) => {
         const stream = mediaManager.current?.getStream();
         if (!stream) {
@@ -77,7 +83,7 @@ export const useWebRTCActions = ({
             const state = pc.connectionState;
 
             if (state === 'disconnected') {
-                onSignalQuality?.('reconnecting');
+                onSignalQualityRef.current?.('reconnecting');
                 if (role === 'offerer') {
                     const now = Date.now();
                     if ((now - lastIceRestartRef.current) > 5000) {
@@ -87,13 +93,13 @@ export const useWebRTCActions = ({
                 }
             }
             else if (state === 'connected') {
-                onSignalQuality?.('good');
+                onSignalQualityRef.current?.('good');
             }
             else if (state === 'failed') {
             }
 
             // Always notify about state changes so the UI can coordinate transitions
-            onConnectionStateChange?.(state);
+            onConnectionStateChangeRef.current?.(state);
         };
         pc.onsignalingstatechange = updateDebugState;
 

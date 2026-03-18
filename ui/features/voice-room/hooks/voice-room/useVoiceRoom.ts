@@ -170,22 +170,35 @@ export const useVoiceRoom = ({
     // 10. Dual-Ack Synchronization Gate (MOVED AFTER isReconnecting)
     // This effect ensures that the "Reconnecting" UI only clears when BOTH 
     // the local WebRTC is connected AND the partner has signaled they are ready.
+    // We add a safety timeout to prevent getting stuck if signaling is lost.
     useEffect(() => {
         const isRejoining = isReconnecting || actionsRef.current?.matching.status === 'RECONNECTING';
-        
-        if (localWebRTCConnected) {
-            // For normal matches, we don't need to wait for partner_ready (signaling is already robust)
-            // But for RECONNECTIONS, we wait to ensure a perfectly synchronized UI bridge.
-            if (!isRejoining || callRoomState.partner_ready) {
-                setConnected(true);
-                setSearching(false);
-                setPartnerSignalStrength('good');
-                clearReconnectState?.();
-                // Reset sync flags for next session
-                setLocalWebRTCConnected(false);
-                setPartnerReady(false);
-            }
+        if (!localWebRTCConnected) return;
+
+        let safetyTimeout: NodeJS.Timeout | null = null;
+
+        const finalizeReconnection = () => {
+            setConnected(true);
+            setSearching(false);
+            setPartnerSignalStrength('good');
+            clearReconnectState?.();
+            // Reset sync flags for next session
+            setLocalWebRTCConnected(false);
+            setPartnerReady(false);
+        };
+
+        if (!isRejoining || callRoomState.partner_ready) {
+            finalizeReconnection();
+        } else {
+            // Safety timeout: proceed anyway if we are connected but partner signal is missing
+            safetyTimeout = setTimeout(() => {
+                finalizeReconnection();
+            }, 6000);
         }
+
+        return () => {
+            if (safetyTimeout) clearTimeout(safetyTimeout);
+        };
     }, [localWebRTCConnected, callRoomState.partner_ready, isReconnecting, setConnected, setSearching, clearReconnectState, setPartnerReady]);
 
     // 10. Call Statistics/Duration
