@@ -40,4 +40,7 @@ export class User {
 
     @Column({ type: 'bigint', default: 0 })
     last_active_at!: number;
+
+    @Column({ default: false })
+    is_online!: boolean;
 }

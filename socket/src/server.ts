@@ -10,6 +10,7 @@ import internalRouter from './api/router';
 import { logger } from './core/logger';
 import { initRedis } from './core/config/redis.config';
 import { initDatabase } from './core/config/database.config';
+import { userService } from './shared/services/user.service';
 import { callService } from './modules/call/call.service';
 
 const app = express();
@@ -57,10 +58,14 @@ const startServer = async () => {
             logger.info({ port: PORT }, '[SERVER] nozorin_realtime listening');
         });
 
-        // Start background cleanup job
+        // Start background cleanup jobs
         setInterval(() => {
             callService.cleanupExpiredSessions(io);
         }, 10000);
+
+        setInterval(() => {
+            userService.cleanupZombieStatuses();
+        }, 2 * 60 * 1000); // Every 2 minutes
     } catch (err) {
         logger.error({ err }, '[SERVER] Failed to start');
         process.exit(1);

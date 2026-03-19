@@ -9,7 +9,7 @@ import { User } from './user.entity';
 import { Friend } from '../friend/friend.entity';
 import { FriendRequest } from '../friend/friend-request.entity';
 
-const ONLINE_TTL = 60; // 1 minute
+const ONLINE_TTL = 150; // 2.5 minutes (consistent with socket service)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 
 export interface UserStatus {
@@ -104,15 +104,15 @@ class UserService {
     }
 
     /**
-     * Get multiple users' status
+     * Get multiple users' status (Redis -> DB fallback with zombie protection)
      */
     async getUserStatuses(userIds: string[]): Promise<Record<string, UserStatus>> {
         const results: Record<string, UserStatus> = {};
         if (!userIds || userIds.length === 0) return results;
 
         const missingUserIds: string[] = [];
-
         const redis = getRedisClient();
+
         if (redis) {
             try {
                 // Try batch fetching from Redis
@@ -139,27 +139,27 @@ class UserService {
             missingUserIds.push(...userIds);
         }
 
-        // Fetch missing statuses from DB in one query
+        // Fetch missing statuses from DB in one query with zombie protection
         if (missingUserIds.length > 0) {
             try {
                 const users = await this.userRepository.find({
                     where: { id: In(missingUserIds) },
-                    select: ['id', 'last_active_at']
+                    select: ['id', 'last_active_at', 'is_online']
                 });
                 
-                const dbResults = users.reduce((acc, user) => {
-                    // TypeORM bigint can sometimes return as string
-                    acc[user.id] = { is_online: false, last_seen: Number(user.last_active_at) || 0 };
-                    return acc;
-                }, {} as Record<string, UserStatus>);
+                const zombieCutoff = Date.now() - (15 * 60 * 1000);
 
-                // Fill in results
+                users.forEach(user => {
+                    const lastSeen = Number(user.last_active_at) || 0;
+                    results[user.id] = {
+                        is_online: user.is_online && lastSeen > zombieCutoff,
+                        last_seen: lastSeen
+                    };
+                });
+
+                // Fill in defaults for any still missing
                 missingUserIds.forEach(id => {
-                    if (dbResults[id]) {
-                        results[id] = dbResults[id];
-                    } else {
-                        results[id] = { is_online: false, last_seen: 0, is_deleted: true };
-                    }
+                    if (!results[id]) results[id] = { is_online: false, last_seen: 0, is_deleted: true };
                 });
             } catch (error) {
                 console.error('[USER] DB error in status fallback batch:', error);
@@ -173,7 +173,7 @@ class UserService {
     }
 
     /**
-     * Get a single user's status
+     * Get a single user's status (Redis -> DB fallback with zombie protection)
      */
     async getUserStatus(userId: string): Promise<UserStatus> {
         const redis = getRedisClient();
@@ -188,16 +188,18 @@ class UserService {
             }
         }
 
-        // Fallback to database
+        // Fallback to database with zombie protection
         try {
             const user = await this.userRepository.findOne({
                 where: { id: userId },
-                select: ['id', 'last_active_at']
+                select: ['id', 'last_active_at', 'is_online']
             });
             if (user) {
+                const lastSeen = Number(user.last_active_at) || 0;
+                const zombieCutoff = Date.now() - (15 * 60 * 1000);
                 return { 
-                    is_online: false, 
-                    last_seen: Number(user.last_active_at) || 0 
+                    is_online: user.is_online && lastSeen > zombieCutoff, 
+                    last_seen: lastSeen 
                 };
             }
         } catch (error) {
