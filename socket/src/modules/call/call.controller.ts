@@ -30,7 +30,7 @@ export const register = (io: Server, socket: Socket): void => {
             if (partnerUserId) {
                 const partnerProfile = await userService.getUserProfile(partnerUserId);
                 const friendshipStatus = await userService.getFriendshipStatus(userId, partnerUserId);
-                
+
                 socket.emit(SocketEvents.REJOIN_SUCCESS, {
                     partner_id: activeCall.partner_id,
                     partner_user_id: partnerUserId,
@@ -76,7 +76,7 @@ export const register = (io: Server, socket: Socket): void => {
         // We only proceed if the partner is ALREADY in an active call with us (they didn't refresh)
         // OR if they have also signaled their intent to rejoin (they are in waitingForPartner).
         let currentPartnerSocketId = userService.getSocketId(rejoinInfo.partner_user_id);
-        
+
         // Case A: Partner is already active in a call (didn't refresh)
         let partnerIsActive = false;
         if (currentPartnerSocketId) {
@@ -134,7 +134,7 @@ export const register = (io: Server, socket: Socket): void => {
         // Setup active state for both
         activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, partner_user_id: rejoinInfo.partner_user_id, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
         activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        
+
         userService.setUserForSocket(socket.id, userId);
         userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
@@ -227,21 +227,21 @@ export const register = (io: Server, socket: Socket): void => {
                     // Set up activeCalls for the waiting user (they haven't gone through
                     // the success path yet — their entry may already be set from above if
                     // we used their socket ID, but set it cleanly regardless)
-                    activeCalls.set(waitingSocketId, { 
-                        partner_id: socket.id, 
-                        partner_user_id: userId, 
-                        start_time: startTime, 
-                        last_seen: Date.now(), 
-                        is_offerer: !rejoinInfo.is_offerer, 
-                        room_id: rejoinInfo.room_id 
+                    activeCalls.set(waitingSocketId, {
+                        partner_id: socket.id,
+                        partner_user_id: userId,
+                        start_time: startTime,
+                        last_seen: Date.now(),
+                        is_offerer: !rejoinInfo.is_offerer,
+                        room_id: rejoinInfo.room_id
                     });
-                    activeCalls.set(socket.id, { 
-                        partner_id: waitingSocketId, 
-                        partner_user_id: waitingUserId, 
-                        start_time: startTime, 
-                        last_seen: Date.now(), 
-                        is_offerer: rejoinInfo.is_offerer, 
-                        room_id: rejoinInfo.room_id 
+                    activeCalls.set(socket.id, {
+                        partner_id: waitingSocketId,
+                        partner_user_id: waitingUserId,
+                        start_time: startTime,
+                        last_seen: Date.now(),
+                        is_offerer: rejoinInfo.is_offerer,
+                        room_id: rejoinInfo.room_id
                     });
 
                     reconnectingUsers.delete(waitingUserId);

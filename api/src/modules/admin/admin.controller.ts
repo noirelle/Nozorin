@@ -148,14 +148,14 @@ export const adminController = {
             if (search) {
                 queryBuilder.andWhere('user.username LIKE :search', { search: `%${search}%` });
             }
-            
+
             const zombieCutoff = Date.now() - (15 * 60 * 1000); // 15 mins
 
             if (active_since) {
                 const hours = Number(active_since);
                 if (!isNaN(hours)) {
                     const cutoffTime = Date.now() - (hours * 3600000);
-                    queryBuilder.andWhere('(user.last_active_at > :cutoffTime OR (user.is_online = true AND user.last_active_at > :zombieCutoff))', { 
+                    queryBuilder.andWhere('(user.last_active_at > :cutoffTime OR (user.is_online = true AND user.last_active_at > :zombieCutoff))', {
                         cutoffTime,
                         zombieCutoff
                     });
@@ -314,7 +314,7 @@ export const adminController = {
             try {
                 // Delete Call History
                 await AppDataSource.getRepository(CallHistory).delete({ user_id: userId });
-                
+
                 // Delete Friendships (both sides)
                 await AppDataSource.getRepository(Friend).delete([
                     { user_id: userId },
@@ -356,7 +356,7 @@ export const adminController = {
         try {
             const { historyId } = req.params;
             const historyRepo = AppDataSource.getRepository(CallHistory);
-            
+
             const history = await historyRepo.findOneBy({ id: historyId });
             if (!history) {
                 return res.status(404).json(errorResponse('History record not found'));

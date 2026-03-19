@@ -118,7 +118,7 @@ class UserService {
                 // Try batch fetching from Redis
                 const keys = userIds.map(id => `user:status:${id}`);
                 const cachedStatuses = await redis.mget(...keys);
-                
+
                 userIds.forEach((userId, index) => {
                     const cached = cachedStatuses[index];
                     if (cached) {
@@ -146,7 +146,7 @@ class UserService {
                     where: { id: In(missingUserIds) },
                     select: ['id', 'last_active_at', 'is_online']
                 });
-                
+
                 const zombieCutoff = Date.now() - (15 * 60 * 1000);
 
                 users.forEach(user => {
@@ -197,9 +197,9 @@ class UserService {
             if (user) {
                 const lastSeen = Number(user.last_active_at) || 0;
                 const zombieCutoff = Date.now() - (15 * 60 * 1000);
-                return { 
-                    is_online: user.is_online && lastSeen > zombieCutoff, 
-                    last_seen: lastSeen 
+                return {
+                    is_online: user.is_online && lastSeen > zombieCutoff,
+                    last_seen: lastSeen
                 };
             }
         } catch (error) {

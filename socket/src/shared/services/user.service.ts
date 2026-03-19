@@ -178,19 +178,19 @@ export const userService = {
 
         // Fallback to DB with zombie protection
         try {
-            const user = await userRepository.findOne({ 
+            const user = await userRepository.findOne({
                 where: { id: userId },
                 select: ['last_active_at', 'is_online']
             });
-            
+
             if (user) {
                 const lastSeen = Number(user.last_active_at) || 0;
                 const zombieCutoff = Date.now() - (15 * 60 * 1000);
                 const isOnline = user.is_online && lastSeen > zombieCutoff;
 
-                return { 
-                    is_online: isOnline, 
-                    last_seen: lastSeen 
+                return {
+                    is_online: isOnline,
+                    last_seen: lastSeen
                 };
             }
         } catch (error) {
@@ -203,7 +203,7 @@ export const userService = {
     /** Fetch statuses for multiple users in a single batch (MGET with DB fallback) */
     async getUserStatuses(user_ids: string[]): Promise<Record<string, any>> {
         if (!user_ids.length) return {};
-        
+
         const results: Record<string, any> = {};
         const missingUserIds: string[] = [];
         const redis = getRedisClient();
@@ -348,7 +348,7 @@ export const userService = {
         try {
             const user = await userRepository.findOneBy({ id: userId });
             if (!user) return null;
-            
+
             return {
                 id: user.id,
                 username: user.username,
