@@ -10,12 +10,14 @@ import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
 
-const ONLINE_TTL = 60; // 1 minute
+const ONLINE_TTL = 150; // 2.5 minutes (allows for ~5 missed heartbeats)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
+const DB_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
 const userToSockets = new Map<string, Set<string>>(); // userId → Set of socketIds
+const lastDbSync = new Map<string, number>(); // userId → timestamp
 
 // ── Repositories ─────────────────────────────────────────────────────────────
 const userRepository = AppDataSource.getRepository(User);
@@ -126,14 +128,21 @@ export const userService = {
             }
         }
 
-        // If going offline, sync to DB as well
-        if (!isOnline) {
+        // Sync to DB if going offline, OR if online and it's time for a periodic refresh
+        const now = Date.now();
+        const lastSync = lastDbSync.get(userId) || 0;
+        const shouldSync = !isOnline || (now - lastSync > DB_SYNC_INTERVAL);
+
+        if (shouldSync) {
             try {
                 await userRepository.update(userId, {
-                    last_active_at: lastSeen
+                    last_active_at: lastSeen,
+                    is_online: isOnline
                 });
+                lastDbSync.set(userId, now);
+                if (!isOnline) lastDbSync.delete(userId);
             } catch (error) {
-                logger.warn({ error, userId }, '[USER-SERVICE] DB error updating last_active_at');
+                logger.warn({ error, userId }, '[USER-SERVICE] DB error updating user status');
             }
         }
     },
@@ -145,14 +154,15 @@ export const userService = {
 
         try {
             await userRepository.update(userId, {
-                last_active_at: Date.now()
+                last_active_at: Date.now(),
+                is_online: false
             });
         } catch (error) {
-            logger.warn({ error, userId }, '[USER-SERVICE] DB error updating last_active_at on deactivation');
+            logger.warn({ error, userId }, '[USER-SERVICE] DB error updating user deactivation');
         }
     },
 
-    /** Fetch user's online status from Redis */
+    /** Fetch user's online status (Redis -> DB fallback with zombie protection) */
     async getUserStatus(userId: string): Promise<any> {
         const redis = getRedisClient();
         if (redis) {
@@ -166,14 +176,22 @@ export const userService = {
             }
         }
 
-        // Fallback to DB if Redis is empty (helps for users who were offline for > 7 days)
+        // Fallback to DB with zombie protection
         try {
             const user = await userRepository.findOne({ 
                 where: { id: userId },
-                select: ['last_active_at']
+                select: ['last_active_at', 'is_online']
             });
+            
             if (user) {
-                return { is_online: false, last_seen: Number(user.last_active_at) || 0 };
+                const lastSeen = Number(user.last_active_at) || 0;
+                const zombieCutoff = Date.now() - (15 * 60 * 1000);
+                const isOnline = user.is_online && lastSeen > zombieCutoff;
+
+                return { 
+                    is_online: isOnline, 
+                    last_seen: lastSeen 
+                };
             }
         } catch (error) {
             logger.warn({ error, userId }, '[USER-SERVICE] DB fallback error getting status');
@@ -182,45 +200,82 @@ export const userService = {
         return { is_online: false, last_seen: 0, is_deleted: true };
     },
 
-    /** Fetch statuses for multiple users from Redis in a single batch (MGET) */
+    /** Fetch statuses for multiple users in a single batch (MGET with DB fallback) */
     async getUserStatuses(user_ids: string[]): Promise<Record<string, any>> {
         if (!user_ids.length) return {};
         
-        const redis = getRedisClient();
         const results: Record<string, any> = {};
+        const missingUserIds: string[] = [];
+        const redis = getRedisClient();
 
-        if (!redis) {
-            for (const userId of user_ids) {
-                results[userId] = { is_online: false, last_seen: 0 };
+        if (redis) {
+            try {
+                const keys = user_ids.map(id => `user:status:${id}`);
+                const statuses = await redis.mget(...keys);
+
+                user_ids.forEach((userId, index) => {
+                    const statusJson = statuses[index];
+                    if (statusJson) {
+                        try {
+                            results[userId] = JSON.parse(statusJson);
+                        } catch (e) {
+                            missingUserIds.push(userId);
+                        }
+                    } else {
+                        missingUserIds.push(userId);
+                    }
+                });
+            } catch (error) {
+                logger.warn({ error }, '[USER-SERVICE] Redis error in batch getUserStatuses');
+                missingUserIds.push(...user_ids);
             }
-            return results;
+        } else {
+            missingUserIds.push(...user_ids);
         }
 
-        try {
-            const keys = user_ids.map(id => `user:status:${id}`);
-            const statuses = await redis.mget(...keys);
+        // Fetch missing from DB in one query
+        if (missingUserIds.length > 0) {
+            try {
+                const users = await userRepository.findByIds(missingUserIds);
+                const zombieCutoff = Date.now() - (15 * 60 * 1000);
 
-            user_ids.forEach((userId, index) => {
-                const statusJson = statuses[index];
-                if (statusJson) {
-                    try {
-                        results[userId] = JSON.parse(statusJson);
-                    } catch (e) {
-                        results[userId] = { is_online: false, last_seen: 0, is_deleted: true };
-                    }
-                } else {
-                    results[userId] = { is_online: false, last_seen: 0, is_deleted: true };
-                }
-            });
-        } catch (error) {
-            logger.warn({ error }, '[USER-SERVICE] Redis error in batch getUserStatuses');
-            // Fallback to individual calls or defaults if MGET fails
-            for (const userId of user_ids) {
-                results[userId] = await this.getUserStatus(userId);
+                users.forEach(user => {
+                    const lastSeen = Number(user.last_active_at) || 0;
+                    results[user.id] = {
+                        is_online: user.is_online && lastSeen > zombieCutoff,
+                        last_seen: lastSeen
+                    };
+                });
+
+                // Fill defaults for any still missing
+                missingUserIds.forEach(id => {
+                    if (!results[id]) results[id] = { is_online: false, last_seen: 0 };
+                });
+            } catch (error) {
+                logger.warn({ error }, '[USER-SERVICE] DB fallback error in batch getUserStatuses');
             }
         }
 
         return results;
+    },
+
+    /** Mark users as offline if they've been inactive for too long (Self-healing job) */
+    async cleanupZombieStatuses(): Promise<void> {
+        const zombieCutoff = Date.now() - (15 * 60 * 1000);
+        try {
+            const result = await userRepository.createQueryBuilder()
+                .update(User)
+                .set({ is_online: false })
+                .where('is_online = :isOnline', { isOnline: true })
+                .andWhere('last_active_at < :cutoff', { cutoff: zombieCutoff })
+                .execute();
+
+            if (result.affected && result.affected > 0) {
+                logger.info({ affected: result.affected }, '[USER-SERVICE] Cleaned up zombie online statuses');
+            }
+        } catch (error) {
+            logger.error({ error }, '[USER-SERVICE] Failed to cleanup zombie statuses');
+        }
     },
 
     /** Check if user is registered in Redis */
