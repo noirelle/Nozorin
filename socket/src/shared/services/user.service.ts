@@ -9,8 +9,9 @@ import { User } from '../../modules/user/user.entity';
 import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
+import { LessThan } from 'typeorm';
 
-const ONLINE_TTL = 150; // 2.5 minutes (allows for ~5 missed heartbeats)
+const ONLINE_TTL = 90; // 1.5 minutes (allows for ~3-4 missed heartbeats)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 const DB_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -185,11 +186,10 @@ export const userService = {
 
             if (user) {
                 const lastSeen = Number(user.last_active_at) || 0;
-                const zombieCutoff = Date.now() - (15 * 60 * 1000);
-                const isOnline = user.is_online && lastSeen > zombieCutoff;
-
+                // STRICT: if we are here, Redis already failed or key was missing.
+                // We return offline regardless of DB is_online flag to avoid ghost users.
                 return {
-                    is_online: isOnline,
+                    is_online: false,
                     last_seen: lastSeen
                 };
             }
@@ -237,12 +237,10 @@ export const userService = {
         if (missingUserIds.length > 0) {
             try {
                 const users = await userRepository.findByIds(missingUserIds);
-                const zombieCutoff = Date.now() - (15 * 60 * 1000);
-
                 users.forEach(user => {
                     const lastSeen = Number(user.last_active_at) || 0;
                     results[user.id] = {
-                        is_online: user.is_online && lastSeen > zombieCutoff,
+                        is_online: false, // Strict Redis-driven: if not in Redis, it's offline
                         last_seen: lastSeen
                     };
                 });
@@ -260,18 +258,31 @@ export const userService = {
     },
 
     /** Mark users as offline if they've been inactive for too long (Self-healing job) */
-    async cleanupZombieStatuses(): Promise<void> {
-        const zombieCutoff = Date.now() - (15 * 60 * 1000);
+    async cleanupZombieStatuses(io?: any): Promise<void> {
+        const zombieCutoff = Date.now() - (5 * 60 * 1000); // 5 minutes (matches DB_SYNC_INTERVAL)
         try {
-            const result = await userRepository.createQueryBuilder()
-                .update(User)
-                .set({ is_online: false })
-                .where('is_online = :isOnline', { isOnline: true })
-                .andWhere('last_active_at < :cutoff', { cutoff: zombieCutoff })
-                .execute();
+            // Find users who are marked online but haven't been seen recently
+            const zombies = await userRepository.find({
+                where: {
+                    is_online: true,
+                    last_active_at: LessThan(zombieCutoff as any)
+                },
+                select: ['id']
+            });
 
-            if (result.affected && result.affected > 0) {
-                logger.info({ affected: result.affected }, '[USER-SERVICE] Cleaned up zombie online statuses');
+            if (zombies.length > 0) {
+                const zombieIds = zombies.map(z => z.id);
+                logger.info({ count: zombieIds.length }, '[USER-SERVICE] Found zombie online statuses, cleaning up');
+
+                await userRepository.update(zombieIds, { is_online: false });
+
+                // If io is provided, notify their presence room so friends/partners see the change
+                if (io) {
+                    const { presenceService } = require('../../modules/presence/presence.service');
+                    for (const userId of zombieIds) {
+                        await presenceService.broadcastUserStatus(io, userId, false);
+                    }
+                }
             }
         } catch (error) {
             logger.error({ error }, '[USER-SERVICE] Failed to cleanup zombie statuses');

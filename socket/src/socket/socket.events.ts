@@ -84,6 +84,8 @@ export const SocketEvents = {
     PING: 'ping',
     PONG: 'pong',
     USER_LEFT: 'user-left',
+    USER_ONLINE: 'user-online',
+    USER_OFFLINE: 'user-offline',
 } as const;
 
 export type SocketEventName = typeof SocketEvents[keyof typeof SocketEvents];

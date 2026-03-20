@@ -272,6 +272,11 @@ export const callService = {
             if (now > info.expires_at) {
                 reconnectingUsers.delete(userId);
 
+                // Explicitly mark offline if the grace period expires and no other session took over
+                await userService.deactivateUser(userId);
+                const { presenceService } = require('../presence/presence.service'); // circular dep avoidance
+                await presenceService.broadcastUserStatus(io, userId, false);
+
                 // Explicitly clean up Redis keys so they don't linger until TTL
                 const redis = getRedisClient();
                 if (redis) {

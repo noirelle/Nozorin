@@ -24,6 +24,10 @@ export const presenceService = {
                 status: broadcastStatus
             });
 
+            // Explicit event-driven notification for specific status changes
+            const eventName = isOnline ? SocketEvents.USER_ONLINE : SocketEvents.USER_OFFLINE;
+            io.to(`status:${userId}`).emit(eventName, { user_id: userId, status: broadcastStatus });
+
             // Broadcast to admin room for real-time sorting and status display
             const profile = isOnline ? await userService.getUserProfile(userId) : null;
 
@@ -100,12 +104,25 @@ export const presenceService = {
 export const register = (io: Server, socket: Socket): void => {
     presenceService.handleConnection(io, socket);
 
-    socket.on(SocketEvents.WATCH_USER_STATUS, (data: { user_ids: string[] }) => {
+    socket.on(SocketEvents.WATCH_USER_STATUS, async (data: { user_ids: string[] }) => {
         const { user_ids } = data;
         if (!user_ids || !Array.isArray(user_ids)) return;
+        
         user_ids.forEach(uid => {
             if (uid && uid !== 'unknown') socket.join(`status:${uid}`);
         });
+
+        // Proactively send current statuses so the UI doesn't have to wait for a change
+        const validIds = user_ids.filter(id => id && id !== 'unknown');
+        if (validIds.length > 0) {
+            const statuses = await userService.getUserStatuses(validIds);
+            Object.entries(statuses).forEach(([uid, status]) => {
+                socket.emit(SocketEvents.PARTNER_STATUS_CHANGE, {
+                    user_id: uid,
+                    status
+                });
+            });
+        }
     });
 
     socket.on(SocketEvents.UNWATCH_USER_STATUS, (data: { user_ids: string[] }) => {
