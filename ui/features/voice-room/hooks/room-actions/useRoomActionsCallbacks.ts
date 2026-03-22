@@ -82,6 +82,7 @@ export const useRoomActionsCallbacks = ({
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
+        try { localStorage.removeItem('nz_muted'); } catch {}
     }, [cleanupMedia, closePeerConnection, resetState, clearMessages, setPartnerIsMuted, callRoomState.partner_id, stopSearchRef, endCallRef, nextTimeoutRef, reconnectTimeoutRef]);
 
     const findMatch = useCallback(async (forceSkip: boolean = false) => {
@@ -199,6 +200,7 @@ export const useRoomActionsCallbacks = ({
         resetState();
         clearMessages();
         setPartnerIsMuted(false);
+        try { localStorage.removeItem('nz_muted'); } catch {}
 
         if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
 
@@ -267,12 +269,22 @@ export const useRoomActionsCallbacks = ({
         // Power up local media unconditionally before dealing with offers
         await initMediaManager();
 
+        // Restore partner's mute state from the server
+        if (typeof (data as any).partner_is_muted === 'boolean') {
+            setPartnerIsMuted((data as any).partner_is_muted);
+        }
+
+        // Sync our own mute state to the server and notify the partner
+        const isMuted = localStorage.getItem('nz_muted') === 'true';
+        emitUpdateMediaState(isMuted);
+        emitToggleMute(data.new_socket_id, isMuted);
+
         // Use assigned role from server
         if (data.your_role === 'offerer') {
             await createOffer(data.new_socket_id);
         } else {
         }
-    }, [closePeerConnection, setSearching, setConnected, setPartner, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, initMediaManager, createOffer]);
+    }, [closePeerConnection, setSearching, setConnected, setPartner, setPartnerIsMuted, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, callRoomState.friendship_status, initMediaManager, createOffer]);
 
     const onRejoinSuccess = useCallback(async (data: any) => {
         // Defer UI transition until WebRTC is connected
@@ -293,12 +305,22 @@ export const useRoomActionsCallbacks = ({
         // Power up local media unconditionally before dealing with offers
         await initMediaManager();
 
+        // Restore partner's mute state from the server
+        if (typeof data.partner_is_muted === 'boolean') {
+            setPartnerIsMuted(data.partner_is_muted);
+        }
+
+        // Sync our own mute state to the server and notify the partner
+        const isMuted = localStorage.getItem('nz_muted') === 'true';
+        emitUpdateMediaState(isMuted);
+        emitToggleMute(data.partner_id, isMuted);
+
         // Use assigned role from server
         if (data.role === 'offerer') {
             if (mode === 'voice') await createOffer(data.partner_id);
         } else {
         }
-    }, [setSearching, setConnected, setPartner, closePeerConnection, mode, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager, createOffer]);
+    }, [setSearching, setConnected, setPartner, setPartnerIsMuted, closePeerConnection, mode, callRoomState.partner_country_name, callRoomState.partner_country, callRoomState.partner_username, callRoomState.partner_avatar, callRoomState.partner_gender, callRoomState.partner_user_id, initMediaManager, createOffer]);
 
     const onRejoinFailed = useCallback((data: { reason: string }) => {
         resetState();

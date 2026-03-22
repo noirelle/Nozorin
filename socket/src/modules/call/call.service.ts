@@ -92,6 +92,19 @@ export const callService = {
         // is removed from any waiting/active registry to prevent memory drift.
         activeCalls.delete(socketId);
         waitingForPartner.delete(socketId);
+
+        // Also clean Redis keys if we can resolve the userId
+        const failsafeUserId = userService.getUserId(socketId);
+        if (failsafeUserId) {
+            reconnectingUsers.delete(failsafeUserId);
+            waitingForPartner.delete(failsafeUserId);
+            const redis = getRedisClient();
+            if (redis) {
+                await redis.del(`call:reconnect:${failsafeUserId}`);
+                await redis.del(`call:room:${failsafeUserId}`);
+            }
+        }
+
         logger.debug({ socketId, target: data?.target }, '[CALL] End call requested but no active partner found — forced local cleanup complete');
         return true;
     },
@@ -258,6 +271,11 @@ export const callService = {
         for (const [userId, info] of reconnectingUsers.entries()) {
             if (now > info.expires_at) {
                 reconnectingUsers.delete(userId);
+
+                // Explicitly mark offline if the grace period expires and no other session took over
+                await userService.deactivateUser(userId);
+                const { presenceService } = require('../presence/presence.service'); // circular dep avoidance
+                await presenceService.broadcastUserStatus(io, userId, false);
 
                 // Explicitly clean up Redis keys so they don't linger until TTL
                 const redis = getRedisClient();

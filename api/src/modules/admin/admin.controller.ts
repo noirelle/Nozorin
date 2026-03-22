@@ -8,6 +8,7 @@ import { Friend } from '../friend/friend.entity';
 import { FriendRequest } from '../friend/friend-request.entity';
 import { getRedisClient } from '../../core/config/redis.config';
 import { adminClient } from '../../integrations/socket/admin/admin.client';
+import { userService } from '../user/user.service';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.ADMIN_PANEL_PASSWORD;
 
@@ -18,7 +19,6 @@ async function clearUserFullCache(userId: string): Promise<void> {
     try {
         await redis.del(
             `user:${userId}`,
-            `user:status:${userId}`,
             `user:exists:${userId}`,
             `temp_user:${userId}`
         );
@@ -148,12 +148,17 @@ export const adminController = {
             if (search) {
                 queryBuilder.andWhere('user.username LIKE :search', { search: `%${search}%` });
             }
-            
+
+            const zombieCutoff = Date.now() - (15 * 60 * 1000); // 15 mins
+
             if (active_since) {
                 const hours = Number(active_since);
                 if (!isNaN(hours)) {
                     const cutoffTime = Date.now() - (hours * 3600000);
-                    queryBuilder.andWhere('user.last_active_at > :cutoffTime', { cutoffTime });
+                    queryBuilder.andWhere('(user.last_active_at > :cutoffTime OR (user.is_online = true AND user.last_active_at > :zombieCutoff))', {
+                        cutoffTime,
+                        zombieCutoff
+                    });
                 }
             }
 
@@ -174,50 +179,25 @@ export const adminController = {
 
             const total = await queryBuilder.getCount();
             const rawResults = await queryBuilder
-                .orderBy('user.last_active_at', 'DESC')
+                // Primary sort: Truly online users (is_online = true AND not a zombie)
+                .orderBy(`CASE WHEN user.is_online = true AND user.last_active_at > ${zombieCutoff} THEN 1 ELSE 0 END`, 'DESC')
+                // Secondary sort: Most recently active
+                .addOrderBy('user.last_active_at', 'DESC')
                 .skip(skip)
                 .take(take)
                 .getRawAndEntities();
 
             // Fetch real-time status from Redis if available
             const userIds = rawResults.entities.map(u => u.id);
-            const redis = getRedisClient();
-            let onlineStatuses: Record<string, boolean> = {};
-
-            if (redis && userIds.length > 0) {
-                try {
-                    const keys = userIds.map(id => `user:status:${id}`);
-                    const statuses = await redis.mget(...keys);
-                    userIds.forEach((id, index) => {
-                        const statusJson = statuses[index];
-                        if (statusJson) {
-                            try {
-                                const status = JSON.parse(statusJson);
-                                onlineStatuses[id] = !!status.is_online;
-                            } catch (e) {
-                                onlineStatuses[id] = false;
-                            }
-                        } else {
-                            onlineStatuses[id] = false;
-                        }
-                    });
-                } catch (error) {
-                    console.error('[ADMIN] Redis error fetching statuses:', error);
-                }
-            }
+            const userStatuses = await userService.getUserStatuses(userIds);
 
             const usersWithStats = rawResults.entities.map((user, index) => ({
                 ...user,
                 friendCount: Number(rawResults.raw[index].friendCount) || 0,
                 historyCount: Number(rawResults.raw[index].historyCount) || 0,
                 last_active_at: Number(user.last_active_at),
-                is_online: onlineStatuses[user.id] ?? false
-            })).sort((a, b) => {
-                if (a.is_online === b.is_online) {
-                    return b.last_active_at - a.last_active_at;
-                }
-                return a.is_online ? -1 : 1;
-            });
+                is_online: userStatuses[user.id]?.is_online ?? false
+            }));
 
             return res.status(200).json(successResponse({
                 users: usersWithStats,
@@ -256,23 +236,13 @@ export const adminController = {
             });
 
             // Get real-time status
-            const redis = getRedisClient();
-            let isOnline = false;
-            if (redis) {
-                const statusJson = await redis.get(`user:status:${userId}`);
-                if (statusJson) {
-                    try {
-                        const status = JSON.parse(statusJson);
-                        isOnline = !!status.is_online;
-                    } catch (e) {}
-                }
-            }
+            const status = await userService.getUserStatus(userId);
 
             const userDetails = {
                 ...user,
                 last_active_at: Number(user.last_active_at),
                 created_at: Number(user.created_at),
-                is_online: isOnline,
+                is_online: status.is_online,
                 history: history.map(h => ({ ...h, created_at: Number(h.created_at) })),
                 friends: friends.map(f => ({ ...f, created_at: Number(f.created_at) })),
                 historyCount,
@@ -344,7 +314,7 @@ export const adminController = {
             try {
                 // Delete Call History
                 await AppDataSource.getRepository(CallHistory).delete({ user_id: userId });
-                
+
                 // Delete Friendships (both sides)
                 await AppDataSource.getRepository(Friend).delete([
                     { user_id: userId },
@@ -386,7 +356,7 @@ export const adminController = {
         try {
             const { historyId } = req.params;
             const historyRepo = AppDataSource.getRepository(CallHistory);
-            
+
             const history = await historyRepo.findOneBy({ id: historyId });
             if (!history) {
                 return res.status(404).json(errorResponse('History record not found'));

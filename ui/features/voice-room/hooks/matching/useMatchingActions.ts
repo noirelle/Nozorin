@@ -233,8 +233,9 @@ export const useMatchingActions = ({
         clearReconnectTimer();
         setStatus('IDLE');
         setPosition(null);
+        setReconnectCountdown(null);
         callbacksRef.current.onCallEnded?.(data);
-    }, [clearReconnectTimer, setStatus, setPosition]);
+    }, [clearReconnectTimer, setStatus, setPosition, setReconnectCountdown]);
 
     const buildHandlePartnerReconnecting = useCallback(() => (data: PartnerReconnectingPayload) => {
         setStatus('RECONNECTING');
@@ -243,12 +244,23 @@ export const useMatchingActions = ({
         if (reconnectTimerRef.current) clearInterval(reconnectTimerRef.current);
         reconnectTimerRef.current = setInterval(() => {
             setReconnectCountdown(prev => {
-                if (prev === null || prev <= 1) { clearReconnectTimer(); return null; }
+                if (prev === null || prev <= 1) {
+                    clearReconnectTimer();
+                    // Defer side-effects out of the state updater to avoid
+                    // "Cannot update a component while rendering a different component"
+                    queueMicrotask(() => {
+                        setStatus('IDLE');
+                        setPosition(null);
+                        setReconnectCountdown(null);
+                        callbacksRef.current.onCallEnded?.({ reason: 'reconnect-timeout' });
+                    });
+                    return null;
+                }
                 return prev - 1;
             });
         }, 1000);
         callbacksRef.current.onPartnerReconnecting?.(data);
-    }, [setStatus, setReconnectCountdown, reconnectTimerRef, clearReconnectTimer]);
+    }, [setStatus, setReconnectCountdown, setPosition, reconnectTimerRef, clearReconnectTimer]);
 
     const buildHandlePartnerReconnected = useCallback(() => (data: PartnerReconnectedPayload) => {
         clearReconnectTimer();

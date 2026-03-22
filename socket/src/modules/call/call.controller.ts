@@ -3,6 +3,7 @@ import { SocketEvents } from '../../socket/socket.events';
 import { userService } from '../../shared/services/user.service';
 import { logger } from '../../core/logger';
 import { activeCalls, reconnectingUsers, waitingForPartner } from './call.store';
+import { userMediaState } from '../media/media.store';
 import { callService } from './call.service';
 import { CallDisconnectReason } from '../../shared/types/socket.types';
 import { getRedisClient } from '../../core/config/redis.config';
@@ -29,7 +30,7 @@ export const register = (io: Server, socket: Socket): void => {
             if (partnerUserId) {
                 const partnerProfile = await userService.getUserProfile(partnerUserId);
                 const friendshipStatus = await userService.getFriendshipStatus(userId, partnerUserId);
-                
+
                 socket.emit(SocketEvents.REJOIN_SUCCESS, {
                     partner_id: activeCall.partner_id,
                     partner_user_id: partnerUserId,
@@ -38,6 +39,7 @@ export const register = (io: Server, socket: Socket): void => {
                     partner_gender: partnerProfile?.gender,
                     partner_country_name: partnerProfile?.country_name,
                     partner_country: partnerProfile?.country,
+                    partner_is_muted: userMediaState.get(activeCall.partner_id)?.is_muted ?? false,
                     friendship_status: friendshipStatus,
                     room_id: activeCall.room_id,
                     role: activeCall.is_offerer ? 'offerer' : 'answerer'
@@ -74,7 +76,7 @@ export const register = (io: Server, socket: Socket): void => {
         // We only proceed if the partner is ALREADY in an active call with us (they didn't refresh)
         // OR if they have also signaled their intent to rejoin (they are in waitingForPartner).
         let currentPartnerSocketId = userService.getSocketId(rejoinInfo.partner_user_id);
-        
+
         // Case A: Partner is already active in a call (didn't refresh)
         let partnerIsActive = false;
         if (currentPartnerSocketId) {
@@ -132,7 +134,7 @@ export const register = (io: Server, socket: Socket): void => {
         // Setup active state for both
         activeCalls.set(socket.id, { partner_id: currentPartnerSocketId!, partner_user_id: rejoinInfo.partner_user_id, start_time: startTime, last_seen: Date.now(), is_offerer: rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
         activeCalls.set(currentPartnerSocketId!, { partner_id: socket.id, partner_user_id: userId, start_time: startTime, last_seen: Date.now(), is_offerer: !rejoinInfo.is_offerer, room_id: rejoinInfo.room_id });
-        
+
         userService.setUserForSocket(socket.id, userId);
         userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
@@ -142,7 +144,19 @@ export const register = (io: Server, socket: Socket): void => {
             reconnectingUsers.delete(rejoinInfo.partner_user_id);
             waitingForPartner.delete(rejoinInfo.partner_user_id);
             const redis = getRedisClient();
-            if (redis) await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+            if (redis) {
+                await redis.del(`call:reconnect:${rejoinInfo.partner_user_id}`);
+                await redis.del(`call:room:${rejoinInfo.partner_user_id}`);
+            }
+        }
+
+        // Clean up our own reconnect/room keys since we're now fully rejoined
+        reconnectingUsers.delete(userId);
+        waitingForPartner.delete(userId);
+        const ownRedis = getRedisClient();
+        if (ownRedis) {
+            await ownRedis.del(`call:reconnect:${userId}`);
+            await ownRedis.del(`call:room:${userId}`);
         }
 
         const partnerProfile = await userService.getUserProfile(rejoinInfo.partner_user_id);
@@ -160,6 +174,7 @@ export const register = (io: Server, socket: Socket): void => {
             partner_gender: partnerProfile?.gender,
             partner_country_name: partnerProfile?.country_name,
             partner_country: partnerProfile?.country,
+            partner_is_muted: userMediaState.get(currentPartnerSocketId!)?.is_muted ?? false,
             friendship_status: friendshipStatus,
             room_id: rejoinInfo.room_id,
             role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -183,6 +198,7 @@ export const register = (io: Server, socket: Socket): void => {
                 partner_gender: userProfile?.gender,
                 partner_country_name: userProfile?.country_name,
                 partner_country: userProfile?.country,
+                partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                 friendship_status: reverseStatus,
                 your_role: rejoinInfo.is_offerer ? 'answerer' : 'offerer'
             });
@@ -211,21 +227,21 @@ export const register = (io: Server, socket: Socket): void => {
                     // Set up activeCalls for the waiting user (they haven't gone through
                     // the success path yet — their entry may already be set from above if
                     // we used their socket ID, but set it cleanly regardless)
-                    activeCalls.set(waitingSocketId, { 
-                        partner_id: socket.id, 
-                        partner_user_id: userId, 
-                        start_time: startTime, 
-                        last_seen: Date.now(), 
-                        is_offerer: !rejoinInfo.is_offerer, 
-                        room_id: rejoinInfo.room_id 
+                    activeCalls.set(waitingSocketId, {
+                        partner_id: socket.id,
+                        partner_user_id: userId,
+                        start_time: startTime,
+                        last_seen: Date.now(),
+                        is_offerer: !rejoinInfo.is_offerer,
+                        room_id: rejoinInfo.room_id
                     });
-                    activeCalls.set(socket.id, { 
-                        partner_id: waitingSocketId, 
-                        partner_user_id: waitingUserId, 
-                        start_time: startTime, 
-                        last_seen: Date.now(), 
-                        is_offerer: rejoinInfo.is_offerer, 
-                        room_id: rejoinInfo.room_id 
+                    activeCalls.set(socket.id, {
+                        partner_id: waitingSocketId,
+                        partner_user_id: waitingUserId,
+                        start_time: startTime,
+                        last_seen: Date.now(),
+                        is_offerer: rejoinInfo.is_offerer,
+                        room_id: rejoinInfo.room_id
                     });
 
                     reconnectingUsers.delete(waitingUserId);
@@ -245,6 +261,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingPartnerProfile?.gender,
                         partner_country_name: waitingPartnerProfile?.country_name,
                         partner_country: waitingPartnerProfile?.country,
+                        partner_is_muted: userMediaState.get(socket.id)?.is_muted ?? false,
                         friendship_status: waitingFriendshipStatus,
                         room_id: waitingRejoinInfo.room_id,
                         role: !rejoinInfo.is_offerer ? 'offerer' : 'answerer'
@@ -266,6 +283,7 @@ export const register = (io: Server, socket: Socket): void => {
                         partner_gender: waitingUserProfile?.gender,
                         partner_country_name: waitingUserProfile?.country_name,
                         partner_country: waitingUserProfile?.country,
+                        partner_is_muted: userMediaState.get(waitingSocketId)?.is_muted ?? false,
                         friendship_status: waitingReverseStatus,
                         your_role: rejoinInfo.is_offerer ? 'offerer' : 'answerer'
                     });
@@ -289,13 +307,19 @@ export const register = (io: Server, socket: Socket): void => {
                 reconnectingUsers.delete(userId);
                 waitingForPartner.delete(userId);
                 const redis = getRedisClient();
-                if (redis) await redis.del(`call:reconnect:${userId}`);
+                if (redis) {
+                    await redis.del(`call:reconnect:${userId}`);
+                    await redis.del(`call:room:${userId}`);
+                }
 
                 // Also clean up the partner's reconnecting entry by user ID
                 if (info.partner_user_id && info.partner_user_id !== 'unknown') {
                     reconnectingUsers.delete(info.partner_user_id);
                     waitingForPartner.delete(info.partner_user_id);
-                    if (redis) await redis.del(`call:reconnect:${info.partner_user_id}`);
+                    if (redis) {
+                        await redis.del(`call:reconnect:${info.partner_user_id}`);
+                        await redis.del(`call:room:${info.partner_user_id}`);
+                    }
                 }
             }
             logger.info({ socketId: socket.id, user_id: userId }, '[CALL] Reconnection cancelled');
