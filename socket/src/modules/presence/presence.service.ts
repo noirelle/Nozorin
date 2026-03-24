@@ -4,6 +4,9 @@ import { userService } from '../../shared/services/user.service';
 import { statsService } from '../../shared/services/stats.service';
 import { presenceStore } from './presence.store';
 import { logger } from '../../core/logger';
+import { getRedisClient } from '../../core/config/redis.config';
+
+
 
 export const presenceService = {
     /** Broadcast a user's status to all watching clients */
@@ -42,42 +45,39 @@ export const presenceService = {
         }
     },
 
-    /** Calculate the absolute unique number of people online */
-    calculateOnlineCount(): number {
-        const identifiedUserIds = userService.getActiveUserIds(); // Unique user IDs
-        const allSocketIds = presenceStore.getAll();
-        
-        // Count anonymous sockets (those not mapped to a userId)
-        let anonymousCount = 0;
-        for (const sid of allSocketIds) {
-            if (!userService.getUserId(sid)) {
-                anonymousCount++;
-            }
-        }
-        
-        const count = identifiedUserIds.length + anonymousCount;
-        logger.debug({ identified: identifiedUserIds.length, anonymous: anonymousCount, total: count }, '[PRESENCE] Calculated online count');
-        return count;
+    /** Calculate the absolute unique number of people online using memory */
+    async calculateOnlineCount(): Promise<number> {
+        // Unique authenticated users + unique anonymous sockets
+        return userService.getActiveUserIds().length + presenceStore.getAll().filter(sid => !userService.getUserId(sid)).length;
     },
 
-    handleConnection(io: Server, socket: Socket): void {
+    async handleConnection(io: Server, socket: Socket): Promise<void> {
         presenceStore.add(socket.id);
         
-        const onlineCount = this.calculateOnlineCount();
-        statsService.setOnlineUsers(onlineCount);
+        // Immediately track connection load
         statsService.incrementTotalConnections();
-        
-        const stats = statsService.getStats();
-        socket.emit(SocketEvents.STATS_UPDATE, stats);
-        io.emit(SocketEvents.STATS_UPDATE, stats);
+
+        // Delay anonymous marking to prevent race conditions with speedy auth.
+        // Even without Redis, we delay the stats broadcast to avoid duplicate updates during login flow
+        setTimeout(async () => {
+            if (!userService.getUserId(socket.id) && presenceStore.getAll().includes(socket.id)) {
+                const onlineCount = await this.calculateOnlineCount();
+                statsService.setOnlineUsers(onlineCount);
+                
+                const stats = statsService.getStats();
+                socket.emit(SocketEvents.STATS_UPDATE, stats);
+                io.emit(SocketEvents.STATS_UPDATE, stats);
+            }
+        }, 2000);
     },
 
     /** Handle user identification and broadcast initial online status */
-    async handleUserConnection(io: Server, userId: string): Promise<void> {
+    async handleUserConnection(io: Server, userId: string, socketId: string): Promise<void> {
+        // broadcastUserStatus handles the transition for this userId
         await this.broadcastUserStatus(io, userId, true);
         
-        // Update and broadcast stats because an anonymous socket just became an identified user
-        const onlineCount = this.calculateOnlineCount();
+        // Update and broadcast stats
+        const onlineCount = await this.calculateOnlineCount();
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
@@ -88,7 +88,7 @@ export const presenceService = {
         presenceStore.remove(socket.id);
         const isLastSocket = userService.removeSocket(socket.id);
 
-        const onlineCount = this.calculateOnlineCount();
+        const onlineCount = await this.calculateOnlineCount();
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
 
