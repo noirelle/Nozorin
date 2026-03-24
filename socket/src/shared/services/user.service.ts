@@ -9,14 +9,16 @@ import { User } from '../../modules/user/user.entity';
 import { Friend } from '../../modules/friends/friend.entity';
 import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
+import { LessThan } from 'typeorm';
 
-const ONLINE_TTL = 150; // 2.5 minutes (allows for ~5 missed heartbeats)
+const ONLINE_TTL = 90; // 1.5 minutes (allows for ~3-4 missed heartbeats)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 const DB_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // ── In-memory maps ────────────────────────────────────────────────────────────
 const socketToUser = new Map<string, string>(); // socketId → userId
 const userToSockets = new Map<string, Set<string>>(); // userId → Set of socketIds
+const adminUsers = new Set<string>(); // Set of admin userIds
 const lastDbSync = new Map<string, number>(); // userId → timestamp
 
 // ── Repositories ─────────────────────────────────────────────────────────────
@@ -26,7 +28,11 @@ const requestRepository = AppDataSource.getRepository(FriendRequest);
 
 export const userService = {
     /** Associate socketId with a user_id. Returns the previous primary socketId if any. */
-    setUserForSocket(socketId: string, user_id: string): string | null {
+    setUserForSocket(socketId: string, user_id: string, isAdmin: boolean = false): string | null {
+        if (isAdmin) {
+            adminUsers.add(user_id);
+        }
+
         const existingSockets = userToSockets.get(user_id);
         const primarySocketId = existingSockets && existingSockets.size > 0 ? Array.from(existingSockets)[0] : null;
 
@@ -82,6 +88,7 @@ export const userService = {
                 if (sockets.size === 0) {
                     userToSockets.delete(userId);
                     socketToUser.delete(socketId);
+                    adminUsers.delete(userId);
                     return true; // Last socket gone
                 }
             }
@@ -90,9 +97,9 @@ export const userService = {
         return false;
     },
 
-    /** Returns all user IDs currently associated with at least one socket */
+    /** Returns all user IDs currently associated with at least one socket (excluding admins) */
     getActiveUserIds(): string[] {
-        return Array.from(userToSockets.keys());
+        return Array.from(userToSockets.keys()).filter(id => !adminUsers.has(id));
     },
 
     /** Register/activate a user (marking existence in Redis) */
@@ -178,19 +185,18 @@ export const userService = {
 
         // Fallback to DB with zombie protection
         try {
-            const user = await userRepository.findOne({ 
+            const user = await userRepository.findOne({
                 where: { id: userId },
                 select: ['last_active_at', 'is_online']
             });
-            
+
             if (user) {
                 const lastSeen = Number(user.last_active_at) || 0;
-                const zombieCutoff = Date.now() - (15 * 60 * 1000);
-                const isOnline = user.is_online && lastSeen > zombieCutoff;
-
-                return { 
-                    is_online: isOnline, 
-                    last_seen: lastSeen 
+                // STRICT: if we are here, Redis already failed or key was missing.
+                // We return offline regardless of DB is_online flag to avoid ghost users.
+                return {
+                    is_online: false,
+                    last_seen: lastSeen
                 };
             }
         } catch (error) {
@@ -203,7 +209,7 @@ export const userService = {
     /** Fetch statuses for multiple users in a single batch (MGET with DB fallback) */
     async getUserStatuses(user_ids: string[]): Promise<Record<string, any>> {
         if (!user_ids.length) return {};
-        
+
         const results: Record<string, any> = {};
         const missingUserIds: string[] = [];
         const redis = getRedisClient();
@@ -237,12 +243,10 @@ export const userService = {
         if (missingUserIds.length > 0) {
             try {
                 const users = await userRepository.findByIds(missingUserIds);
-                const zombieCutoff = Date.now() - (15 * 60 * 1000);
-
                 users.forEach(user => {
                     const lastSeen = Number(user.last_active_at) || 0;
                     results[user.id] = {
-                        is_online: user.is_online && lastSeen > zombieCutoff,
+                        is_online: false, // Strict Redis-driven: if not in Redis, it's offline
                         last_seen: lastSeen
                     };
                 });
@@ -260,18 +264,45 @@ export const userService = {
     },
 
     /** Mark users as offline if they've been inactive for too long (Self-healing job) */
-    async cleanupZombieStatuses(): Promise<void> {
-        const zombieCutoff = Date.now() - (15 * 60 * 1000);
-        try {
-            const result = await userRepository.createQueryBuilder()
-                .update(User)
-                .set({ is_online: false })
-                .where('is_online = :isOnline', { isOnline: true })
-                .andWhere('last_active_at < :cutoff', { cutoff: zombieCutoff })
-                .execute();
+    async cleanupZombieStatuses(io?: any): Promise<void> {
+        const now = Date.now();
+        const zombieCutoff = now - (5 * 60 * 1000); // 5 minutes (matches DB_SYNC_INTERVAL)
 
-            if (result.affected && result.affected > 0) {
-                logger.info({ affected: result.affected }, '[USER-SERVICE] Cleaned up zombie online statuses');
+        try {
+
+            // Find users who are marked online but haven't been seen recently
+            const zombies = await userRepository.find({
+                where: {
+                    is_online: true,
+                    last_active_at: LessThan(zombieCutoff as any)
+                },
+                select: ['id']
+            });
+
+            if (zombies.length > 0) {
+                const zombieIds = zombies.map(z => z.id);
+                logger.info({ count: zombieIds.length }, '[USER-SERVICE] Found zombie online statuses, cleaning up');
+
+                await userRepository.update(zombieIds, { is_online: false });
+
+                // If io is provided, notify their presence room so friends/partners see the change
+                if (io) {
+                    const { presenceService } = require('../../modules/presence/presence.service');
+                    for (const userId of zombieIds) {
+                        await presenceService.broadcastUserStatus(io, userId, false);
+                    }
+                }
+            }
+
+            if (io && zombies.length > 0) {
+                const { presenceService } = require('../../modules/presence/presence.service');
+                const { statsService } = require('./stats.service');
+                const { SocketEvents } = require('../../socket/socket.events');
+                
+                const onlineCount = await presenceService.calculateOnlineCount();
+                statsService.setOnlineUsers(onlineCount);
+                io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
+                logger.debug({ onlineCount }, '[USER-SERVICE] Broadcasted updated stats after zombie cleanup');
             }
         } catch (error) {
             logger.error({ error }, '[USER-SERVICE] Failed to cleanup zombie statuses');
@@ -348,7 +379,7 @@ export const userService = {
         try {
             const user = await userRepository.findOneBy({ id: userId });
             if (!user) return null;
-            
+
             return {
                 id: user.id,
                 username: user.username,

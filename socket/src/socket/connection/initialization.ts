@@ -38,14 +38,14 @@ export const initializeSocketConnection = async (io: Server, socket: Socket): Pr
             await matchmakingService.updateUserInQueue(socket.id, profile);
         }
 
-        await presenceService.handleUserConnection(io, user_id);
-        
+        await presenceService.handleUserConnection(io, user_id, socket.id);
+
         // Proactive Session Push: check for active call and notify client immediately
         const activeCall = await callService.getActiveCall(user_id);
         if (activeCall) {
             const partnerProfile = await userService.getUserProfile(activeCall.partner_user_id);
-            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { 
-                user_id, 
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, {
+                user_id,
                 auto: true,
                 active_session: {
                     ...activeCall,

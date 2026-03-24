@@ -11,22 +11,25 @@ export const authService = {
         if (!token) return null;
         const payload = verifyVisitorToken(token);
         const userId = payload?.userId;
-        
+
         if (!userId) {
             socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid or expired token' });
             return null;
         }
 
         // Update socket data so subsequent checks (like JOIN_ADMIN_ROOM) work
-        (socket as any).data.user = { 
-            user_id: userId, 
-            user_type: payload.userType 
+        (socket as any).data.user = {
+            user_id: userId,
+            user_type: payload.userType
         };
 
         // Cleanup other sessions BEFORE setting this one
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
 
@@ -37,14 +40,14 @@ export const authService = {
         }
 
         logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
-        await presenceService.broadcastUserStatus(io, userId);
+        await presenceService.handleUserConnection(io, userId, socket.id);
 
         // Proactive Session Push
         const { callService } = require('../call/call.service'); // circular dep avoidance
         const activeCall = await callService.getActiveCall(userId);
         if (activeCall) {
             const partnerProfile = await userService.getUserProfile(activeCall.partner_user_id);
-            socket.emit(SocketEvents.IDENTIFY_SUCCESS, { 
+            socket.emit(SocketEvents.IDENTIFY_SUCCESS, {
                 user_id: userId,
                 active_session: {
                     ...activeCall,
@@ -61,28 +64,33 @@ export const authService = {
         if (!token) return;
         const payload = verifyVisitorToken(token);
         const userId = payload?.userId;
-        
+
         if (!userId) {
             socket.emit(SocketEvents.AUTH_ERROR, { message: 'Invalid token during update' });
             return;
         }
 
         // Update socket data
-        (socket as any).data.user = { 
-            user_id: userId, 
-            user_type: payload.userType 
+        (socket as any).data.user = {
+            user_id: userId,
+            user_type: payload.userType
         };
 
         // Cleanup other sessions if user changed or to enforce single session
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         await userService.registerUser(userId);
 
         const profile = await userService.getUserProfile(userId);
         if (profile) {
             await matchmakingService.updateUserInQueue(socket.id, profile);
         }
+
+        await presenceService.handleUserConnection(io, userId, socket.id);
 
         socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, user_id: userId });
     },
@@ -94,22 +102,25 @@ export const authService = {
         if (!userId) return;
 
         // Update socket data
-        (socket as any).data.user = { 
-            user_id: userId, 
-            user_type: payload.userType 
+        (socket as any).data.user = {
+            user_id: userId,
+            user_type: payload.userType
         };
 
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         await userService.registerUser(userId);
 
         const profile = await userService.getUserProfile(userId);
         if (profile) {
             await matchmakingService.updateUserInQueue(socket.id, profile);
         }
-
-        await presenceService.broadcastUserStatus(io, userId);
+        
+        await presenceService.handleUserConnection(io, userId, socket.id);
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
     },
 

@@ -61,7 +61,7 @@ export const friendsService = {
 
     async notifyProfileUpdated(userId: string, updatedProfile: any) {
         if (!_ioInstance) return;
-        
+
         // 1. Notify the user themselves (to update their own UI)
         _ioInstance.to(`user:${userId}`).emit('profile-updated', {
             profile: updatedProfile
@@ -77,7 +77,7 @@ export const friendsService = {
             });
 
             const friendIds = friends.map(f => f.user_id === userId ? f.friend_id : f.user_id);
-            
+
             for (const friendId of friendIds) {
                 const friendSocketId = userService.getSocketId(friendId);
                 if (friendSocketId) {
@@ -118,7 +118,7 @@ export const friendsService = {
             });
 
             const friendIds = friends.map(f => f.user_id === userId ? f.friend_id : f.user_id);
-            
+
             for (const friendId of friendIds) {
                 const friendSocketId = userService.getSocketId(friendId);
                 if (friendSocketId) {
@@ -134,8 +134,8 @@ export const friendsService = {
             for (const sid of sockets) {
                 const callInfo = activeCalls.get(sid);
                 if (callInfo?.partner_user_id) {
-                    _ioInstance.to(`user:${callInfo.partner_user_id}`).emit('call-ended', { 
-                        reason: 'partner-disconnect' 
+                    _ioInstance.to(`user:${callInfo.partner_user_id}`).emit('call-ended', {
+                        reason: 'partner-disconnect'
                     });
                     logger.info({ userId, partnerUserId: callInfo.partner_user_id }, '[FRIEND_SERVICE] Call partner notified of user deletion');
                 }

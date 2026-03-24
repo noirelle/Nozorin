@@ -64,8 +64,8 @@ const startServer = async () => {
         }, 10000);
 
         setInterval(() => {
-            userService.cleanupZombieStatuses();
-        }, 2 * 60 * 1000); // Every 2 minutes
+            userService.cleanupZombieStatuses(io);
+        }, 1 * 60 * 1000); // Every minute
     } catch (err) {
         logger.error({ err }, '[SERVER] Failed to start');
         process.exit(1);
