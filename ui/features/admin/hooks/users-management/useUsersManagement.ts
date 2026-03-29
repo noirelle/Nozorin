@@ -11,7 +11,8 @@ export const useUsersManagement = () => {
     const actions = useUsersManagementActions(state);
 
     useUsersManagementListeners({
-        setUsers: state.setUsers
+        setUsers: state.setUsers,
+        fetchUsers: actions.fetchUsers
     });
 
     // Refresh listener for manual actions (Edit/Delete)

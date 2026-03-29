@@ -24,9 +24,12 @@ export const authService = {
         };
 
         // Cleanup other sessions BEFORE setting this one
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         userService.joinUserRoom(socket, userId);
         await userService.registerUser(userId);
 
@@ -37,7 +40,7 @@ export const authService = {
         }
 
         logger.info({ socket_id: socket.id, user_id: userId.substring(0, 8) }, '[AUTH] User identified');
-        await presenceService.handleUserConnection(io, userId);
+        await presenceService.handleUserConnection(io, userId, socket.id);
 
         // Proactive Session Push
         const { callService } = require('../call/call.service'); // circular dep avoidance
@@ -74,9 +77,12 @@ export const authService = {
         };
 
         // Cleanup other sessions if user changed or to enforce single session
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         await userService.registerUser(userId);
 
         const profile = await userService.getUserProfile(userId);
@@ -84,7 +90,7 @@ export const authService = {
             await matchmakingService.updateUserInQueue(socket.id, profile);
         }
 
-        await presenceService.handleUserConnection(io, userId);
+        await presenceService.handleUserConnection(io, userId, socket.id);
 
         socket.emit(SocketEvents.TOKEN_UPDATED, { success: true, user_id: userId });
     },
@@ -101,9 +107,12 @@ export const authService = {
             user_type: payload.userType
         };
 
-        await authService.cleanupOtherSessions(io, userId, socket.id);
+        if (payload.userType !== 'admin') {
+            await authService.cleanupOtherSessions(io, userId, socket.id);
+        }
 
-        userService.setUserForSocket(socket.id, userId);
+        const isAdmin = payload.userType === 'admin';
+        userService.setUserForSocket(socket.id, userId, isAdmin);
         await userService.registerUser(userId);
 
         const profile = await userService.getUserProfile(userId);
@@ -111,7 +120,7 @@ export const authService = {
             await matchmakingService.updateUserInQueue(socket.id, profile);
         }
         
-        await presenceService.handleUserConnection(io, userId);
+        await presenceService.handleUserConnection(io, userId, socket.id);
         socket.emit(SocketEvents.IDENTIFY_SUCCESS, { user_id: userId });
     },
 

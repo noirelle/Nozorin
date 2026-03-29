@@ -1,9 +1,9 @@
 import Redis from 'ioredis';
 import { logger } from '../logger';
 
-const REDISHOST = process.env.REDISHOST!;
-const REDISPORT = parseInt(process.env.REDISPORT!, 10);
-const REDISPASSWORD = process.env.REDISPASSWORD!;
+const REDISHOST = process.env.REDISHOST || 'redis';
+const REDISPORT = parseInt(process.env.REDISPORT || '6379', 10);
+const REDISPASSWORD = process.env.REDISPASSWORD || process.env.REDIS_PASSWORD || 'root';
 
 let redisClient: Redis | null = null;
 let isRedisAvailable = false;

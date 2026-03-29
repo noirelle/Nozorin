@@ -7,9 +7,10 @@ import { useAdminStore } from '@/stores/useAdminStore';
 
 interface UseUsersManagementListenersProps {
     setUsers: UseUsersManagementStateReturn['setUsers'];
+    fetchUsers: (force?: boolean) => Promise<void>;
 }
 
-export const useUsersManagementListeners = ({ setUsers }: UseUsersManagementListenersProps) => {
+export const useUsersManagementListeners = ({ setUsers, fetchUsers }: UseUsersManagementListenersProps) => {
     const adminToken = useAdminStore(state => state.adminToken);
 
     // 1. Join Admin Room on connection & identification
@@ -80,4 +81,31 @@ export const useUsersManagementListeners = ({ setUsers }: UseUsersManagementList
     }, [setUsers]);
 
     useSocketEvent(SocketEvents.ADMIN_USER_ACTIVE as any, handleUserActive);
+
+    // 3. Periodic refetch to reconcile against server-authoritative state
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchUsers(true);
+        }, 30 * 1000); // Every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [fetchUsers]);
+
+    // 4. Immediate refetch on socket reconnect (catches missed events during disconnection)
+    useEffect(() => {
+        if (!adminToken) return;
+
+        const socket = getSocketClient(adminToken);
+        if (!socket) return;
+
+        const handleReconnectRefetch = () => {
+            fetchUsers(true);
+        };
+
+        socket.on('connect', handleReconnectRefetch);
+
+        return () => {
+            socket.off('connect', handleReconnectRefetch);
+        };
+    }, [adminToken, fetchUsers]);
 };

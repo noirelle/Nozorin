@@ -9,7 +9,7 @@ import { User } from './user.entity';
 import { Friend } from '../friend/friend.entity';
 import { FriendRequest } from '../friend/friend-request.entity';
 
-const ONLINE_TTL = 150; // 2.5 minutes (consistent with socket service)
+const ONLINE_TTL = 120; // 2 minutes (aligned with socket service)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 
 export interface UserStatus {

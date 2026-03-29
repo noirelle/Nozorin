@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect } from 'react';
+import { getSocketClient } from '@/lib/socket';
 import { useStatsState } from '@/hooks/stats/useStatsState';
 import { useStatsListeners } from '@/hooks/stats/useStatsListeners';
 import { StatsData } from '@/hooks/stats/useStatsState';
@@ -17,7 +18,20 @@ const StatsContext = createContext<StatsContextType | undefined>(undefined);
 export const StatsProvider = ({ children }: { children: React.ReactNode }) => {
     const state = useStatsState();
 
-    // We only attach socket listeners here once for the entire application.
+    // 1. Global Instant Disconnect on Page Leave
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            const socket = getSocketClient();
+            if (socket) {
+                socket.disconnect();
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
+
+    // 2. Attach stats listeners
     useStatsListeners({
         setStats: state.setStats,
         setIsLoading: state.setIsLoading,

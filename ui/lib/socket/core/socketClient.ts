@@ -29,7 +29,11 @@ export function getSocketClient(token?: string | null): Socket | null {
         });
 
         _socket.on('connect', () => {
-            
+            const currentToken = (window as any)._lastSocketToken || token;
+            if (currentToken) {
+                _socket?.emit(SocketEvents.USER_IDENTIFY, { token: currentToken });
+            }
+
             // Log transport upgrades
             _socket?.io.engine.on('upgrade', (transport) => {
             });

@@ -5,6 +5,8 @@ import { statsService } from '../../shared/services/stats.service';
 import { presenceStore } from './presence.store';
 import { logger } from '../../core/logger';
 
+
+
 export const presenceService = {
     /** Broadcast a user's status to all watching clients */
     async broadcastUserStatus(io: Server, userId: string, isOnlineOverride?: boolean): Promise<void> {
@@ -42,42 +44,45 @@ export const presenceService = {
         }
     },
 
-    /** Calculate the absolute unique number of people online */
-    calculateOnlineCount(): number {
-        const identifiedUserIds = userService.getActiveUserIds(); // Unique user IDs
-        const allSocketIds = presenceStore.getAll();
-        
-        // Count anonymous sockets (those not mapped to a userId)
-        let anonymousCount = 0;
-        for (const sid of allSocketIds) {
-            if (!userService.getUserId(sid)) {
-                anonymousCount++;
+    /** Calculate the absolute unique number of people online using the LIVE socket engine */
+    calculateOnlineCount(io: Server): number {
+        const liveSockets = Array.from(io.sockets.sockets.values());
+        const uniqueMembers = new Set<string>();
+        let guestCount = 0;
+
+        for (const sock of liveSockets) {
+            const uid = userService.getUserId(sock.id);
+            if (uid) {
+                // If it's a member (and not an admin), add to unique set
+                if (!userService.isAdmin(uid)) {
+                    uniqueMembers.add(uid);
+                }
+            } else {
+                // It's a guest
+                guestCount++;
             }
         }
-        
-        const count = identifiedUserIds.length + anonymousCount;
-        logger.debug({ identified: identifiedUserIds.length, anonymous: anonymousCount, total: count }, '[PRESENCE] Calculated online count');
-        return count;
+
+        return uniqueMembers.size + guestCount;
     },
 
-    handleConnection(io: Server, socket: Socket): void {
+    async handleConnection(io: Server, socket: Socket): Promise<void> {
         presenceStore.add(socket.id);
-        
-        const onlineCount = this.calculateOnlineCount();
-        statsService.setOnlineUsers(onlineCount);
         statsService.incrementTotalConnections();
-        
-        const stats = statsService.getStats();
-        socket.emit(SocketEvents.STATS_UPDATE, stats);
-        io.emit(SocketEvents.STATS_UPDATE, stats);
+
+        // Broadcast updated stats immediately
+        const onlineCount = this.calculateOnlineCount(io);
+        statsService.setOnlineUsers(onlineCount);
+        io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
 
     /** Handle user identification and broadcast initial online status */
-    async handleUserConnection(io: Server, userId: string): Promise<void> {
+    async handleUserConnection(io: Server, userId: string, socketId: string): Promise<void> {
+        // broadcastUserStatus handles the transition for this userId
         await this.broadcastUserStatus(io, userId, true);
         
-        // Update and broadcast stats because an anonymous socket just became an identified user
-        const onlineCount = this.calculateOnlineCount();
+        // Update and broadcast stats
+        const onlineCount = this.calculateOnlineCount(io);
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
@@ -88,7 +93,8 @@ export const presenceService = {
         presenceStore.remove(socket.id);
         const isLastSocket = userService.removeSocket(socket.id);
 
-        const onlineCount = this.calculateOnlineCount();
+        // Calculate and broadcast NEW count immediately using LIVE pool
+        const onlineCount = this.calculateOnlineCount(io);
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
 
@@ -99,10 +105,31 @@ export const presenceService = {
             await this.broadcastUserStatus(io, userId, false);
         }
     },
+
+    /** Robust Sync: purges ALL stale in-memory data against the live socket engine */
+    async syncPresence(io: Server): Promise<void> {
+        const liveSocketIds = new Set(io.sockets.sockets.keys());
+        
+        // 1. Sync presenceStore
+        const storedIds = presenceStore.getAll();
+        for (const sid of storedIds) {
+            if (!liveSocketIds.has(sid)) presenceStore.remove(sid);
+        }
+
+        // 2. Sync user service maps (socketToUser, userToSockets)
+        await userService.reconcileSocketMaps(io);
+
+        // 3. Final online count recalculation & broadcast
+        const onlineCount = this.calculateOnlineCount(io);
+        statsService.setOnlineUsers(onlineCount);
+        io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
+        
+        logger.debug({ onlineCount }, '[PRESENCE] Periodic state sync completed');
+    },
 };
 
 export const register = (io: Server, socket: Socket): void => {
-    presenceService.handleConnection(io, socket);
+    // NOTE: handleConnection is called in initialization.ts — do NOT call it here to avoid double registration
 
     socket.on(SocketEvents.WATCH_USER_STATUS, async (data: { user_ids: string[] }) => {
         const { user_ids } = data;
@@ -142,7 +169,9 @@ export const register = (io: Server, socket: Socket): void => {
     });
 
     // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
+    // Guard: only refresh if the socket is still tracked in presenceStore (prevents half-open ghost refreshes)
     socket.conn.on('heartbeat', async () => {
+        if (!presenceStore.getAll().includes(socket.id)) return;
         const userId = userService.getUserId(socket.id);
         if (userId) {
             await userService.updateUserStatus(userId, true);
