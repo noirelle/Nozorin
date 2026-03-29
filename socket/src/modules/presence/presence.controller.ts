@@ -6,10 +6,11 @@ import { presenceService } from './presence.service';
 const router = Router();
 
 /** GET /internal/status/global — returns overall stats */
-router.get('/global', async (_req: Request, res: Response) => {
+router.get('/global', async (req: Request, res: Response) => {
     const stats = statsService.getStats();
-    // Overwrite the local people_online count with the global one from Redis
-    const globalCount = await presenceService.calculateOnlineCount();
+    // Get the global deduplicated count from the live socket pool
+    const io = req.app.get('io');
+    const globalCount = presenceService.calculateOnlineCount(io);
     res.json({ ...stats, people_online: globalCount });
 });
 
@@ -18,7 +19,8 @@ router.get('/:userId', async (req: Request, res: Response) => {
     const { userId } = req.params;
     try {
         const status = await userService.getUserStatus(userId);
-        const onlineCount = await presenceService.calculateOnlineCount(); // Use global deduplicated count
+        const io = req.app.get('io');
+        const onlineCount = presenceService.calculateOnlineCount(io); // Use global deduplicated count
         res.json({ userId, status, onlineCount });
     } catch {
         res.status(500).json({ error: 'Failed to fetch status' });
