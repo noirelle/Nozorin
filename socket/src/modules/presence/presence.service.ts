@@ -4,7 +4,6 @@ import { userService } from '../../shared/services/user.service';
 import { statsService } from '../../shared/services/stats.service';
 import { presenceStore } from './presence.store';
 import { logger } from '../../core/logger';
-import { getRedisClient } from '../../core/config/redis.config';
 
 
 
@@ -99,10 +98,31 @@ export const presenceService = {
             await this.broadcastUserStatus(io, userId, false);
         }
     },
+
+    /** Reconcile presenceStore against actual live Socket.IO connections */
+    async reconcilePresenceStore(io: Server): Promise<void> {
+        const storedIds = presenceStore.getAll();
+        const liveSocketIds = new Set(io.sockets.sockets.keys());
+        let orphanCount = 0;
+
+        for (const socketId of storedIds) {
+            if (!liveSocketIds.has(socketId)) {
+                presenceStore.remove(socketId);
+                orphanCount++;
+            }
+        }
+
+        if (orphanCount > 0) {
+            logger.info({ orphanCount }, '[PRESENCE] Reconciliation: removed orphaned socket IDs from presenceStore');
+            const onlineCount = await this.calculateOnlineCount();
+            statsService.setOnlineUsers(onlineCount);
+            io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
+        }
+    },
 };
 
 export const register = (io: Server, socket: Socket): void => {
-    presenceService.handleConnection(io, socket);
+    // NOTE: handleConnection is called in initialization.ts — do NOT call it here to avoid double registration
 
     socket.on(SocketEvents.WATCH_USER_STATUS, async (data: { user_ids: string[] }) => {
         const { user_ids } = data;
@@ -142,7 +162,9 @@ export const register = (io: Server, socket: Socket): void => {
     });
 
     // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
+    // Guard: only refresh if the socket is still tracked in presenceStore (prevents half-open ghost refreshes)
     socket.conn.on('heartbeat', async () => {
+        if (!presenceStore.getAll().includes(socket.id)) return;
         const userId = userService.getUserId(socket.id);
         if (userId) {
             await userService.updateUserStatus(userId, true);

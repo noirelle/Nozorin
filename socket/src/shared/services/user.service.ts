@@ -11,7 +11,7 @@ import { FriendRequest } from '../../modules/friends/friend-request.entity';
 import { UserProfile } from '../types/socket.types';
 import { LessThan } from 'typeorm';
 
-const ONLINE_TTL = 90; // 1.5 minutes (allows for ~3-4 missed heartbeats)
+const ONLINE_TTL = 120; // 2 minutes (aligned with API service)
 const OFFLINE_TTL = 7 * 24 * 60 * 60; // 7 days
 const DB_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -306,6 +306,59 @@ export const userService = {
             }
         } catch (error) {
             logger.error({ error }, '[USER-SERVICE] Failed to cleanup zombie statuses');
+        }
+    },
+
+    /** Reconcile in-memory socket maps against actual live Socket.IO connections */
+    async reconcileSocketMaps(io: any): Promise<void> {
+        const liveSocketIds = new Set(io.sockets.sockets.keys());
+        let orphanCount = 0;
+        const usersToDeactivate: string[] = [];
+
+        // Clean socketToUser map
+        for (const [socketId, userId] of socketToUser.entries()) {
+            if (!liveSocketIds.has(socketId)) {
+                socketToUser.delete(socketId);
+                orphanCount++;
+
+                // Also remove from userToSockets
+                const sockets = userToSockets.get(userId);
+                if (sockets) {
+                    sockets.delete(socketId);
+                    if (sockets.size === 0) {
+                        userToSockets.delete(userId);
+                        adminUsers.delete(userId);
+                        usersToDeactivate.push(userId);
+                    }
+                }
+            }
+        }
+
+        // Deactivate users who have no remaining live sockets
+        for (const userId of usersToDeactivate) {
+            await this.deactivateUser(userId);
+            const { presenceService } = require('../../modules/presence/presence.service');
+            await presenceService.broadcastUserStatus(io, userId, false);
+        }
+
+        if (orphanCount > 0) {
+            logger.info({ orphanCount, deactivated: usersToDeactivate.length }, '[USER-SERVICE] Reconciliation: cleaned orphaned socket map entries');
+        }
+    },
+
+    /** Reset all online statuses in DB on server startup (clean slate) */
+    async resetAllOnlineStatuses(): Promise<void> {
+        try {
+            const result = await userRepository.update(
+                { is_online: true },
+                { is_online: false }
+            );
+            const affected = (result as any)?.affected || 0;
+            if (affected > 0) {
+                logger.info({ affected }, '[USER-SERVICE] Startup: reset all stale is_online flags in DB');
+            }
+        } catch (error) {
+            logger.error({ error }, '[USER-SERVICE] Failed to reset online statuses on startup');
         }
     },
 

@@ -54,6 +54,9 @@ const startServer = async () => {
         initRedis();
         await initDatabase();
 
+        // Startup reconciliation: reset all stale is_online flags from previous process
+        await userService.resetAllOnlineStatuses();
+
         httpServer.listen(PORT, () => {
             logger.info({ port: PORT }, '[SERVER] nozorin_realtime listening');
         });
@@ -66,6 +69,12 @@ const startServer = async () => {
         setInterval(() => {
             userService.cleanupZombieStatuses(io);
         }, 1 * 60 * 1000); // Every minute
+
+        // Presence reconciliation: sweep orphaned socket IDs from in-memory stores every 30s
+        setInterval(() => {
+            presenceService.reconcilePresenceStore(io);
+            userService.reconcileSocketMaps(io);
+        }, 30 * 1000); // Every 30 seconds
     } catch (err) {
         logger.error({ err }, '[SERVER] Failed to start');
         process.exit(1);
