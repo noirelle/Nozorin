@@ -99,7 +99,12 @@ export const userService = {
 
     /** Returns all user IDs currently associated with at least one socket (excluding admins) */
     getActiveUserIds(): string[] {
-        return Array.from(userToSockets.keys()).filter(id => !adminUsers.has(id));
+        return Array.from(userToSockets.keys()).filter(id => !this.isAdmin(id));
+    },
+
+    /** Check if a userId is part of the in-memory admin set */
+    isAdmin(userId: string): boolean {
+        return adminUsers.has(userId);
     },
 
     /** Register/activate a user (marking existence in Redis) */

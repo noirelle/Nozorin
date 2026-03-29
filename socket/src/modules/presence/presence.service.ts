@@ -44,20 +44,34 @@ export const presenceService = {
         }
     },
 
-    /** Calculate the absolute unique number of people online using memory */
-    async calculateOnlineCount(): Promise<number> {
-        // Unique authenticated users + unique anonymous sockets
-        return userService.getActiveUserIds().length + presenceStore.getAll().filter(sid => !userService.getUserId(sid)).length;
+    /** Calculate the absolute unique number of people online using the LIVE socket engine */
+    calculateOnlineCount(io: Server): number {
+        const liveSockets = Array.from(io.sockets.sockets.values());
+        const uniqueMembers = new Set<string>();
+        let guestCount = 0;
+
+        for (const sock of liveSockets) {
+            const uid = userService.getUserId(sock.id);
+            if (uid) {
+                // If it's a member (and not an admin), add to unique set
+                if (!userService.isAdmin(uid)) {
+                    uniqueMembers.add(uid);
+                }
+            } else {
+                // It's a guest
+                guestCount++;
+            }
+        }
+
+        return uniqueMembers.size + guestCount;
     },
 
     async handleConnection(io: Server, socket: Socket): Promise<void> {
         presenceStore.add(socket.id);
-        
-        // Immediately track connection load
         statsService.incrementTotalConnections();
 
         // Broadcast updated stats immediately
-        const onlineCount = await this.calculateOnlineCount();
+        const onlineCount = this.calculateOnlineCount(io);
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
@@ -68,7 +82,7 @@ export const presenceService = {
         await this.broadcastUserStatus(io, userId, true);
         
         // Update and broadcast stats
-        const onlineCount = await this.calculateOnlineCount();
+        const onlineCount = this.calculateOnlineCount(io);
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
@@ -79,8 +93,8 @@ export const presenceService = {
         presenceStore.remove(socket.id);
         const isLastSocket = userService.removeSocket(socket.id);
 
-        // Calculate and broadcast NEW count immediately
-        const onlineCount = await this.calculateOnlineCount();
+        // Calculate and broadcast NEW count immediately using LIVE pool
+        const onlineCount = this.calculateOnlineCount(io);
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
 
@@ -92,25 +106,25 @@ export const presenceService = {
         }
     },
 
-    /** Reconcile presenceStore against actual live Socket.IO connections */
-    async reconcilePresenceStore(io: Server): Promise<void> {
-        const storedIds = presenceStore.getAll();
+    /** Robust Sync: purges ALL stale in-memory data against the live socket engine */
+    async syncPresence(io: Server): Promise<void> {
         const liveSocketIds = new Set(io.sockets.sockets.keys());
-        let orphanCount = 0;
-
-        for (const socketId of storedIds) {
-            if (!liveSocketIds.has(socketId)) {
-                presenceStore.remove(socketId);
-                orphanCount++;
-            }
+        
+        // 1. Sync presenceStore
+        const storedIds = presenceStore.getAll();
+        for (const sid of storedIds) {
+            if (!liveSocketIds.has(sid)) presenceStore.remove(sid);
         }
 
-        if (orphanCount > 0) {
-            logger.info({ orphanCount }, '[PRESENCE] Reconciliation: removed orphaned socket IDs from presenceStore');
-            const onlineCount = await this.calculateOnlineCount();
-            statsService.setOnlineUsers(onlineCount);
-            io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
-        }
+        // 2. Sync user service maps (socketToUser, userToSockets)
+        await userService.reconcileSocketMaps(io);
+
+        // 3. Final online count recalculation & broadcast
+        const onlineCount = this.calculateOnlineCount(io);
+        statsService.setOnlineUsers(onlineCount);
+        io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
+        
+        logger.debug({ onlineCount }, '[PRESENCE] Periodic state sync completed');
     },
 };
 

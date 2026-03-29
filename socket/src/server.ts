@@ -32,6 +32,8 @@ const io = new Server(httpServer, {
     pingInterval: 5000,
 });
 
+app.set('io', io);
+
 app.use(cors());
 app.use(express.json());
 
@@ -72,8 +74,7 @@ const startServer = async () => {
 
         // Presence reconciliation: sweep orphaned socket IDs from in-memory stores every 30s
         setInterval(() => {
-            presenceService.reconcilePresenceStore(io);
-            userService.reconcileSocketMaps(io);
+            presenceService.syncPresence(io);
         }, 30 * 1000); // Every 30 seconds
     } catch (err) {
         logger.error({ err }, '[SERVER] Failed to start');
