@@ -51,9 +51,12 @@ export const presenceService = {
         let guestCount = 0;
 
         for (const sock of liveSockets) {
+            // Priority 1: Exclude admins based on socket data (robust)
+            if ((sock as any).data?.user?.user_type === 'admin') continue;
+
             const uid = userService.getUserId(sock.id);
             if (uid) {
-                // If it's a member (and not an admin), add to unique set
+                // Priority 2: Exclude admins based on user mapping (backup)
                 if (!userService.isAdmin(uid)) {
                     uniqueMembers.add(uid);
                 }
