@@ -56,18 +56,10 @@ export const presenceService = {
         // Immediately track connection load
         statsService.incrementTotalConnections();
 
-        // Delay anonymous marking to prevent race conditions with speedy auth.
-        // Even without Redis, we delay the stats broadcast to avoid duplicate updates during login flow
-        setTimeout(async () => {
-            if (!userService.getUserId(socket.id) && presenceStore.getAll().includes(socket.id)) {
-                const onlineCount = await this.calculateOnlineCount();
-                statsService.setOnlineUsers(onlineCount);
-                
-                const stats = statsService.getStats();
-                socket.emit(SocketEvents.STATS_UPDATE, stats);
-                io.emit(SocketEvents.STATS_UPDATE, stats);
-            }
-        }, 2000);
+        // Broadcast updated stats immediately
+        const onlineCount = await this.calculateOnlineCount();
+        statsService.setOnlineUsers(onlineCount);
+        io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
     },
 
     /** Handle user identification and broadcast initial online status */
@@ -87,6 +79,7 @@ export const presenceService = {
         presenceStore.remove(socket.id);
         const isLastSocket = userService.removeSocket(socket.id);
 
+        // Calculate and broadcast NEW count immediately
         const onlineCount = await this.calculateOnlineCount();
         statsService.setOnlineUsers(onlineCount);
         io.emit(SocketEvents.STATS_UPDATE, statsService.getStats());
