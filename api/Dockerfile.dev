@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY api/package*.json ./
+
+# Install dependencies as root to avoid permission issues
+USER root
+RUN npm install
+
+COPY api/ ./
+
+# Fix permissions for mounted volume
+RUN chown -R node:node /app
+USER node
+
+EXPOSE 3001
+CMD ["npm", "run", "dev"]

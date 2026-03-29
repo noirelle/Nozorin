@@ -1,13 +1,16 @@
-version: "3.10"
+version: "3.9"
 
 services:
   ui:
     build:
       context: .
-      dockerfile: ui/Dockerfile
+      dockerfile: ui/Dockerfile.dev
     container_name: nozorin_ui
     ports:
       - "3000:3000"
+    volumes:
+      - ./ui:/app         
+      - /app/node_modules   
     env_file:
       - ./ui/.env
     depends_on:
@@ -17,28 +20,34 @@ services:
   api:
     build:
       context: .
-      dockerfile: api/Dockerfile
+      dockerfile: api/Dockerfile.dev
     container_name: nozorin_api
     ports:
       - "3001:3001"
+    volumes:
+      - ./api:/app
+      - /app/node_modules
     env_file:
       - ./api/.env
     depends_on:
       - db
       - redis
+      - realtime
 
   realtime:
     build:
       context: .
-      dockerfile: socket/Dockerfile
+      dockerfile: socket/Dockerfile.dev
     container_name: nozorin_realtime
     ports:
       - "3002:3002"
+    volumes:
+      - ./socket:/app
+      - /app/node_modules
     env_file:
       - ./socket/.env
     depends_on:
       - db
-      - api
       - redis
 
   db:
