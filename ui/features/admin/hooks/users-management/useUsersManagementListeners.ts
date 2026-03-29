@@ -82,14 +82,18 @@ export const useUsersManagementListeners = ({ setUsers, fetchUsers }: UseUsersMa
 
     useSocketEvent(SocketEvents.ADMIN_USER_ACTIVE as any, handleUserActive);
 
-    // 3. Periodic refetch to reconcile against server-authoritative state
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchUsers(true);
-        }, 30 * 1000); // Every 30 seconds
+    // 3. Listen for Initial Sync (hydrates current list with online status)
+    const handleInitSync = useCallback((data: { online_user_ids: string[] }) => {
+        setUsers(currentUsers => {
+            const onlineSet = new Set(data.online_user_ids);
+            return currentUsers.map(user => ({
+                ...user,
+                is_online: onlineSet.has(user.id)
+            }));
+        });
+    }, [setUsers]);
 
-        return () => clearInterval(interval);
-    }, [fetchUsers]);
+    useSocketEvent(SocketEvents.ADMIN_INIT_SYNC as any, handleInitSync);
 
     // 4. Immediate refetch on socket reconnect (catches missed events during disconnection)
     useEffect(() => {

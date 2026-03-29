@@ -51,9 +51,12 @@ export const presenceService = {
         let guestCount = 0;
 
         for (const sock of liveSockets) {
+            // Priority 1: Exclude admins based on socket data (robust)
+            if ((sock as any).data?.user?.user_type === 'admin') continue;
+
             const uid = userService.getUserId(sock.id);
             if (uid) {
-                // If it's a member (and not an admin), add to unique set
+                // Priority 2: Exclude admins based on user mapping (backup)
                 if (!userService.isAdmin(uid)) {
                     uniqueMembers.add(uid);
                 }
@@ -163,11 +166,16 @@ export const register = (io: Server, socket: Socket): void => {
         if (userData?.user_type === 'admin') {
             socket.join('admin:users');
             logger.info({ socketId: socket.id }, '[PRESENCE] Admin joined admin:users room');
+            
+            // Initial Sync: Send currently active user IDs to the admin
+            const activeUserIds = userService.getActiveUserIds();
+            socket.emit(SocketEvents.ADMIN_INIT_SYNC, {
+                online_user_ids: activeUserIds
+            });
         } else {
             logger.warn({ socketId: socket.id }, '[PRESENCE] Unauthorized JOIN_ADMIN_ROOM attempt');
         }
     });
-
     // Reactive Heartbeat: listen to engine.io heartbeats to refresh presence
     // Guard: only refresh if the socket is still tracked in presenceStore (prevents half-open ghost refreshes)
     socket.conn.on('heartbeat', async () => {
